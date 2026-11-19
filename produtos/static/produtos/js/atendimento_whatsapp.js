@@ -3164,6 +3164,17 @@
         pintarOperadorPin();
         return;
       }
+      var sistappAinda = false;
+      try {
+        var ate = parseInt(localStorage.getItem('agro_wa_sistapp_ate') || '0', 10) || 0;
+        var tok = localStorage.getItem('agro_wa_sistapp_token') || '';
+        var instalado = window.matchMedia && window.matchMedia('(display-mode: standalone)').matches && !/(?:\?|&)sistapp=1(?:&|$)/.test(location.search);
+        sistappAinda = !instalado && document.body && document.body.classList.contains('wa-cel') && ate > Date.now() && !!tok;
+      } catch (_) {}
+      if (sistappAinda) {
+        pintarOperadorPin();
+        return;
+      }
       try { localStorage.removeItem('gm_sspin_operador'); } catch (_) {}
       pintarOperadorPin();
       trocarOperadorPin();

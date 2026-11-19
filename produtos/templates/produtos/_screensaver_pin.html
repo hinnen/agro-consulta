@@ -70,12 +70,14 @@
     var waSolo = window.matchMedia && window.matchMedia('(display-mode: standalone)').matches;
     var waQuery = /(?:\?|&)sistapp=1(?:&|$)/.test(location.search);
     var waKey = 'agro_wa_sistapp_ate';
+    var waTok = 'agro_wa_sistapp_token';
     var waAte = parseInt(localStorage.getItem(waKey) || '0', 10) || 0;
-    if (waCel && waQuery && !waSolo) {
+    if (waCel && waQuery) {
       waAte = Date.now() + 7 * 24 * 3600 * 1000;
       localStorage.setItem(waKey, String(waAte));
     }
-    if (waCel && !waSolo && waAte > Date.now()) {
+    var waInstalado = waSolo && !waQuery;
+    if (waCel && !waInstalado && waAte > Date.now()) {
       root.setAttribute('data-idle-min', '10080');
       if (!window.__waSistappFetch && window.fetch) {
         window.__waSistappFetch = true;
@@ -84,6 +86,9 @@
           var opts = init ? Object.assign({}, init) : {};
           var h = new Headers(opts.headers || {});
           h.set('X-Agro-Wa-Sistapp', '1');
+          var tok = '';
+          try { tok = localStorage.getItem(waTok) || ''; } catch (eTok) {}
+          if (tok) h.set('X-Agro-Wa-Sistapp-Token', tok);
           opts.headers = h;
           return waFetch.call(this, input, opts);
         };
@@ -636,16 +641,20 @@
       fd.append('origem', 'gestao');
       fd.append('gestao_nonce', gestaoNonceAtual);
     }
+    var ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+    var tempo = ctrl ? setTimeout(function () { try { ctrl.abort(); } catch (eAb) {} }, 12000) : null;
     fetch(API_VALIDAR_PIN, {
       method: 'POST',
       credentials: 'same-origin',
       headers: { 'X-CSRFToken': csrf() },
-      body: fd
+      body: fd,
+      signal: ctrl ? ctrl.signal : undefined
     })
       .then(function (r) {
         return r.json().then(function (d) { return { ok: r.ok, data: d }; });
       })
       .then(function (res) {
+        if (tempo) clearTimeout(tempo);
         validando = false;
         if (res.ok && res.data && res.data.ok) {
           var op = (res.data.operador || '').trim();
@@ -655,6 +664,12 @@
           }
           setOperador(op);
           savePinSession(pin, op);
+          if (res.data.sistapp_token) {
+            try {
+              localStorage.setItem('agro_wa_sistapp_token', String(res.data.sistapp_token));
+              localStorage.setItem('agro_wa_sistapp_ate', String(Date.now() + 7 * 24 * 3600 * 1000));
+            } catch (eTok) {}
+          }
           if (gestaoMode && res.data.gestao_nonce) gestaoNonceAtual = String(res.data.gestao_nonce);
           if (input) input.value = '';
           closeLock();
@@ -666,6 +681,7 @@
         if (input) input.select();
       })
       .catch(function () {
+        if (tempo) clearTimeout(tempo);
         validando = false;
         if (msg) msg.textContent = 'Erro de rede. Tente de novo.';
       });

@@ -47,6 +47,8 @@ Atualizado **14/11/2026**.
 19/11: ao fechar o Sistvale o prazo se perdia. O celular agora guarda os 7 dias. O instalado continua no prazo curto.
 
 19/11, autorizado: a página do Zap no celular ficou mais leve e a foto baixa uma vez, com atualização semanal devagar. Para voltar: tag `zap-antes-pagina-leve-2026-11-19`.
+
+19/11, autorizado: o PIN do Zap aberto pelo Sistvale continua 7 dias mesmo se o aplicativo fechar. O instalado e o computador continuam no prazo curto. A primeira vez depois desta atualização ainda pede o PIN. Para voltar: tag `zap-antes-pin-app-fechou-2026-11-19`.
 - Ditado de voz sai torto às vezes. Se não bater, perguntar de novo.
 - O foco é o desktop. O que ele pede também vale no celular, cabendo na tela do telefone.
 
