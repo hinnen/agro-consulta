@@ -1,0 +1,138 @@
+diff --git a/VERSION b/VERSION
+index f7f79e24..e238a7a7 100644
+--- a/VERSION
++++ b/VERSION
+@@ -1 +1 @@
+-27.26.81
++27.26.82
+diff --git a/produtos/static/produtos/js/pdv_pedir_loja.js b/produtos/static/produtos/js/pdv_pedir_loja.js
+index 60630bbf..a6b8ca53 100644
+--- a/produtos/static/produtos/js/pdv_pedir_loja.js
++++ b/produtos/static/produtos/js/pdv_pedir_loja.js
+@@ -22,6 +22,9 @@
+   var overlay = document.getElementById('pdv-pedir-loja-overlay');
+   if (!overlay) return;
+ 
++  /* Pausa temporária do botão Pedir loja. Voltar: false. */
++  var PEDIR_LOJA_PAUSADO = true;
++
+   var cart = [];
+   var searchTimer = null;
+   var buscaSeq = 0;
+@@ -34,6 +37,21 @@
+ 
+   var dom = {
+     btnOpen: document.getElementById('pdv-topbar-pedir-loja-btn'),
++  };
++  if (PEDIR_LOJA_PAUSADO && dom.btnOpen) {
++    dom.btnOpen.classList.add('pdv-wiz-topbar-btn--pausado');
++    dom.btnOpen.title = 'Pedir loja pausado por enquanto';
++  }
++
++  function avisoPedirPausado() {
++    var msg = 'O botão Pedir loja foi desativado temporariamente.';
++    if (typeof window.showPdvAviso === 'function') {
++      window.showPdvAviso(msg, { title: 'Pedir loja', tone: 'warn', prominent: true });
++      return;
++    }
++    alert(msg);
++  }
++  Object.assign(dom, {
+     btnCount: document.getElementById('pdv-topbar-pedir-loja-count'),
+     fechar: document.getElementById('pdv-pedir-loja-fechar'),
+     sub: document.getElementById('pdv-pedir-loja-sub'),
+@@ -79,7 +97,7 @@
+     temPedido: document.getElementById('pdv-pedir-loja-tem-pedido'),
+     temPedidoMsg: document.getElementById('pdv-pedir-loja-tem-pedido-msg'),
+     temPedidoOk: document.getElementById('pdv-pedir-loja-tem-pedido-ok'),
+-  };
++  });
+   var ajusteProduto = null;
+   var printChoiceRows = null;
+ 
+@@ -157,6 +175,7 @@
+   }
+ 
+   function syncBeepPendentes(n) {
++    if (PEDIR_LOJA_PAUSADO) n = 0;
+     pendentesBeep = Number(n || 0);
+     if (pendentesBeep > 0) {
+       if (!beepTimer) {
+@@ -291,6 +310,10 @@
+   }
+ 
+   function abrir() {
++    if (PEDIR_LOJA_PAUSADO) {
++      avisoPedirPausado();
++      return;
++    }
+     overlay.classList.remove('hidden');
+     overlay.classList.add('flex');
+     try {
+@@ -450,10 +473,16 @@
+     if (dom.btnOpen) {
+       var base = 'pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate relative';
+       /* Alerta/bip so com recebidos_bip (Postgres) — Aceitar/Pronto silenciam 30 min em todos os PCs. */
+-      if (bip > 0) base += ' pdv-wiz-topbar-btn--pedir-loja-alerta';
++      if (PEDIR_LOJA_PAUSADO) {
++        bip = 0;
++        base += ' pdv-wiz-topbar-btn--pausado';
++      } else if (bip > 0) {
++        base += ' pdv-wiz-topbar-btn--pedir-loja-alerta';
++      }
+       dom.btnOpen.className = base;
+-      dom.btnOpen.title =
+-        n > 0
++      dom.btnOpen.title = PEDIR_LOJA_PAUSADO
++        ? 'Pedir loja pausado por enquanto'
++        : n > 0
+           ? bip > 0
+             ? n + ' pedido(s) da outra loja'
+             : n + ' pedido(s) · bip pausado 30 min apos Aceitar'
+@@ -1973,6 +2002,10 @@
+   }
+ 
+   function abrirEscolha() {
++    if (PEDIR_LOJA_PAUSADO) {
++      avisoPedirPausado();
++      return;
++    }
+     if (!escolha) {
+       abrir();
+       return;
+diff --git a/produtos/static/produtos/js/pdv_wizard.js b/produtos/static/produtos/js/pdv_wizard.js
+index f4bfc731..6e3c1e15 100644
+--- a/produtos/static/produtos/js/pdv_wizard.js
++++ b/produtos/static/produtos/js/pdv_wizard.js
+@@ -314,6 +314,7 @@
+             } catch (ePinToast) {}
+         }
+     }
++    window.showPdvAviso = showPdvAviso;
+ 
+     function showPdvConfirmacao(msg, opts) {
+         opts = opts || {};
+diff --git a/produtos/templates/produtos/pdv_wizard.html b/produtos/templates/produtos/pdv_wizard.html
+index b8100728..730735a7 100644
+--- a/produtos/templates/produtos/pdv_wizard.html
++++ b/produtos/templates/produtos/pdv_wizard.html
+@@ -2539,6 +2539,10 @@
+     text-transform: uppercase;
+     white-space: nowrap;
+   }
++  #pdv-topbar-compact #pdv-topbar-pedir-loja-btn.pdv-wiz-topbar-btn--pausado {
++    opacity: 0.4;
++    filter: grayscale(1);
++  }
+   #pdv-topbar-compact .pdv-wiz-topbar-btn span,
+   #pdv-topbar-compact .pdv-step-nav .pdv-step-label {
+     font-size: inherit !important;
+@@ -4542,7 +4546,7 @@
+               <button type="button" id="pdv-topbar-help" class="pdv-wiz-help pdv-topbar-help shrink-0" data-pdv-help="produtos" title="Ajuda — etapa atual">?</button>
+             </div>
+             <div class="pdv-wiz-topbar-estoque-vila" id="pdv-topbar-quente" aria-label="Atalhos frequentes">
+-              <button type="button" id="pdv-topbar-pedir-loja-btn" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate relative" data-pdv-topbar-key="pedir_loja" data-pdv-topbar-node="pedir_loja" title="Pedir produto da outra loja (Centro ↔ Vila)">
++              <button type="button" id="pdv-topbar-pedir-loja-btn" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate pdv-wiz-topbar-btn--pausado relative" data-pdv-topbar-key="pedir_loja" data-pdv-topbar-node="pedir_loja" title="Pedir loja pausado por enquanto">
+                 Pedir loja
+                 <span id="pdv-topbar-pedir-loja-count" class="pdv-topbar-pedir-loja-count hidden absolute -right-1 -top-1 min-w-[1.1rem] rounded-full bg-slate-600 px-1 text-[8px] font-black leading-tight text-white tabular-nums">0</span>
+               </button>

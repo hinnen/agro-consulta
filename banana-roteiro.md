@@ -4,7 +4,7 @@
 
 **Renan:** anexe `@banana-roteiro` (ou só descreva a tarefa — a rule Cursor já puxa este arquivo).
 
-**Checklist único (19/11):** **PDV-PEDIR-LOJA-PAUSA** — 🟢 pronto para envio. Botão Pedir loja pausado, com aviso no clique. Sem migrate. Código em `cursor/pdv-pedir-loja-pausa-77f4` @ `472a8a62`.
+**Checklist único (19/11):** **PDV-PEDIR-LOJA-PAUSA** — corte **v27.26.82** armado, **não enviado**. Botão Pedir loja cinza, aviso no clique, sem apito. Sem migrate. Base **v27.26.81** @ `59f184fa`. Na senha, vendas pausadas: `./scripts/cutover_loja_checklist_1911_pedir_pausa.sh --exec`. Volta: `git push origin 59f184fa:producao`.
 
 **Loja (19/11b):** **VENDAS-MOBILE-VISUAL-2** enviada · **v27.26.81** @ `59f184fa`. Só o desenho do card escuro, o R$ da previsão e o espaço. Sem migrate. Até o build, no ar segue **v27.26.80** @ `76ac13ac`. Volta: `git push origin 76ac13ac:producao`.
 

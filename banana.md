@@ -1695,7 +1695,19 @@ Até o build, no ar segue v27.26.53 @ `af7af8cc`. Volta: `git push origin rollba
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### CHECKLIST ÚNICO — **19/11** · 🟢 **pronto para envio à produção**
+### 🟢 CORTE ARMADO — **19/11** · **v27.26.82** · Pedir loja pausado · ainda não foi para a loja
+
+| Campo | Valor |
+| ----- | ----- |
+| **Entra** | Botão **Pedir loja** cinza. O clique avisa e não abre. Sem apito |
+| **Não muda** | Venda, caixa, estoque, fiado |
+| **Migrate** | **NÃO** |
+| **Base** | loja **v27.26.81** @ `59f184fa` |
+| **Prova** | patch aplica em cima da loja. O botão nasce pausado. O JS do PDV passa na checagem de escrita |
+| **Na senha** | vendas pausadas · `./scripts/cutover_loja_checklist_1911_pedir_pausa.sh --exec` |
+| **Volta** | `git push origin 59f184fa:producao` |
+
+### CHECKLIST ÚNICO — **19/11** · dentro do corte **v27.26.82** (ainda não enviado)
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
