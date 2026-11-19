@@ -1695,6 +1695,14 @@ Até o build, no ar segue v27.26.53 @ `af7af8cc`. Volta: `git push origin rollba
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### CHECKLIST ÚNICO — **19/11** · 🟢 **pronto para envio à produção**
+
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **PDV-PEDIR-LOJA-PAUSA** | 🟢 Pronto | **NÃO** | clique avisa e não abre · cinza fica · sem apito |
+
+Botão **Pedir loja** cinza. O clique avisa que foi desativado temporariamente. Não abre o pedido e não apita. Estoque igual. Código em `cursor/pdv-pedir-loja-pausa-77f4` @ `472a8a62`. Ainda não está na loja.
+
 ### ✅ VENDAS-MOBILE-VISUAL-2 — **19/11** · enviado · **v27.26.81** @ `59f184fa`
 
 Fiado empilhado no card escuro, R$ pequeno na previsão, tela mais cheia. Sem migrate. Até o build, no ar segue **v27.26.80** @ `76ac13ac`. Volta: `git push origin 76ac13ac:producao`.
