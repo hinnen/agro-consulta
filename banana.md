@@ -1695,6 +1695,10 @@ Até o build, no ar segue v27.26.53 @ `af7af8cc`. Volta: `git push origin rollba
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 🟢 VENDAS-MOBILE-VISUAL-2 — **19/11** · pronto · alvo **v27.26.81**
+
+O card escuro, o R$ da previsão e o espaço vazio do celular. Em cima da **v27.26.80** @ `76ac13ac`. Sem migrate. Na senha: `./scripts/cutover_loja_checklist_1911_vendas_mobile.sh` depois `--exec`. Volta: `git push origin 76ac13ac:producao`.
+
 ### ✅ VENDAS-MOBILE-VISUAL — **19/11** · enviado · **v27.26.80** @ `76ac13ac`
 
 | Campo | Valor |

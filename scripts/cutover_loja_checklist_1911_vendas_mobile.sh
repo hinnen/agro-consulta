@@ -5,8 +5,8 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
-PROD_ESPERADO="ef23e2e7"
-VER="27.26.80"
+PROD_ESPERADO="76ac13ac"
+VER="27.26.81"
 SENHA_OK="99738595"
 WT="${TMPDIR:-/tmp}/agro-cutover-1911-vendas-$$"
 git fetch origin producao
@@ -24,7 +24,7 @@ grep -q 'def vendas_lojas_seis_meses_fechados' "$WT/produtos/vendas_lojas_util.p
 grep -q 'vendas_lojas_seis_meses_fechados' "$WT/produtos/views.py"
 git -C "$WT" add -A
 git -C "$WT" -c user.email="cursoragent@cursor.com" -c user.name="Cursor Agent" \
-  commit -m "prep(loja): v27.26.80 visual vendas SistApp e seis meses"
+  commit -m "prep(loja): v27.26.81 ajuste visual vendas SistApp"
 echo "OK: corte v$VER em cima de ${PROD:0:8}"
 echo "Entra: desenho do painel de Vendas e a lista dos seis meses fechados."
 echo "Não muda: PDV, caixa, venda, Pulso, calendário. Sem tabela nova."
