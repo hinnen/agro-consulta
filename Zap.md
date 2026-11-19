@@ -48,7 +48,7 @@ Atualizado **14/11/2026**.
 
 19/11, à tarde: a tentativa de manter o PIN depois que o aplicativo fecha foi desfeita. O PIN de dentro do Sistvale fica como está.
 
-19/11, à tarde: o Zap instalado recebia mensagem e não aceitava toque. A camada do PIN ficava invisível por cima. Corrigido só isso.
+19/11, à tarde: o visual do celular voltou ao de antes. O atalho sem o pacote de estilo deixou o PIN quadrado e escondeu o campo de escrever.
 
 19/11, autorizado: a página do Zap no celular ficou mais leve e a foto baixa uma vez, com atualização semanal devagar. Para voltar: tag `zap-antes-pagina-leve-2026-11-19`.
 - Ditado de voz sai torto às vezes. Se não bater, perguntar de novo.
