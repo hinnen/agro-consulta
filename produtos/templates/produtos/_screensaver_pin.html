@@ -64,6 +64,33 @@
   if (window.__GM_SSPIN_INIT__) return;
   window.__GM_SSPIN_INIT__ = true;
 
+  /* Zap aberto pelo Sistvale: o app fecha e perde o endereço. O celular guarda 7 dias. */
+  try {
+    var waCel = document.body && document.body.classList.contains('wa-cel');
+    var waSolo = window.matchMedia && window.matchMedia('(display-mode: standalone)').matches;
+    var waQuery = /(?:\?|&)sistapp=1(?:&|$)/.test(location.search);
+    var waKey = 'agro_wa_sistapp_ate';
+    var waAte = parseInt(localStorage.getItem(waKey) || '0', 10) || 0;
+    if (waCel && waQuery && !waSolo) {
+      waAte = Date.now() + 7 * 24 * 3600 * 1000;
+      localStorage.setItem(waKey, String(waAte));
+    }
+    if (waCel && !waSolo && waAte > Date.now()) {
+      root.setAttribute('data-idle-min', '10080');
+      if (!window.__waSistappFetch && window.fetch) {
+        window.__waSistappFetch = true;
+        var waFetch = window.fetch;
+        window.fetch = function (input, init) {
+          var opts = init ? Object.assign({}, init) : {};
+          var h = new Headers(opts.headers || {});
+          h.set('X-Agro-Wa-Sistapp', '1');
+          opts.headers = h;
+          return waFetch.call(this, input, opts);
+        };
+      }
+    }
+  } catch (eSistApp) {}
+
   var BOOTSTRAP_PIN = '1234';
   var LS_OPERADOR = 'gm_sspin_operador';
   var LS_GESTAO_OK = 'gm_sspin_gestao_ok_v1';
