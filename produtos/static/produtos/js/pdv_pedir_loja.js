@@ -473,10 +473,16 @@
     if (dom.btnOpen) {
       var base = 'pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate relative';
       /* Alerta/bip so com recebidos_bip (Postgres) — Aceitar/Pronto silenciam 30 min em todos os PCs. */
-      if (bip > 0) base += ' pdv-wiz-topbar-btn--pedir-loja-alerta';
+      if (PEDIR_LOJA_PAUSADO) {
+        bip = 0;
+        base += ' pdv-wiz-topbar-btn--pausado';
+      } else if (bip > 0) {
+        base += ' pdv-wiz-topbar-btn--pedir-loja-alerta';
+      }
       dom.btnOpen.className = base;
-      dom.btnOpen.title =
-        n > 0
+      dom.btnOpen.title = PEDIR_LOJA_PAUSADO
+        ? 'Pedir loja pausado por enquanto'
+        : n > 0
           ? bip > 0
             ? n + ' pedido(s) da outra loja'
             : n + ' pedido(s) · bip pausado 30 min apos Aceitar'
