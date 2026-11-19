@@ -263,7 +263,7 @@ def atendimento_whatsapp_celular_view(request):
     return render(
         request,
         "produtos/atendimento_whatsapp_celular.html",
-        {"wa_pwa_destaque": destaque},
+        {"wa_pwa_destaque": destaque, "wa_sistapp": destaque},
     )
 
 

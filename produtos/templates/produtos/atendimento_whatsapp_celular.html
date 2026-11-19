@@ -147,7 +147,25 @@
 {% include "produtos/_wa_status.html" %}
 {% include "produtos/_wa_ficha.html" %}
 {% include "produtos/_wa_dlg.html" %}
+{% if wa_sistapp %}
+<script>
+sessionStorage.setItem("agro_wa_sistapp", "1");
+(function () {
+  var orig = window.fetch;
+  if (!orig) return;
+  window.fetch = function (input, init) {
+    var opts = init ? Object.assign({}, init) : {};
+    var h = new Headers(opts.headers || (input && input.headers) || {});
+    h.set("X-Agro-Wa-Sistapp", "1");
+    opts.headers = h;
+    return orig.call(this, input, opts);
+  };
+})();
+</script>
+{% include "produtos/_screensaver_pin.html" with sspin_idle_min=10080 %}
+{% else %}
 {% include "produtos/_screensaver_pin.html" %}
+{% endif %}
 <script src="{% static 'produtos/js/agro_pdv_overlay.js' %}?v={{ agro_asset_v|default:agro_build.version|default:'1' }}"></script>
 <script src="{% static 'produtos/js/atendimento_whatsapp.js' %}?v={{ agro_asset_v|default:agro_build.version|default:'1' }}-fotos18-e50"></script>
 <script>

@@ -20,6 +20,8 @@ from produtos.pdv_deposito_util import DEPOSITOS_VALIDOS, normalizar_deposito, r
 
 # Identidade do operador para ações (venda, Pedir, chat…): NÃO renova com mouse.
 PDV_OPERADOR_FRESCO_TTL_S = 45
+SISTAPP_PIN_TTL_S = 7 * 24 * 3600
+SISTAPP_PIN_DESDE_KEY = "wa_sistapp_pin_desde"
 # Fechar venda: mesmo TTL das demais ações. (Bug #26: 10s pedia PIN toda hora no balcão.)
 PDV_OPERADOR_FRESCO_VENDA_TTL_S = 45
 PDV_OPERADOR_FRESCO_KEY = "pdv_operador_fresco_em"
@@ -101,6 +103,33 @@ def _parse_decimal(valor) -> Decimal | None:
         return None
 
 
+def _pedido_do_sistapp(request) -> bool:
+    if request is None:
+        return False
+    try:
+        marca = request.headers.get("X-Agro-Wa-Sistapp") or ""
+    except Exception:
+        marca = ""
+    return str(marca).strip() == "1"
+
+
+def _restante_sistapp_s(request) -> int:
+    """PIN de 7 dias só no Zap aberto pelo Sistvale. Sem o cabeçalho, não vale."""
+    if not _pedido_do_sistapp(request):
+        return 0
+    label = str(request.session.get("pdv_operador_nome") or "").strip()
+    if not label:
+        return 0
+    try:
+        desde = float(request.session.get(SISTAPP_PIN_DESDE_KEY) or 0)
+    except (TypeError, ValueError):
+        return 0
+    if desde <= 0:
+        return 0
+    left = int(SISTAPP_PIN_TTL_S - (time.time() - desde))
+    return max(0, left)
+
+
 def marcar_operador_pdv_fresco(request) -> None:
     """Marca o instante do último PIN / ação autenticada (TTL curto)."""
     try:
@@ -116,6 +145,7 @@ def limpar_operador_pdv_sessao(request) -> None:
         "pdv_operador_user_id",
         "pdv_caixa_gerido_operador",
         PDV_OPERADOR_FRESCO_KEY,
+        SISTAPP_PIN_DESDE_KEY,
     ):
         try:
             request.session.pop(key, None)
@@ -151,6 +181,9 @@ def operador_pdv_restante_fresco_s(
     label = str(request.session.get("pdv_operador_nome") or "").strip()
     if not label:
         return 0
+    longo = _restante_sistapp_s(request)
+    if longo > 0:
+        return longo
     ttl = int(ttl_s if ttl_s is not None else PDV_OPERADOR_FRESCO_TTL_S)
     if ttl <= 0:
         return 0
@@ -192,6 +225,8 @@ def gravar_operador_sessao_pdv(request, pin: str) -> tuple[bool, str, object | N
     else:
         request.session.pop("pdv_operador_user_id", None)
     marcar_operador_pdv_fresco(request)
+    if _pedido_do_sistapp(request):
+        request.session[SISTAPP_PIN_DESDE_KEY] = float(time.time())
     request.session.modified = True
     return True, label[:150], user, ""
 
