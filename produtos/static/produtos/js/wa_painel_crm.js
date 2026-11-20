@@ -49,6 +49,13 @@
     if (h && hint != null) h.textContent = hint;
   }
 
+  function iniciais(nome) {
+    var parts = String(nome || "?").trim().split(/\s+/).filter(Boolean);
+    if (!parts.length) return "?";
+    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  }
+
   function badgeHtml(item) {
     var bits = [];
     if (item.nao_lidas > 0) {
@@ -65,19 +72,25 @@
 
   function cardHtml(item) {
     var espera = item.espera_min > 0 ? item.espera_min + " min" : item.hora || "";
+    var nome = item.nome || "Sem nome";
     return (
       '<button type="button" class="zp-card' + (selectedId === item.id ? " is-on" : "") + '" data-id="' + item.id + '">' +
-        '<div class="zp-card-top">' +
-          "<div>" +
-            '<p class="zp-name">' + esc(item.nome || "Sem nome") + "</p>" +
-            '<p class="zp-phone">' + esc(fmtTel(item.telefone)) + "</p>" +
+        '<div class="zp-card-inner">' +
+          '<div class="zp-avatar" aria-hidden="true">' + esc(iniciais(nome)) + "</div>" +
+          '<div class="zp-card-main">' +
+            '<div class="zp-card-top">' +
+              "<div style=\"min-width:0\">" +
+                '<p class="zp-name">' + esc(nome) + "</p>" +
+                '<p class="zp-phone">' + esc(fmtTel(item.telefone)) + "</p>" +
+              "</div>" +
+              '<div class="zp-badges">' + badgeHtml(item) + "</div>" +
+            "</div>" +
+            '<p class="zp-preview">' + esc(item.ultima_preview || "Sem mensagem ainda") + "</p>" +
+            '<div class="zp-foot">' +
+              "<span>" + esc(espera) + "</span>" +
+              "<span>" + esc((item.msgs_total || 0) + " msgs") + "</span>" +
+            "</div>" +
           "</div>" +
-          '<div class="zp-badges">' + badgeHtml(item) + "</div>" +
-        "</div>" +
-        '<p class="zp-preview">' + esc(item.ultima_preview || "Sem mensagem ainda") + "</p>" +
-        '<div class="zp-foot">' +
-          "<span>" + esc(espera) + "</span>" +
-          "<span>" + esc((item.msgs_total || 0) + " msgs") + "</span>" +
         "</div>" +
       "</button>"
     );
