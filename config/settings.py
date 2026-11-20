@@ -285,6 +285,9 @@ DATABASES = {
         conn_health_checks=True,
     )
 }
+# Zap teste neste PC. Nao segura conexao: o teste nao enche o Postgres.
+if os.environ.get("AGRO_WA_TESTE") == "1":
+    DATABASES["default"]["CONN_MAX_AGE"] = 0
 # Ficha da loja (PIN, cliente, fiado, vale, cashback). Não migrar este banco.
 # No PC do Zap a senha fica em .env.wa-servidor. Sem isso o PIN lê o banco local e dá incorreto.
 _env_wa = BASE_DIR / ".env.wa-servidor"

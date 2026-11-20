@@ -33,7 +33,42 @@ carregarEnv(path.join(__dirname, "..", ".env.wa-servidor"));
 
 const BASE = (process.env.AGRO_WA_DJANGO_URL || "http://127.0.0.1:8000").replace(/\/+$/, "");
 const TOKEN = process.env.AGRO_WA_BRIDGE_TOKEN || "gm-agro-wa-ponte-local";
-const AUTH = path.join(__dirname, "auth");
+const NUMERO_LOJA = "5513997673389";
+
+function resolverPastaSessao() {
+  const bruto = String(process.env.AGRO_WA_AUTH_DIR || "auth").trim() || "auth";
+  const pasta = path.isAbsolute(bruto) ? path.resolve(bruto) : path.resolve(__dirname, bruto);
+  if (pasta.slice(0, 2).toLowerCase() === "c:") {
+    console.error("A sessao de teste fica no disco E:. Nao usei o disco C:.");
+    process.exit(1);
+  }
+  return pasta;
+}
+
+function numeroNoArquivo(arquivo) {
+  try {
+    const me = JSON.parse(fs.readFileSync(arquivo, "utf8")).me || {};
+    return String(me.id || "").split(":")[0].split("@")[0];
+  } catch {
+    return "";
+  }
+}
+
+function pastaTemSessaoLoja(pasta) {
+  if (numeroNoArquivo(path.join(pasta, "creds.json")) === NUMERO_LOJA) return true;
+  if (numeroNoArquivo(path.join(pasta, "creds-PcRenan.json")) === NUMERO_LOJA) return true;
+  return false;
+}
+
+function apagarSessaoTeste() {
+  if (pastaTemSessaoLoja(AUTH)) {
+    console.error("Nao apaguei a sessao da loja.");
+    return;
+  }
+  fs.rmSync(AUTH, { recursive: true, force: true });
+}
+
+const AUTH = resolverPastaSessao();
 const AGENDA_FILE = path.join(__dirname, "contatos_agenda.json");
 const LID_FILE = path.join(__dirname, "lid_map.json");
 const SYNC_FILE = path.join(__dirname, "last_agenda_foto_sync.txt");
@@ -1372,6 +1407,16 @@ async function ligar() {
     pollTimer = null;
   }
   fs.mkdirSync(AUTH, { recursive: true });
+  if (pastaTemSessaoLoja(AUTH)) {
+    ligando = false;
+    console.error("Esta sessao e a da loja. O teste nao liga nela. Use outro WhatsApp.");
+    await estado({
+      status: "desconectado",
+      aviso: "Teste bloqueado: esta pasta e a sessao da loja. Use outro WhatsApp.",
+      numero: "",
+    });
+    return;
+  }
   if (primeiraLigacao) {
     await estado({ status: "desconectado", aviso: "Ligando WhatsApp…" });
   }
@@ -1437,6 +1482,17 @@ async function ligar() {
       lastPairing = "";
       const me = (sock.user && (sock.user.id || sock.user.lid)) || "";
       const numero = String(me).split(":")[0].split("@")[0];
+      if (numero === NUMERO_LOJA) {
+        console.error("Numero da loja. Fechei sem desligar a sessao dela.");
+        fecharSockAntigo();
+        await estado({
+          status: "desconectado",
+          aviso: "Este teste nao usa o numero da loja. Escaneie outro WhatsApp.",
+          numero: "",
+          qr: "",
+        });
+        process.exit(1);
+      }
       const nomeConta = String((sock.user && (sock.user.verifiedName || sock.user.name)) || "").trim();
       if (nomeConta) nomeLojaZap = nomeConta;
       connOpenAt = Date.now();
@@ -1480,7 +1536,7 @@ async function ligar() {
       if (loggedOut) {
         primeiraLigacao = true;
         try {
-          fs.rmSync(AUTH, { recursive: true, force: true });
+          apagarSessaoTeste();
         } catch {
           /* ignore */
         }
@@ -1723,6 +1779,9 @@ async function executarPedido(p) {
     if (p.tipo === "pairing") {
       let tel = String(p.telefone || "").replace(/\D/g, "");
       if (tel.length === 10 || tel.length === 11) tel = "55" + tel;
+      if (tel === NUMERO_LOJA) {
+        throw new Error("Use outro WhatsApp. O numero da loja nao entra neste teste.");
+      }
       if (tel.length < 12 || tel.length > 13) {
         throw new Error("Número inválido");
       }
@@ -1757,7 +1816,7 @@ async function executarPedido(p) {
       }
       fecharSockAntigo();
       try {
-        fs.rmSync(AUTH, { recursive: true, force: true });
+        apagarSessaoTeste();
       } catch {
         /* ignore */
       }

@@ -4,6 +4,7 @@ from __future__ import annotations
 import base64
 import hmac
 import json
+import os
 import re
 import unicodedata
 import uuid
@@ -2700,7 +2701,11 @@ def pedir_codigo_pareamento(telefone: str) -> tuple[WhatsAppPontePedidoAgro | No
     d = re.sub(r"\D+", "", telefone or "")
     if len(d) in (10, 11):
         d = "55" + d
+    if os.environ.get("AGRO_WA_TESTE") == "1" and d == "5513997673389":
+        return None, "Use outro WhatsApp. O número da loja não entra neste teste."
     if len(d) < 12 or len(d) > 13:
+        if os.environ.get("AGRO_WA_TESTE") == "1":
+            return None, "Outro número, com DDD. Não use o da loja."
         return None, "Número da loja com DDD (ex.: 13 9xxxx-xxxx)."
     recente = WhatsAppPontePedidoAgro.objects.filter(
         tipo=WhatsAppPontePedidoAgro.TIPO_PAIRING,
@@ -2871,7 +2876,7 @@ def atualizar_ponte(
             st = WhatsAppPonteEstadoAgro.STATUS_CONECTADO
             qr = ""
             aviso = ""
-            numero = numero or obj.numero or "5513997673389"
+            numero = numero or obj.numero or ("" if os.environ.get("AGRO_WA_TESTE") == "1" else "5513997673389")
     obj.status = st
     obj.heartbeat_em = timezone.now()
     if st == WhatsAppPonteEstadoAgro.STATUS_QR:

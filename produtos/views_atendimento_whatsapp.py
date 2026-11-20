@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import threading
 from pathlib import Path
 
@@ -142,7 +143,11 @@ def _autor_wa(request, data: dict | None = None) -> str:
 @login_required(login_url="/entrar/")
 def atendimento_whatsapp_view(request):
     aplicar_entrada_pin_zap(request, request.GET.get("entrada") or "")
-    return render(request, "produtos/atendimento_whatsapp.html", {})
+    return render(
+        request,
+        "produtos/atendimento_whatsapp.html",
+        {"wa_teste": os.environ.get("AGRO_WA_TESTE") == "1"},
+    )
 
 
 @login_required(login_url="/entrar/")

@@ -20,6 +20,10 @@ config/build_stamp.json
 
 # Ponte WhatsApp (sessão QR — não versionar)
 whatsapp_atendimento/auth/
+whatsapp_atendimento/auth-zap-teste/
+whatsapp_atendimento/auth-pessoal/
+var/wa-teste-media/
+var/tmp/
 whatsapp_atendimento/contatos_agenda.json
 whatsapp_atendimento/lid_map.json
 whatsapp_atendimento/last_agenda_foto_sync.txt
