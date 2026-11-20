@@ -68,6 +68,11 @@ urlpatterns = [
         name="atendimento_whatsapp",
     ),
     path(
+        "atendimento-whatsapp/painel/",
+        views_atendimento_whatsapp.atendimento_whatsapp_painel_view,
+        name="atendimento_whatsapp_painel",
+    ),
+    path(
         "atendimento-whatsapp/celular/manifest.webmanifest",
         views_atendimento_whatsapp.atendimento_whatsapp_celular_manifest,
         name="atendimento_whatsapp_celular_manifest",
@@ -1039,6 +1044,16 @@ urlpatterns = [
         'api/atendimento-whatsapp/estado/',
         views_atendimento_whatsapp.api_atendimento_whatsapp_estado,
         name='api_atendimento_whatsapp_estado',
+    ),
+    path(
+        'api/atendimento-whatsapp/painel/',
+        views_atendimento_whatsapp.api_atendimento_whatsapp_painel,
+        name='api_atendimento_whatsapp_painel',
+    ),
+    path(
+        'api/atendimento-whatsapp/painel/<int:conversa_id>/',
+        views_atendimento_whatsapp.api_atendimento_whatsapp_painel_detalhe,
+        name='api_atendimento_whatsapp_painel_detalhe',
     ),
     path(
         'api/atendimento-whatsapp/conversas/',

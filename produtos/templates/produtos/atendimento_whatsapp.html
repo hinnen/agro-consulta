@@ -110,6 +110,7 @@
   </div>
   {% include "produtos/_wa_filtros.html" %}
   <div class="wa-rail-foot">
+  <a href="{% url 'atendimento_whatsapp_painel' %}" class="wa-ico pri" id="wa-btn-painel" title="Painel de atendimentos"><span class="wa2-lbl">Painel</span><svg class="wa2-ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="7" height="7" rx="1.5"/><rect x="14" y="4" width="7" height="7" rx="1.5"/><rect x="3" y="13" width="7" height="7" rx="1.5"/><rect x="14" y="13" width="7" height="7" rx="1.5"/></svg></a>
   <button type="button" id="wa-pwa-instalar" title="Instalar como app no Chrome"><span class="wa2-lbl">Instalar no PC</span><svg class="wa2-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m-4.5-4.5L12 15l4.5-4.5M5 20h14"/></svg></button>
   <button type="button" id="wa-trocar" class="wa-ico hidden" title="Desligar este Zap e ligar outro (QR ou código)"><span class="wa2-lbl">Trocar Zap</span><svg class="wa2-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8h12l-3.5-3.5M18 16H6l3.5 3.5"/></svg></button>
   <a href="{% url 'atendimento_whatsapp_bot' %}" class="wa-ico pri" id="wa-btn-bot" data-bot-js="{% static 'produtos/js/atendimento_whatsapp_bot.js' %}?v={{ agro_asset_v|default:agro_build.version|default:'1' }}-lista13" title="Ajustes"><span class="wa2-lbl">Ajustes</span><svg class="wa2-ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 4v4M9 13v1.5M15 13v1.5"/><circle cx="12" cy="3.5" r="1"/></svg></a>

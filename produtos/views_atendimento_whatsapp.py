@@ -151,6 +151,36 @@ def atendimento_whatsapp_view(request):
 
 
 @login_required(login_url="/entrar/")
+def atendimento_whatsapp_painel_view(request):
+    """Painel CRM visual dos atendimentos (fila, lojas, resolvidas)."""
+    aplicar_entrada_pin_zap(request, request.GET.get("entrada") or "")
+    return render(
+        request,
+        "produtos/atendimento_whatsapp_painel.html",
+        {"wa_teste": os.environ.get("AGRO_WA_TESTE") == "1"},
+    )
+
+
+@login_required(login_url="/entrar/")
+@require_GET
+def api_atendimento_whatsapp_painel(request):
+    from produtos.atendimento_whatsapp_painel import montar_painel
+
+    return JsonResponse(montar_painel())
+
+
+@login_required(login_url="/entrar/")
+@require_GET
+def api_atendimento_whatsapp_painel_detalhe(request, conversa_id: int):
+    from produtos.atendimento_whatsapp_painel import detalhe_painel
+
+    item, err = detalhe_painel(conversa_id)
+    if err:
+        return JsonResponse({"ok": False, "erro": err}, status=404)
+    return JsonResponse({"ok": True, "item": item})
+
+
+@login_required(login_url="/entrar/")
 def api_pdv_zap_entrada(request):
     if request.method != "POST":
         return JsonResponse({"ok": False, "erro": "Use POST."}, status=405)

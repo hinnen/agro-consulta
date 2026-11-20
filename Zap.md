@@ -104,6 +104,7 @@ Depois de copiar: F5 no computador. Fechar e abrir o aplicativo e o Zap de dentr
 - Ao ligar o Windows sobe sozinho. Túnel só depois do Zap responder. Duas pontes juntas derrubam o envio.
 - Login: `renan` e `agromais`, em `/entrar/`. Sem PIN fresco não atende. PIN vale 45 segundos.
 - Arquivar entre aparelhos: encerrado. Não tentar de novo com a loja no ar.
+- Painel CRM dos atendimentos: `/atendimento-whatsapp/painel/` (no teste deste PC: `http://127.0.0.1:8011/atendimento-whatsapp/painel/`).
 - Loja (`producao` / `teste`) é outro sistema.
 
 ## 1. Todo chat de Zap

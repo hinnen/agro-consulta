@@ -1,0 +1,91 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Zap · Painel de atendimentos</title>
+  <meta name="theme-color" content="#0f5a3f">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;0,9..40,800;1,9..40,400&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'produtos/css/wa_painel_crm.css' %}?v={{ agro_asset_v|default:agro_build.version|default:'1' }}-p1">
+  <link rel="icon" type="image/x-icon" href="{% static 'produtos/pwa/zap-verde.ico' %}">
+</head>
+<body class="zp-body">
+  {% csrf_token %}
+  <div class="zp-shell" id="zp-root">
+    <header class="zp-hero">
+      <div class="zp-hero-row">
+        <div>
+          <p class="zp-brand">Zap</p>
+          <h2>Painel de atendimentos</h2>
+          <p>Veja a fila, quem espera resposta e o que já foi resolvido — tudo num só olhar, antes mesmo de abrir o chat.</p>
+        </div>
+        <div class="zp-actions">
+          <a class="zp-btn zp-btn-primary" href="{% url 'atendimento_whatsapp' %}">Abrir o chat</a>
+          <button type="button" class="zp-btn zp-btn-ghost" id="zp-refresh">Atualizar</button>
+        </div>
+      </div>
+      <div class="zp-meta">
+        <span class="zp-chip" id="zp-chip-ponte">Zap …</span>
+        <span class="zp-chip" id="zp-chip-atualizado">Atualizado …</span>
+        <span class="zp-chip is-warn" id="zp-chip-demo" hidden>Exemplos de demonstração</span>
+        {% if wa_teste %}<span class="zp-chip is-on">Modo teste</span>{% endif %}
+      </div>
+    </header>
+
+    <section class="zp-pulse" aria-label="Resumo">
+      <article class="zp-kpi" id="zp-kpi-ativas" data-tone="mint">
+        <div class="lbl">Ativas</div>
+        <div class="val">0</div>
+        <div class="hint">conversas abertas</div>
+      </article>
+      <article class="zp-kpi" id="zp-kpi-espera" data-tone="amber">
+        <div class="lbl">Aguardando</div>
+        <div class="val">0</div>
+        <div class="hint">precisam da loja</div>
+      </article>
+      <article class="zp-kpi" id="zp-kpi-hoje" data-tone="slate">
+        <div class="lbl">Resolvidas hoje</div>
+        <div class="val">0</div>
+        <div class="hint">arquivadas</div>
+      </article>
+      <article class="zp-kpi" id="zp-kpi-msgs" data-tone="mint">
+        <div class="lbl">Mensagens</div>
+        <div class="val">0</div>
+        <div class="hint">no histórico</div>
+      </article>
+    </section>
+
+    <div class="zp-board" id="zp-board" aria-live="polite">
+      <div class="zp-empty">Carregando o painel…</div>
+    </div>
+  </div>
+
+  <div class="zp-drawer" id="zp-drawer" aria-hidden="true">
+    <div class="zp-drawer-mask" id="zp-drawer-mask"></div>
+    <aside class="zp-drawer-panel" role="dialog" aria-labelledby="zp-drawer-title">
+      <div class="zp-drawer-head">
+        <div>
+          <h3 id="zp-drawer-title">Atendimento</h3>
+          <p class="zp-phone" id="zp-drawer-phone" style="margin-top:.25rem"></p>
+        </div>
+        <button type="button" class="zp-close" id="zp-close" aria-label="Fechar">×</button>
+      </div>
+      <div class="zp-drawer-body" id="zp-drawer-body"></div>
+      <div class="zp-drawer-actions">
+        <a class="zp-btn zp-btn-primary" id="zp-open-chat" href="{% url 'atendimento_whatsapp' %}">Abrir no chat</a>
+        <button type="button" class="zp-btn zp-btn-ghost" id="zp-close-2">Fechar</button>
+      </div>
+    </aside>
+  </div>
+
+  <script src="{% static 'produtos/js/wa_painel_crm.js' %}?v={{ agro_asset_v|default:agro_build.version|default:'1' }}-p1"></script>
+  <script>
+    document.getElementById("zp-close-2").addEventListener("click", function () {
+      document.getElementById("zp-close").click();
+    });
+  </script>
+</body>
+</html>

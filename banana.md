@@ -1303,8 +1303,9 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Onde** | Disco E: deste PC. Branch `zap-teste`, tirada da `whatsapp` @ `c9a04123`. O Zap da loja continua no outro PC. |
 | **Docs** | `Zap.md` e `Zap-documentacao.md` vieram juntos dessa `whatsapp`. |
 | **Sobe** | `python run_zap_teste.py` → `http://127.0.0.1:8011`. Postgres local, schema `zapteste`, sem segurar conexão. Mídia e sessão de teste só no E:. |
+| **Painel** | `/atendimento-whatsapp/painel/` — CRM visual (fila, Centro, Vila, resolvidas). No teste, se o banco está vazio, cria exemplos de demonstração. |
 | **Não** | Não usa sessão, mídia nem senha da loja. Não liga no número da loja. Não grava no disco C:. Não mexe em `producao` nem no Zap que está no ar. |
-| **Você** | `/entrar/` com `renan` / `zapteste`. No Zap, o QR é de **outro** WhatsApp. |
+| **Você** | `/entrar/` com `renan` / `zapteste`. Painel primeiro; no Zap, o QR é de **outro** WhatsApp. |
 
 ### Git Zap — uma branch só · 14/11/2026
 
