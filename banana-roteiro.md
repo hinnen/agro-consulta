@@ -4,7 +4,7 @@
 
 **Renan:** anexe `@banana-roteiro` (ou só descreva a tarefa — a rule Cursor já puxa este arquivo).
 
-**Checklist único (21/11):** **CARTAO-FOLHA** — corte **v27.26.84** armado, **não enviado**. Barras mais grossas e QR maior na folha nova. Sem migrate. Não mexe em PDV, caixa nem venda. O cartão já impresso não muda. Base **v27.26.83** @ `59ce4326`. Na senha, vendas pausadas: `./scripts/cutover_loja_checklist_2111_cartao_folha.sh --exec`. Volta: `git push origin 59ce4326:producao`.
+**Loja (21/11):** **CARTAO-FOLHA** enviada · **v27.26.84** @ `7431376a`. Barras mais grossas e QR maior na folha nova. Sem migrate. Não mexe em PDV, caixa nem venda. O cartão já impresso não muda. Até o build, no ar segue **v27.26.83** @ `59ce4326`. Volta: `git push origin 59ce4326:producao`.
 
 **Loja (19/11d):** **CARTAO-PORTAL** enviada · **v27.26.83** @ `59ce4326`. Página do celular: Minhas compras e Meu aniversário. Migrate **0157** no build. Não mexe em PDV, caixa nem venda. Até o build, no ar segue **v27.26.82** @ `fb15ae8a`. Volta: `git push origin fb15ae8a:producao`.
 
