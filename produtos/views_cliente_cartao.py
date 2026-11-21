@@ -39,8 +39,8 @@ def _qr_svg(url: str) -> str:
     imagem = qrcode.make(
         url,
         image_factory=qrcode.image.svg.SvgPathImage,
-        box_size=6,
-        border=1,
+        box_size=8,
+        border=4,
     )
     return imagem.to_string(encoding="unicode")
 
