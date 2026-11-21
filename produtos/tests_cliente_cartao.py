@@ -1,10 +1,12 @@
 """Cartão do cliente: folha em branco, bip e página do celular."""
 from __future__ import annotations
 
+from datetime import timedelta
 from decimal import Decimal
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
+from django.utils import timezone
 
 from produtos.cliente_cartao_util import (
     digito_ean13,
@@ -14,7 +16,7 @@ from produtos.cliente_cartao_util import (
     numero_curto,
     vincular,
 )
-from produtos.models import ClienteAgro, ItemVendaAgro, VendaAgro
+from produtos.models import ClienteAgro, FiadoTituloAgro, ItemVendaAgro, VendaAgro
 
 
 class CartaoCodigoTest(TestCase):
@@ -104,5 +106,41 @@ class CartaoFluxoTest(TestCase):
         self.assertContains(errado, numero_curto(cartao.codigo))
         self.assertNotContains(errado, "Ração")
         certo = self.client.post(f"/cartao/{cartao.token}/", {"whatsapp": "13999998888"})
+        self.assertContains(certo, "Minhas compras")
+        self.assertContains(certo, "1 compra")
+        self.assertNotContains(certo, "R$ 10")
         self.assertContains(certo, "Ração")
         self.assertContains(certo, "Cashback")
+        self.assertContains(certo, numero_curto(cartao.codigo))
+        self.assertContains(certo, "hoje")
+        self.assertContains(certo, "O que você mais leva")
+        lista = self.client.get(f"/cartao/{cartao.token}/?tela=compras")
+        self.assertContains(lista, "R$ 10")
+        niver = self.client.post(
+            f"/cartao/{cartao.token}/",
+            {"aniversario_dia": "19", "aniversario_mes": "11"},
+        )
+        self.assertContains(niver, "19 de novembro")
+        self.cliente.refresh_from_db()
+        self.assertEqual(self.cliente.aniversario_dia, 19)
+        self.assertEqual(self.cliente.aniversario_mes, 11)
+        ruim = self.client.post(
+            f"/cartao/{cartao.token}/",
+            {"aniversario_dia": "31", "aniversario_mes": "2"},
+        )
+        self.assertContains(ruim, "Essa data não existe")
+        VendaAgro.objects.filter(pk=venda.pk).update(
+            criado_em=timezone.now() - timedelta(days=40)
+        )
+        ItemVendaAgro.objects.filter(venda=venda).update(descricao="Ração 15kg")
+        FiadoTituloAgro.objects.create(
+            chave_unica=f"teste-cartao-{self.cliente.pk}",
+            cliente_agro=self.cliente,
+            cliente_nome=self.cliente.nome,
+            vencimento=timezone.localdate() - timedelta(days=3),
+            valor_bruto=Decimal("40.00"),
+        )
+        pagina = self.client.get(f"/cartao/{cartao.token}/")
+        self.assertContains(pagina, "já passou do prazo habitual")
+        self.assertContains(pagina, "40.00")
+        self.assertContains(pagina, "venceu em")

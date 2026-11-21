@@ -30,6 +30,15 @@
     ul { margin: 0.45rem 0 0; padding: 0; list-style: none; }
     li { padding: 0.28rem 0; border-top: 1px solid #e2e8f0; }
     .vazio { color: #64748b; }
+    .bloco { background: #fff; border-radius: 1rem; padding: 0.9rem 1rem; margin-top: 0.8rem; }
+    .bloco h2 { margin-top: 0; }
+    .niver { background: #fef3c7; border: 2px solid #fcd34d; }
+    .quem { display: flex; justify-content: space-between; align-items: flex-start; gap: 0.6rem; }
+    .quem .cartao { margin-top: 0.35rem; }
+    a.atalho, a.voltar { display: block; text-decoration: none; color: inherit; background: #fff; border-radius: 1rem; padding: 0.95rem 1rem; margin-top: 0.8rem; font-weight: 800; }
+    a.atalho span, a.voltar { color: #64748b; font-weight: 700; }
+    a.atalho strong { display: block; font-size: 1.15rem; color: #0f172a; }
+    .linha { margin: 0.35rem 0 0; font-weight: 800; }
   </style>
 </head>
 <body>
@@ -49,8 +58,42 @@
     <input id="whatsapp" name="whatsapp" inputmode="tel" autocomplete="tel" placeholder="DDD e número" required>
     <button type="submit">Entrar</button>
   </form>
+  {% elif tela == "compras" %}
+  <a class="voltar" href="/cartao/{{ token }}/">Voltar</a>
+  <h1>Minhas compras</h1>
+  {% for c in compras %}
+  <article>
+    <div class="topo">
+      <span class="quando">{{ c.quando|date:"d/m/Y H:i" }} · {{ c.faz }}</span>
+      <span>R$ {{ c.total }}</span>
+    </div>
+    {% if c.forma %}<div class="quando">{{ c.forma }}</div>{% endif %}
+    <ul>
+      {% for item in c.itens %}
+      <li>{{ item.descricao }} · {{ item.quantidade|floatformat:"-3" }} · R$ {{ item.total }}</li>
+      {% endfor %}
+    </ul>
+  </article>
+  {% empty %}
+  <p class="vazio">Nenhuma compra neste cadastro.</p>
+  {% endfor %}
+  {% elif tela == "aniversario" %}
+  <a class="voltar" href="/cartao/{{ token }}/">Voltar</a>
+  <h1>Meu aniversário</h1>
+  {% if aviso_niver %}<p class="aviso">{{ aviso_niver }}</p>{% endif %}
+  <form method="post" action="/cartao/{{ token }}/?tela=aniversario">
+    {% csrf_token %}
+    <label for="aniversario_dia">Dia</label>
+    <input id="aniversario_dia" name="aniversario_dia" inputmode="numeric" maxlength="2" placeholder="19" required>
+    <label for="aniversario_mes">Mês</label>
+    <input id="aniversario_mes" name="aniversario_mes" inputmode="numeric" maxlength="2" placeholder="11" required>
+    <button type="submit">Salvar</button>
+  </form>
   {% else %}
-  <h1>{{ cliente.nome }}</h1>
+  <div class="quem">
+    <h1>{{ cliente.nome }}</h1>
+    <div class="cartao">Cartão {{ numero_curto }}</div>
+  </div>
   <div class="saldos">
     <div class="saldo">
       <span>Cashback</span>
@@ -61,23 +104,41 @@
       <strong>R$ {{ cliente.saldo_vale_credito }}</strong>
     </div>
   </div>
-  <h2>Compras</h2>
-  {% for c in compras %}
+  {% if niver.aviso %}
+  <p class="aviso">{{ niver.aviso }}</p>
+  {% endif %}
+  {% for frase in racoes %}
+  <p class="aviso">{{ frase }}</p>
+  {% endfor %}
+  {% if fiado %}
+  <div class="bloco">
+    <h2>Fiado em aberto</h2>
+    <strong>R$ {{ fiado.total }}</strong>
+    {% if fiado.frase_data %}<p class="sub">{{ fiado.frase_data }}</p>{% endif %}
+  </div>
+  {% endif %}
+  {% if levados %}
+  <h2>O que você mais leva</h2>
+  {% for item in levados %}
   <article>
     <div class="topo">
-      <span class="quando">{{ c.quando|date:"d/m/Y H:i" }}</span>
-      <span>R$ {{ c.total }}</span>
+      <span>{{ item.descricao }}</span>
+      <span>{{ item.vezes }}×</span>
     </div>
-    {% if c.forma %}<div class="quando">{{ c.forma }}</div>{% endif %}
-    <ul>
-      {% for item in c.itens %}
-      <li>{{ item.descricao }} · {{ item.quantidade }} · R$ {{ item.total }}</li>
-      {% endfor %}
-    </ul>
+    <div class="quando">última vez {{ item.faz }}</div>
   </article>
-  {% empty %}
-  <p class="vazio">Nenhuma compra neste cadastro.</p>
   {% endfor %}
+  {% endif %}
+  <a class="atalho" href="/cartao/{{ token }}/?tela=compras">
+    <strong>Minhas compras</strong>
+    <span>{% if qtd_compras == 1 %}1 compra{% elif qtd_compras %}{{ qtd_compras }} compras{% else %}Nenhuma compra ainda{% endif %}</span>
+  </a>
+  {% if niver.preenchido %}
+  <p class="linha">Aniversário: {{ niver.frase }}</p>
+  <a class="atalho" href="/cartao/{{ token }}/?tela=aniversario"><strong>Corrigir aniversário</strong></a>
+  {% else %}
+  <a class="atalho" href="/cartao/{{ token }}/?tela=aniversario"><strong>Meu aniversário</strong><span>Toque para colocar o dia e o mês</span></a>
+  {% endif %}
   {% endif %}
 </main>
 </body>
