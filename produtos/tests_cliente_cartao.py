@@ -42,7 +42,8 @@ class CartaoFluxoTest(TestCase):
         self.assertEqual(resp.status_code, 200)
         self.assertContains(resp, "981")
         self.assertContains(resp, "width: 54%")
-        self.assertContains(resp, "margin: 12")
+        self.assertContains(resp, "margin: 4")
+        self.assertContains(resp, "preserveAspectRatio")
         self.assertContains(resp, "left: 68.2%")
         cartao = emitir_cartoes(1)[0]
         livre = self.client.post(

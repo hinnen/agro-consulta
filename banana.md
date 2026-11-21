@@ -1752,6 +1752,8 @@ Barras mais grossas, com branco nas laterais, e QR maior. Só na folha nova. O c
 
 A v27.26.84 subiu o QR na faixa colorida. Esta corrige: barras no retângulo branco de baixo, QR no quadrado branco da direita. O cartão já impresso não muda. Não mexe em PDV, caixa nem venda. **Enviado** `b45d9cbc`. Até o build, no ar segue **v27.26.84** @ `7431376a`. **Volta:** `git push origin 7431376a:producao`.
 
+As barras da v27.26.85 ficaram miúdas no meio do branco. No teste, elas passam a ocupar a largura do retângulo, mais grossas. Ainda não foi para a loja.
+
 ### ✅ CHECKLIST ÚNICO — **18/11d** · enviado · **v27.26.79** @ `ef23e2e7`
 
 | # | Pacote | Status | Migrate | Prova |

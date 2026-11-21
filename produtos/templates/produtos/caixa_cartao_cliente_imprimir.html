@@ -31,7 +31,7 @@
     .cartao.sem-arte .buraco-qr { right: 2mm; bottom: 2mm; width: 28mm; height: 28mm; }
     .buraco-qr svg { width: 100%; height: 100%; display: block; }
     .buraco-barras { flex-direction: column; }
-    .buraco-barras svg { width: 100%; height: 74%; }
+    .buraco-barras svg { width: 100%; height: 82%; }
     .numero-cartao {
       margin: 0; font: 900 11pt Arial, sans-serif; letter-spacing: 0.12em; color: #0f172a; line-height: 1;
     }
@@ -71,9 +71,11 @@
     var codigos = [{% for b in blocos %}"{{ b.codigo }}"{% if not forloop.last %},{% endif %}{% endfor %}];
     codigos.forEach(function (codigo, i) {
       try {
-        JsBarcode("#bc-" + (i + 1), codigo, {
-          format: "EAN13", displayValue: false, margin: 12, height: 70, width: 2.4, background: "#ffffff"
+        var el = document.getElementById("bc-" + (i + 1));
+        JsBarcode(el, codigo, {
+          format: "EAN13", displayValue: false, margin: 4, height: 80, width: 2.4, background: "#ffffff"
         });
+        el.setAttribute("preserveAspectRatio", "none");
       } catch (e) {}
     });
   </script>
