@@ -1,0 +1,37 @@
+diff --git a/produtos/templates/produtos/caixa_cartao_cliente_imprimir.html b/produtos/templates/produtos/caixa_cartao_cliente_imprimir.html
+index ce423938..9c37ee47 100644
+--- a/produtos/templates/produtos/caixa_cartao_cliente_imprimir.html
++++ b/produtos/templates/produtos/caixa_cartao_cliente_imprimir.html
+@@ -25,8 +25,8 @@
+     .faixa strong { display: block; font-size: 14pt; }
+     .faixa span { font-size: 8pt; }
+     .buraco-barras, .buraco-qr { position: absolute; background: #fff; display: flex; align-items: center; justify-content: center; }
+-    .cartao.com-arte .buraco-barras { left: 3%; top: 56%; width: 60%; height: 40%; }
+-    .cartao.com-arte .buraco-qr { left: 66%; top: 46%; width: 31%; height: 48%; }
++    .cartao.com-arte .buraco-barras { left: 6%; top: 64.5%; width: 54%; height: 28%; }
++    .cartao.com-arte .buraco-qr { left: 68.2%; top: 53.8%; width: 27.5%; height: 40.5%; }
+     .cartao.sem-arte .buraco-barras { left: 2mm; bottom: 2mm; width: 48mm; height: 22mm; }
+     .cartao.sem-arte .buraco-qr { right: 2mm; bottom: 2mm; width: 28mm; height: 28mm; }
+     .buraco-qr svg { width: 100%; height: 100%; display: block; }
+diff --git a/produtos/tests_cliente_cartao.py b/produtos/tests_cliente_cartao.py
+index db15de80..9d7db41d 100644
+--- a/produtos/tests_cliente_cartao.py
++++ b/produtos/tests_cliente_cartao.py
+@@ -41,9 +41,9 @@ class CartaoFluxoTest(TestCase):
+         resp = self.client.post("/caixa/cartao-cliente/", {"qtd": "2"})
+         self.assertEqual(resp.status_code, 200)
+         self.assertContains(resp, "981")
+-        self.assertContains(resp, "width: 60%")
++        self.assertContains(resp, "width: 54%")
+         self.assertContains(resp, "margin: 12")
+-        self.assertContains(resp, "left: 66%")
++        self.assertContains(resp, "left: 68.2%")
+         cartao = emitir_cartoes(1)[0]
+         livre = self.client.post(
+             "/api/pdv/cartao-cliente/",
+diff --git a/VERSION b/VERSION
+--- a/VERSION
++++ b/VERSION
+@@ -1 +1 @@
+-27.26.84
++27.26.85
