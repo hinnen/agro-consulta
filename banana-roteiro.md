@@ -4,7 +4,7 @@
 
 **Renan:** anexe `@banana-roteiro` (ou só descreva a tarefa — a rule Cursor já puxa este arquivo).
 
-**Checklist único (19/11d):** **CARTAO-PORTAL** — corte **v27.26.83** armado, **não enviado**. Página do celular: Minhas compras e Meu aniversário. Migrate **0157** (dia e mês vazios). Não mexe em PDV, caixa nem venda. Base **v27.26.82** @ `fb15ae8a`. Na senha, vendas pausadas: `./scripts/cutover_loja_checklist_1911_cartao_portal.sh --exec`. Volta: `git push origin fb15ae8a:producao`.
+**Loja (19/11d):** **CARTAO-PORTAL** enviada · **v27.26.83** @ `59ce4326`. Página do celular: Minhas compras e Meu aniversário. Migrate **0157** no build. Não mexe em PDV, caixa nem venda. Até o build, no ar segue **v27.26.82** @ `fb15ae8a`. Volta: `git push origin fb15ae8a:producao`.
 
 **Loja (19/11c):** **PDV-PEDIR-LOJA-PAUSA** enviada · **v27.26.82** @ `fb15ae8a`. Botão Pedir loja cinza, aviso no clique, sem apito. Sem migrate. Até o build, no ar segue **v27.26.81** @ `59f184fa`. Volta: `git push origin 59f184fa:producao`.
 

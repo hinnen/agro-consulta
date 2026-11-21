@@ -1728,13 +1728,13 @@ Fiado empilhado no card escuro, R$ pequeno na previsão, tela mais cheia. Sem mi
 | **Até o build** | no ar segue **v27.26.79** @ `ef23e2e7` |
 | **Volta** | `git push origin ef23e2e7:producao` |
 
-### CHECKLIST ÚNICO — **19/11d** · 🟢 pronto para envio · **v27.26.83** · não enviado
+### ✅ CHECKLIST ÚNICO — **19/11d** · enviado · **v27.26.83** @ `59ce4326`
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **CARTAO-PORTAL** | 🟢 Pronto | **SIM 0157** na loja | página no PC · teste do portal ok |
+| 1 | **CARTAO-PORTAL** | ✅ enviado `59ce4326` | **SIM 0157** no build | página no PC · teste do portal ok |
 
-Primeira tela curta: nome, cartão, cashback, vale, avisos (ração e fiado) e os 3 produtos. **Minhas compras** e **Meu aniversário** abrem outra tela. Sem total gasto e sem média do mês. O QR impresso não muda. Não mexe em PDV, caixa nem venda. No teste o campo já é a **0154**. Na loja nasce a **0157**, em cima da **0156**. Base **v27.26.82** @ `fb15ae8a`. **Na senha:** vendas pausadas · `./scripts/cutover_loja_checklist_1911_cartao_portal.sh --exec`. **Volta:** `git push origin fb15ae8a:producao`.
+Primeira tela curta: nome, cartão, cashback, vale, avisos (ração e fiado) e os 3 produtos. **Minhas compras** e **Meu aniversário** abrem outra tela. Sem total gasto e sem média do mês. O QR impresso não muda. Não mexe em PDV, caixa nem venda. No teste o campo já é a **0154**. Na loja nasce a **0157**, em cima da **0156**. **Enviado** `59ce4326`. Até o build, no ar segue **v27.26.82** @ `fb15ae8a`. **Volta:** `git push origin fb15ae8a:producao`.
 
 ### ✅ CHECKLIST ÚNICO — **18/11d** · enviado · **v27.26.79** @ `ef23e2e7`
 
