@@ -1736,9 +1736,13 @@ Fiado empilhado no card escuro, R$ pequeno na previsão, tela mais cheia. Sem mi
 
 Primeira tela curta: nome, cartão, cashback, vale, avisos (ração e fiado) e os 3 produtos. **Minhas compras** e **Meu aniversário** abrem outra tela. Sem total gasto e sem média do mês. O QR impresso não muda. Não mexe em PDV, caixa nem venda. No teste o campo já é a **0154**. Na loja nasce a **0157**, em cima da **0156**. **Enviado** `59ce4326`. Até o build, no ar segue **v27.26.82** @ `fb15ae8a`. **Volta:** `git push origin fb15ae8a:producao`.
 
-### CHECKLIST — **21/11** · QR da folha mais folgado · só no teste
+### CHECKLIST ÚNICO — **21/11** · 🟢 pronto para envio · **v27.26.84** · não enviado
 
-O QR e, principalmente, o código de barras impressos ficam maiores, com barras mais grossas e mais branco nas laterais, para a borra da laser não fechar o código. O cartão já impresso não muda. Não foi para a loja.
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **CARTAO-FOLHA** | 🟢 Pronto | **NÃO** | folha de 2 cartões ok no teste |
+
+Barras mais grossas, com branco nas laterais, e QR maior. Só na folha nova. O cartão já impresso não muda. Não mexe em PDV, caixa nem venda. Base **v27.26.83** @ `59ce4326`. **Na senha:** vendas pausadas · `./scripts/cutover_loja_checklist_2111_cartao_folha.sh --exec`. **Volta:** `git push origin 59ce4326:producao`.
 
 ### ✅ CHECKLIST ÚNICO — **18/11d** · enviado · **v27.26.79** @ `ef23e2e7`
 
