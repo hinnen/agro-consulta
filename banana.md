@@ -1738,7 +1738,7 @@ Primeira tela curta: nome, cartão, cashback, vale, avisos (ração e fiado) e o
 
 ### CHECKLIST — **21/11** · QR da folha mais folgado · só no teste
 
-O QR impresso fica maior e com mais branco em volta, para a borra da laser não fechar o código. O cartão já impresso não muda. Não foi para a loja.
+O QR e, principalmente, o código de barras impressos ficam maiores, com barras mais grossas e mais branco nas laterais, para a borra da laser não fechar o código. O cartão já impresso não muda. Não foi para a loja.
 
 ### ✅ CHECKLIST ÚNICO — **18/11d** · enviado · **v27.26.79** @ `ef23e2e7`
 
