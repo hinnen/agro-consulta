@@ -41,9 +41,9 @@ class CartaoFluxoTest(TestCase):
         resp = self.client.post("/caixa/cartao-cliente/", {"qtd": "2"})
         self.assertEqual(resp.status_code, 200)
         self.assertContains(resp, "981")
-        self.assertContains(resp, "width: 60%")
+        self.assertContains(resp, "width: 54%")
         self.assertContains(resp, "margin: 12")
-        self.assertContains(resp, "left: 66%")
+        self.assertContains(resp, "left: 68.2%")
         cartao = emitir_cartoes(1)[0]
         livre = self.client.post(
             "/api/pdv/cartao-cliente/",

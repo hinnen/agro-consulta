@@ -1744,6 +1744,8 @@ Primeira tela curta: nome, cartão, cashback, vale, avisos (ração e fiado) e o
 
 Barras mais grossas, com branco nas laterais, e QR maior. Só na folha nova. O cartão já impresso não muda. Não mexe em PDV, caixa nem venda. **Enviado** `7431376a`. Até o build, no ar segue **v27.26.83** @ `59ce4326`. **Volta:** `git push origin 59ce4326:producao`.
 
+A folha enviada subiu o QR para cima da faixa colorida. A correção, ainda só no teste, encaixa as barras no retângulo branco de baixo e o QR no quadrado branco da direita. Não foi para a loja.
+
 ### ✅ CHECKLIST ÚNICO — **18/11d** · enviado · **v27.26.79** @ `ef23e2e7`
 
 | # | Pacote | Status | Migrate | Prova |
