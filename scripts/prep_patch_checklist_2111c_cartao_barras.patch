@@ -1,0 +1,47 @@
+diff --git a/produtos/templates/produtos/caixa_cartao_cliente_imprimir.html b/produtos/templates/produtos/caixa_cartao_cliente_imprimir.html
+index 9c37ee47..e536e4b9 100644
+--- a/produtos/templates/produtos/caixa_cartao_cliente_imprimir.html
++++ b/produtos/templates/produtos/caixa_cartao_cliente_imprimir.html
+@@ -31,7 +31,7 @@
+     .cartao.sem-arte .buraco-qr { right: 2mm; bottom: 2mm; width: 28mm; height: 28mm; }
+     .buraco-qr svg { width: 100%; height: 100%; display: block; }
+     .buraco-barras { flex-direction: column; }
+-    .buraco-barras svg { width: 100%; height: 74%; }
++    .buraco-barras svg { width: 100%; height: 82%; }
+     .numero-cartao {
+       margin: 0; font: 900 11pt Arial, sans-serif; letter-spacing: 0.12em; color: #0f172a; line-height: 1;
+     }
+@@ -71,9 +71,11 @@
+     var codigos = [{% for b in blocos %}"{{ b.codigo }}"{% if not forloop.last %},{% endif %}{% endfor %}];
+     codigos.forEach(function (codigo, i) {
+       try {
+-        JsBarcode("#bc-" + (i + 1), codigo, {
+-          format: "EAN13", displayValue: false, margin: 12, height: 70, width: 2.4, background: "#ffffff"
++        var el = document.getElementById("bc-" + (i + 1));
++        JsBarcode(el, codigo, {
++          format: "EAN13", displayValue: false, margin: 4, height: 80, width: 2.4, background: "#ffffff"
+         });
++        el.setAttribute("preserveAspectRatio", "none");
+       } catch (e) {}
+     });
+   </script>
+diff --git a/produtos/tests_cliente_cartao.py b/produtos/tests_cliente_cartao.py
+index 9d7db41d..f716e9dc 100644
+--- a/produtos/tests_cliente_cartao.py
++++ b/produtos/tests_cliente_cartao.py
+@@ -42,7 +42,8 @@ class CartaoFluxoTest(TestCase):
+         self.assertEqual(resp.status_code, 200)
+         self.assertContains(resp, "981")
+         self.assertContains(resp, "width: 54%")
+-        self.assertContains(resp, "margin: 12")
++        self.assertContains(resp, "margin: 4")
++        self.assertContains(resp, "preserveAspectRatio")
+         self.assertContains(resp, "left: 68.2%")
+         cartao = emitir_cartoes(1)[0]
+         livre = self.client.post(
+diff --git a/VERSION b/VERSION
+--- a/VERSION
++++ b/VERSION
+@@ -1 +1 @@
+-27.26.85
++27.26.86
