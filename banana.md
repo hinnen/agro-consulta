@@ -1744,13 +1744,13 @@ Primeira tela curta: nome, cartão, cashback, vale, avisos (ração e fiado) e o
 
 Barras mais grossas, com branco nas laterais, e QR maior. Só na folha nova. O cartão já impresso não muda. Não mexe em PDV, caixa nem venda. **Enviado** `7431376a`. Até o build, no ar segue **v27.26.83** @ `59ce4326`. **Volta:** `git push origin 59ce4326:producao`.
 
-### CHECKLIST ÚNICO — **21/11b** · 🟢 pronto para envio · **v27.26.85** · não enviado
+### ✅ CHECKLIST ÚNICO — **21/11b** · enviado · **v27.26.85** @ `b45d9cbc`
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **CARTAO-FOLHA-BRANCO** | 🟢 Pronto | **NÃO** | folha de 2 cartões ok |
+| 1 | **CARTAO-FOLHA-BRANCO** | ✅ enviado `b45d9cbc` | **NÃO** | folha de 2 cartões ok |
 
-A v27.26.84 subiu o QR na faixa colorida. Esta corrige: barras no retângulo branco de baixo, QR no quadrado branco da direita. O cartão já impresso não muda. Não mexe em PDV, caixa nem venda. Base **v27.26.84** @ `7431376a`. **Na senha:** vendas pausadas · `./scripts/cutover_loja_checklist_2111b_cartao_folha.sh --exec`. **Volta:** `git push origin 7431376a:producao`.
+A v27.26.84 subiu o QR na faixa colorida. Esta corrige: barras no retângulo branco de baixo, QR no quadrado branco da direita. O cartão já impresso não muda. Não mexe em PDV, caixa nem venda. **Enviado** `b45d9cbc`. Até o build, no ar segue **v27.26.84** @ `7431376a`. **Volta:** `git push origin 7431376a:producao`.
 
 ### ✅ CHECKLIST ÚNICO — **18/11d** · enviado · **v27.26.79** @ `ef23e2e7`
 
