@@ -58,7 +58,7 @@ Atualizado **14/11/2026**.
 
 22/11: o número caiu 21/11 às 13:39. O programa morreu e a janela ficou esperando uma tecla, por isso não voltou sozinho. Agora religa sem esperar tecla. Ao ligar o PC, a subida usa o `iniciar-local.bat` (antes ligava o node uma vez só). Uma ponte só.
 
-22/11, de manhã: voltou a só enviar. Sessão anterior em `C:\AgroWhatsApp\Dados\auth-antes-qr-20261122-095048`. QR lido por volta das 9:53. Recebimento voltou. Uma ponte só, número 5513997673389.
+22/11, de manhã: voltou a só enviar. Sessão anterior em `C:\AgroWhatsApp\Dados\auth-antes-qr-20261122-095048`. QR lido por volta das 9:53. Recebimento voltou. Uma ponte só, número 5513997673389. A subida do PC não abre segunda ponte se já tiver uma janela religando.
 
 19/11, autorizado: a página do Zap no celular ficou mais leve e a foto baixa uma vez, com atualização semanal devagar. Para voltar: tag `zap-antes-pagina-leve-2026-11-19`.
 - Ditado de voz sai torto às vezes. Se não bater, perguntar de novo.
