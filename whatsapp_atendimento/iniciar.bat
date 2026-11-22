@@ -60,11 +60,6 @@ if exist node_modules\ffmpeg-static\install.js (
 :loop
 echo Ligando...
 node index.js
-if errorlevel 1 (
-  echo.
-  echo ERRO ao ligar a ponte. Leia o texto acima. Janela aberta.
-  pause
-)
 echo.
 echo A ponte parou. Religa em 5 segundos. Feche esta janela para parar de vez.
 timeout /t 5 /nobreak >nul

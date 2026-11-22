@@ -2277,6 +2277,15 @@ setInterval(() => {
   if (waAberto || ligando || religarTimer) return;
   pedirReligar(1000, "mudo");
 }, 30 * 1000);
+process.on("uncaughtException", (e) => {
+  console.error("ponte nao pode morrer:", (e && e.message) || e);
+  waAberto = false;
+  try { fecharSockAntigo(); } catch { /* ignore */ }
+  pedirReligar(5000, "excecao");
+});
+process.on("unhandledRejection", (e) => {
+  console.error("ponte rejeicao:", (e && e.message) || e);
+});
 ligar().catch((e) => {
   console.error(e);
   pedirReligar(8000, "inicio");
