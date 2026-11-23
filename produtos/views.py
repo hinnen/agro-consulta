@@ -11134,8 +11134,6 @@ def agro_entrar(request):
         user = authenticate(request, username=username, password=password)
         if user is None:
             erro = "Usuário ou senha incorretos."
-            if next_url.startswith("/atendimento-whatsapp/celular"):
-                return redirect("/atendimento-whatsapp/celular/?login=erro")
         elif not user.is_active:
             erro = "Este usuário está desativado."
         else:

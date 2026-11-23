@@ -10,8 +10,8 @@ from django.contrib.auth.decorators import login_required
 from django.db import close_old_connections
 from django.http import FileResponse, Http404, HttpResponse, JsonResponse
 from django.shortcuts import redirect, render
-from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_GET, require_POST
+from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
+from django.views.decorators.http import require_GET, require_POST, require_http_methods
 
 from produtos.atendimento_whatsapp_bot_config import BOT_DEFAULT, avisos_bot, carregar_bot, resetar_bot, salvar_bot
 from produtos.atendimento_whatsapp_util import (
@@ -255,20 +255,32 @@ def atendimento_whatsapp_celular_sw(request):
     return resp
 
 
-@require_POST
-def atendimento_whatsapp_celular_entrar_view(request):
-    """Login do aplicativo. Responde na mesma tela, sem ir para outra página."""
+@require_http_methods(["GET", "POST"])
+@ensure_csrf_cookie
+def atendimento_whatsapp_celular_login_view(request):
+    """Página só de entrar no Zap do celular. Fora do aplicativo, para a senha ficar guardada."""
     from django.contrib.auth import authenticate, login
 
-    username = (request.POST.get("username") or "").strip()
-    password = (request.POST.get("password") or "").strip()
-    user = authenticate(request, username=username, password=password)
-    if user is None and username.lower() != username:
-        user = authenticate(request, username=username.lower(), password=password)
-    if user is None or not getattr(user, "is_active", False):
-        return redirect("/atendimento-whatsapp/celular/?login=erro")
-    login(request, user)
-    return redirect("/atendimento-whatsapp/celular/")
+    if request.user.is_authenticated:
+        return redirect("/atendimento-whatsapp/celular/")
+    erro = ""
+    if request.method == "POST":
+        username = (request.POST.get("username") or "").strip()
+        password = (request.POST.get("password") or "").strip()
+        user = authenticate(request, username=username, password=password)
+        if user is None and username.lower() != username:
+            user = authenticate(request, username=username.lower(), password=password)
+        if user is not None and getattr(user, "is_active", False):
+            login(request, user)
+            return redirect("/atendimento-whatsapp/celular/")
+        erro = "Usuário ou senha não entrou."
+    resp = render(
+        request,
+        "produtos/atendimento_whatsapp_celular_login.html",
+        {"erro": erro, "username": (request.POST.get("username") or "").strip()},
+    )
+    resp["Cache-Control"] = "no-store"
+    return resp
 
 
 def atendimento_whatsapp_celular_instalar_view(request):
@@ -279,16 +291,13 @@ def atendimento_whatsapp_celular_instalar_view(request):
 
 
 def atendimento_whatsapp_celular_view(request):
+    if not request.user.is_authenticated:
+        return redirect("/atendimento-whatsapp/celular/login/")
     destaque = (request.GET.get("sistapp") or "").strip() in ("1", "true", "sim", "yes")
     resp = render(
         request,
         "produtos/atendimento_whatsapp_celular.html",
-        {
-            "wa_pwa_destaque": destaque,
-            "wa_sistapp": destaque,
-            "wa_logado": bool(request.user.is_authenticated),
-            "wa_login_erro": (request.GET.get("login") or "") == "erro",
-        },
+        {"wa_pwa_destaque": destaque, "wa_sistapp": destaque},
     )
     resp["Cache-Control"] = "no-store"
     return resp

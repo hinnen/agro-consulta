@@ -171,83 +171,12 @@ sessionStorage.setItem("agro_wa_sistapp", "1");
 <script>
 (function () {
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.getRegistrations().then(function (rs) {
-      var velho = rs.some(function (r) {
-        var u = (r.active && r.active.scriptURL) || (r.installing && r.installing.scriptURL) || "";
-        return u.indexOf("v=5") < 0;
-      });
-      if (velho) {
-        Promise.all(rs.map(function (r) { return r.unregister(); })).then(function () {
-          window.location.reload();
-        });
-        return;
-      }
-      navigator.serviceWorker.register("{% url 'atendimento_whatsapp_celular_sw' %}?v=5", { scope: "/atendimento-whatsapp/celular/" }).catch(function () {});
-    }).catch(function () {});
+    navigator.serviceWorker.register("{% url 'atendimento_whatsapp_celular_sw' %}", { scope: "/atendimento-whatsapp/celular/" }).catch(function () {});
   }
-})();
-</script>
-<script>
-(function () {
   var b = document.getElementById("wa-ver-btn");
   var p = document.getElementById("wa-ver-pop");
   if (!b || !p) return;
   b.addEventListener("click", function () { p.hidden = !p.hidden; });
-})();
-</script>
-<div id="wa-loja-login" hidden style="position:fixed;inset:0;z-index:2147483647;background:#022c22;color:#ecfdf5;display:block;overflow:auto;padding:1.25rem 1.25rem 40vh;">
-  <form id="wa-loja-login-form" method="post" action="/atendimento-whatsapp/celular/entrar/" style="width:min(100%,22rem);margin:0 auto;">
-    {% csrf_token %}
-    <input type="hidden" name="next" value="/atendimento-whatsapp/celular/">
-    <h1 style="margin:0 0 .35rem;font-size:1.6rem;">Entrar na loja</h1>
-    <p style="margin:0 0 1rem;color:#a7f3d0;font-weight:700;">Usuário e senha da loja. O PIN vem depois.</p>
-    <input id="wa-loja-user" name="username" autocomplete="username" placeholder="Usuário" style="width:100%;box-sizing:border-box;min-height:3.2rem;margin-bottom:.6rem;border-radius:.8rem;border:0;padding:0 .8rem;font-size:1.15rem;font-weight:800;color:#022c22;background:#fff;caret-color:#022c22;">
-    <input id="wa-loja-pass" name="password" type="password" autocomplete="current-password" placeholder="Senha" style="width:100%;box-sizing:border-box;min-height:3.2rem;margin-bottom:.6rem;border-radius:.8rem;border:0;padding:0 .8rem;font-size:1.15rem;font-weight:800;color:#022c22;background:#fff;caret-color:#022c22;">
-    <button type="submit" style="width:100%;min-height:3.4rem;border:0;border-radius:.9rem;background:#16a34a;color:#fff;font-size:1.2rem;font-weight:800;">Entrar</button>
-    <p id="wa-loja-erro" style="min-height:1.4rem;margin:.7rem 0 0;color:#fecaca;font-weight:800;"></p>
-  </form>
-</div>
-<style>
-  body.sspin-locked > #wa-loja-login { pointer-events: auto !important; }
-</style>
-<script>
-(function () {
-  var box = document.getElementById("wa-loja-login");
-  var form = document.getElementById("wa-loja-login-form");
-  var erro = document.getElementById("wa-loja-erro");
-  function mostrar() {
-    box.hidden = false;
-    var pin = document.getElementById("sspin-root");
-    if (pin) pin.style.display = "none";
-    document.body.classList.remove("sspin-locked");
-  }
-  ["wa-loja-user", "wa-loja-pass"].forEach(function (id) {
-    var el = document.getElementById(id);
-    if (!el) return;
-    el.addEventListener("focus", function () {
-      window.setTimeout(function () { el.scrollIntoView({ block: "start" }); }, 300);
-    });
-  });
-  form.addEventListener("submit", function () {
-    var u = document.getElementById("wa-loja-user");
-    u.value = (u.value || "").trim().toLowerCase();
-    erro.textContent = "Entrando…";
-  });
-  if ({% if wa_logado %}true{% else %}false{% endif %}) return;
-  if ({% if wa_login_erro %}true{% else %}false{% endif %}) {
-    mostrar();
-    erro.textContent = "Usuário ou senha não entrou.";
-    return;
-  }
-  fetch("/api/atendimento-whatsapp/estado/", { credentials: "same-origin", headers: { Accept: "application/json" } })
-    .then(function (r) {
-      return r.json().then(function (j) { return j; }, function () { return null; });
-    })
-    .then(function (j) {
-      if (j && j.ok) return;
-      mostrar();
-    })
-    .catch(function () { mostrar(); });
 })();
 </script>
 </body>
