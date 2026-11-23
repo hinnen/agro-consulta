@@ -1695,9 +1695,15 @@ Até o build, no ar segue v27.26.53 @ `af7af8cc`. Volta: `git push origin rollba
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### CAD-HIST-PRECO-VENDA — **23/11** · em `teste` · não foi para a loja
+### CHECKLIST ÚNICO — **23/11** · 🟢 pronto para envio à produção · não enviado
 
-Mudar o preço de venda na entrada da nota passa a aparecer na aba **10. Alterações**. Salvar o cadastro sem mexer em NCM, CFOP, CSOSN, kit, «ativo» ou modo de preço não gera mais linha falsa «— → valor». Sem migrate.
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **CAD-HIST-ABA10** | 🟢 Pronto | **NÃO** | preço, NCM, kit, ativo, custo e busca só entram se mudarem · salvar sem mexer fica vazio |
+
+Aba 10 anota preço (nota e aba 4) e o resto do cadastro quando muda. Não anota NCM, CFOP, CSOSN, kit ou ativo se a tela já mostrava. Linhas antigas ficam. Não mexe em PDV, caixa nem venda. `teste` @ `7c8fd6c6` · **v27.26.69**.
+
+**Ainda falta subir, pacote anterior:** **CARTAO-BARRAS-GROSSAS** (21/11c) · pronto · sem migrate · `./scripts/cutover_loja_checklist_2111c_cartao_barras.sh --exec`.
 
 ### ✅ CORTE ENVIADO — **19/11** · **v27.26.82** @ `fb15ae8a` · Pedir loja pausado · aguardando o build
 
