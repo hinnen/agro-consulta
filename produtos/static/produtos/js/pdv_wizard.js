@@ -11641,6 +11641,7 @@
 
     function closePdvPeEtqModal() {
         if (dom.peEtqModal) {
+            dom.peEtqModal.dataset.etqPreco = '';
             dom.peEtqModal.classList.add('hidden');
             dom.peEtqModal.setAttribute('aria-hidden', 'true');
         }
@@ -11663,6 +11664,7 @@
             return;
         }
         if (!quickProductEditProdutoId || !dom.peEtqModal) return;
+        dom.peEtqModal.dataset.etqPreco = '';
         var prod = buildQuickProductEtqProdFromForm();
         if (!prod.nome) {
             if (dom.quickProductEditErro) {
@@ -12171,6 +12173,9 @@
                         pack.saldos
                     );
                     closeQuickProductEditOverlay();
+                    if (window.AgroEtiquetaPreco && typeof window.AgroEtiquetaPreco.carregar === 'function') {
+                        window.AgroEtiquetaPreco.carregar();
+                    }
                     if (typeof showPdvAviso === 'function') {
                         showPdvAviso('Produto atualizado.', { title: 'Salvo', tone: 'success' });
                     }

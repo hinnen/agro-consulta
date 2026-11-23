@@ -42,6 +42,15 @@
       .catch(function () {});
   }
 
+  var esperaUso = null;
+  function aoUsarPdv() {
+    if (esperaUso) return;
+    esperaUso = setTimeout(function () {
+      esperaUso = null;
+      carregar();
+    }, 1200);
+  }
+
   function post(acao, extra) {
     var body = Object.assign({ acao: acao }, extra || {});
     return fetch('/api/pdv/etiqueta-preco/', {
@@ -104,6 +113,114 @@
     painel.querySelector('[data-loja]').textContent = loja + ' · ' + itens.length;
   }
 
+  function preencherPresets(selectEl) {
+    var Core = window.AgroEtiquetasCore;
+    if (!Core || !selectEl) return;
+    Core.fillPresetSelect(selectEl, null);
+    if (typeof Core.refreshPresetsFromServer === 'function') {
+      Core.refreshPresetsFromServer().then(function (list) {
+        Core.fillPresetSelect(selectEl, null, list);
+      }).catch(function () {});
+    }
+  }
+
+  function abrirImpressaoPdv() {
+    var Core = window.AgroEtiquetasCore;
+    if (!Core || !itens.length) return;
+    var modal = document.getElementById('pdv-pe-etq-modal');
+    var back = document.getElementById('pdv-pe-etq-back');
+    var nomeEl = document.getElementById('pdv-pe-etq-nome');
+    var gmEl = document.getElementById('pdv-pe-etq-gm');
+    var qtdEl = document.getElementById('pdv-pe-etq-qtd');
+    var presetEl = document.getElementById('pdv-pe-etq-preset');
+    var statusEl = document.getElementById('pdv-pe-etq-status');
+    var btnImp = document.getElementById('pdv-pe-etq-imprimir');
+    if (!modal || !presetEl || !btnImp) return;
+    if (itens.length === 1) {
+      if (nomeEl) nomeEl.textContent = itens[0].nome || '—';
+      if (gmEl) gmEl.textContent = (itens[0].codigo || '') + ' · R$ ' + (itens[0].preco_para || '');
+    } else {
+      if (nomeEl) nomeEl.textContent = itens.length + ' etiquetas para trocar';
+      if (gmEl) gmEl.textContent = loja || '';
+    }
+    if (qtdEl) qtdEl.value = '1';
+    if (statusEl) statusEl.textContent = '';
+    preencherPresets(presetEl);
+    modal.dataset.etqPreco = '1';
+    if (back) {
+      back.classList.remove('hidden');
+      back.setAttribute('aria-hidden', 'false');
+    }
+    modal.classList.remove('hidden');
+    modal.setAttribute('aria-hidden', 'false');
+    if (btnImp.dataset.etqPrecoLigado !== '1') {
+      btnImp.dataset.etqPrecoLigado = '1';
+      btnImp.addEventListener('click', function (ev) {
+        if (modal.dataset.etqPreco !== '1') return;
+        ev.stopImmediatePropagation();
+        imprimirPendentes();
+      }, true);
+    }
+  }
+
+  function fecharImpressaoPdv() {
+    var modal = document.getElementById('pdv-pe-etq-modal');
+    var back = document.getElementById('pdv-pe-etq-back');
+    if (modal) {
+      modal.dataset.etqPreco = '';
+      modal.classList.add('hidden');
+      modal.setAttribute('aria-hidden', 'true');
+    }
+    if (back) {
+      back.classList.add('hidden');
+      back.setAttribute('aria-hidden', 'true');
+    }
+  }
+
+  function imprimirPendentes() {
+    var Core = window.AgroEtiquetasCore;
+    var presetEl = document.getElementById('pdv-pe-etq-preset');
+    var qtdEl = document.getElementById('pdv-pe-etq-qtd');
+    var statusEl = document.getElementById('pdv-pe-etq-status');
+    var btnImp = document.getElementById('pdv-pe-etq-imprimir');
+    if (!Core || !itens.length) return;
+    var qtd = parseInt(qtdEl && qtdEl.value, 10) || 1;
+    if (qtd < 1) qtd = 1;
+    if (qtd > 999) qtd = 999;
+    var presetId = presetEl && presetEl.value;
+    var st = Core.loadStorage();
+    if (presetId) {
+      st.preset_ativo = presetId;
+      Core.saveStorage(st);
+    }
+    var lista = itens.map(function (it) {
+      return Core.produtoParaItem({
+        id: it.produto_id,
+        nome: it.nome,
+        codigo_gm: it.codigo,
+        codigo_barras: /^\d{8,}$/.test(String(it.codigo || '')) ? it.codigo : '',
+        preco_venda: it.preco_para_num,
+      }, qtd);
+    });
+    if (statusEl) statusEl.textContent = 'Enviando…';
+    if (btnImp) btnImp.disabled = true;
+    Core.imprimirItens(lista, {
+      presetId: presetId || st.preset_ativo,
+      textoRodape: (st.texto_rodape_global || (Core.getPresetAtivo(st).texto_rodape) || ''),
+      origem: 'pdv_preco',
+    }).then(function (res) {
+      if (res && res.ok) {
+        fecharImpressaoPdv();
+        return;
+      }
+      if (statusEl) statusEl.textContent = 'Falha: ' + ((res && res.reason) || 'erro');
+    }).catch(function (err) {
+      if (statusEl) statusEl.textContent = 'Falha: ' + ((err && err.message) || 'erro de impressão');
+    }).then(function () {
+      if (btnImp) btnImp.disabled = false;
+    });
+  }
+
   function abrir() {
     if (!painel) {
       painel = document.createElement('div');
@@ -131,9 +248,7 @@
           return;
         }
         if (t.closest('[data-etq]')) {
-          post('etiquetas').then(function (j) {
-            if (j && j.ok && j.url) window.open(j.url, '_blank');
-          });
+          abrirImpressaoPdv();
           return;
         }
         var ok = t.closest('[data-ok]');
@@ -151,6 +266,10 @@
   }
 
   btn.addEventListener('click', abrir);
+  document.addEventListener('click', aoUsarPdv, true);
+  document.addEventListener('keydown', aoUsarPdv, true);
+  window.addEventListener('focus', carregar);
   carregar();
-  setInterval(carregar, 45000);
+  setInterval(carregar, 10000);
+  window.AgroEtiquetaPreco = { carregar: carregar };
 })();
