@@ -78,6 +78,11 @@ urlpatterns = [
         name="atendimento_whatsapp_celular_sw",
     ),
     path(
+        "atendimento-whatsapp/celular/instalar/",
+        views_atendimento_whatsapp.atendimento_whatsapp_celular_instalar_view,
+        name="atendimento_whatsapp_celular_instalar",
+    ),
+    path(
         "atendimento-whatsapp/celular/",
         views_atendimento_whatsapp.atendimento_whatsapp_celular_view,
         name="atendimento_whatsapp_celular",

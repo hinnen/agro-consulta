@@ -258,6 +258,13 @@ def atendimento_whatsapp_celular_sw(request):
     return resp
 
 
+def atendimento_whatsapp_celular_instalar_view(request):
+    """Página só com o botão de instalar. Não abre o Zap."""
+    resp = render(request, "produtos/atendimento_whatsapp_celular_instalar.html", {})
+    resp["Cache-Control"] = "no-store"
+    return resp
+
+
 def atendimento_whatsapp_celular_view(request):
     destaque = (request.GET.get("sistapp") or "").strip() in ("1", "true", "sim", "yes")
     resp = render(
