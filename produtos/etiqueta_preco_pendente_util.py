@@ -151,6 +151,8 @@ def _aplicar_prateleira(pid: str, dep: str, shelf: Decimal, nome: str, codigo: s
             pendente=base_se_novo != shelf,
         )
         return
+    if not row.pendente and shelf == row.preco_ok:
+        return
     mudou = shelf != row.preco_atual or (nome and nome != row.nome)
     if not mudou:
         return
@@ -187,6 +189,8 @@ def sincronizar_promocoes(deposito: str) -> None:
     if ativos:
         fora = fora.exclude(produto_externo_id__in=list(ativos.keys()))
     for row in fora:
+        if not row.pendente and row.preco_ok == row.preco_atual:
+            continue
         base, nome_ov, _cod = _dados_overlay(row.produto_externo_id)
         if base is None or base == row.preco_atual:
             continue
