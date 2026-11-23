@@ -98,14 +98,12 @@
     if (!painel) return;
     var corpo = itens.map(function (it) {
       return (
-        '<div class="flex items-start gap-2 border-b border-slate-200 py-2">' +
-        '<div class="min-w-0 flex-1">' +
-        '<div class="text-sm font-black text-slate-900">' + esc(it.nome) + '</div>' +
-        '<div class="text-xs font-bold text-slate-500">' + esc(it.codigo) + '</div>' +
-        '<div class="text-sm font-bold text-slate-600">Era R$ ' + esc(it.preco_de) + '</div>' +
-        '<div class="text-base font-black text-orange-700">Agora R$ ' + esc(it.preco_para) + '</div>' +
-        '</div>' +
-        '<button type="button" data-ok="' + it.id + '" class="shrink-0 rounded-xl border-2 border-emerald-700 bg-emerald-600 px-3 py-2 text-sm font-black text-white">Já troquei</button>' +
+        '<div style="display:grid;grid-template-columns:minmax(18rem,1fr) 7.5rem 7rem 8rem 8.5rem;align-items:center;gap:0.75rem;border-bottom:1px solid #e2e8f0;padding:0.45rem 0;">' +
+        '<div style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:0.95rem;font-weight:900;color:#0f172a;" title="' + esc(it.nome) + '">' + esc(it.nome) + '</div>' +
+        '<div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:0.8rem;font-weight:700;color:#64748b;">' + esc(it.codigo) + '</div>' +
+        '<div style="font-size:0.85rem;font-weight:700;color:#475569;">R$ ' + esc(it.preco_de) + '</div>' +
+        '<div style="font-size:1rem;font-weight:900;color:#c2410c;">R$ ' + esc(it.preco_para) + '</div>' +
+        '<button type="button" data-ok="' + it.id + '" class="rounded-xl border-2 border-emerald-700 bg-emerald-600 px-2 py-2 text-sm font-black text-white">Já troquei</button>' +
         '</div>'
       );
     }).join('');
@@ -226,11 +224,13 @@
       painel = document.createElement('div');
       painel.className = 'fixed inset-0 z-[80] flex items-center justify-center bg-slate-900/50 p-3';
       painel.innerHTML =
-        '<div class="flex max-h-[90dvh] w-full max-w-xl flex-col rounded-2xl border-2 border-orange-600 bg-white shadow-2xl">' +
+        '<div class="flex max-h-[90dvh] w-[min(96vw,72rem)] flex-col rounded-2xl border-2 border-orange-600 bg-white shadow-2xl">' +
         '<div class="flex items-center justify-between gap-2 border-b border-orange-200 bg-orange-50 px-3 py-2">' +
         '<div><div class="text-base font-black uppercase text-orange-900">Trocar etiqueta</div>' +
         '<div data-loja class="text-xs font-bold text-slate-600"></div></div>' +
         '<button type="button" data-fechar class="rounded-xl border-2 border-slate-400 bg-white px-3 py-2 text-sm font-black">Fechar</button></div>' +
+        '<div style="display:grid;grid-template-columns:minmax(18rem,1fr) 7.5rem 7rem 8rem 8.5rem;gap:0.75rem;padding:0.35rem 0.75rem 0;font-size:10px;font-weight:900;letter-spacing:0.04em;text-transform:uppercase;color:#94a3b8;">' +
+        '<span>Produto</span><span>Código</span><span>Era</span><span>Agora</span><span></span></div>' +
         '<div data-lista class="min-h-0 flex-1 overflow-y-auto px-3"></div>' +
         '<div class="flex flex-wrap gap-2 border-t border-slate-200 p-3">' +
         '<button type="button" data-cupom class="rounded-xl border-2 border-slate-800 bg-slate-900 px-3 py-2 text-sm font-black text-white">Lista 80mm</button>' +
