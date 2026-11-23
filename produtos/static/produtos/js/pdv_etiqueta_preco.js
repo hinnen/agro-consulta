@@ -310,12 +310,20 @@
         }
         var ok = t.closest('[data-ok]');
         if (!ok) return;
-        post('ok', { id: Number(ok.getAttribute('data-ok')) }).then(function (j) {
-          if (!j || !j.ok) return;
-          itens = j.itens || [];
-          loja = j.loja || loja;
-          pintar();
-        });
+        var idOk = Number(ok.getAttribute('data-ok'));
+        var marcar = function () {
+          post('ok', { id: idOk }).then(function (j) {
+            if (!j || !j.ok) return;
+            itens = j.itens || [];
+            loja = j.loja || loja;
+            pintar();
+          });
+        };
+        if (typeof window.gmSspinGarantirOperador === 'function') {
+          window.gmSspinGarantirOperador(marcar, { titulo: 'PIN de quem trocou a etiqueta' });
+          return;
+        }
+        marcar();
       });
     }
     painel.classList.remove('hidden');

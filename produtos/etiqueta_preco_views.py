@@ -55,6 +55,11 @@ def api_pdv_etiqueta_preco(request):
         from produtos.caixa_util import operador_label_request
 
         quem = operador_label_request(request)
+        if not quem:
+            return JsonResponse(
+                {"ok": False, "erro": "Informe o PIN de quem está no PDV.", "precisa_pin": True},
+                status=403,
+            )
         if not confirmar(pk, dep, quem):
             return JsonResponse({"ok": False, "erro": "Esse item já saiu da lista."}, status=404)
         itens = listar_pendentes(dep)
