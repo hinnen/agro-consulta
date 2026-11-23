@@ -183,5 +183,68 @@ sessionStorage.setItem("agro_wa_sistapp", "1");
   b.addEventListener("click", function () { p.hidden = !p.hidden; });
 })();
 </script>
+<div id="wa-loja-login" hidden style="position:fixed;inset:0;z-index:2147483647;background:#022c22;color:#ecfdf5;display:flex;align-items:center;justify-content:center;padding:1.25rem;">
+  <form id="wa-loja-login-form" style="width:min(100%,22rem);">
+    <h1 style="margin:0 0 .35rem;font-size:1.6rem;">Entrar na loja</h1>
+    <p style="margin:0 0 1rem;color:#a7f3d0;font-weight:700;">Usuário e senha da loja. O PIN vem depois.</p>
+    <input id="wa-loja-user" name="username" autocomplete="username" placeholder="Usuário" style="width:100%;box-sizing:border-box;min-height:3.2rem;margin-bottom:.6rem;border-radius:.8rem;border:0;padding:0 .8rem;font-size:1.15rem;font-weight:700;">
+    <input id="wa-loja-pass" name="password" type="password" autocomplete="current-password" placeholder="Senha" style="width:100%;box-sizing:border-box;min-height:3.2rem;margin-bottom:.6rem;border-radius:.8rem;border:0;padding:0 .8rem;font-size:1.15rem;font-weight:700;">
+    <button type="submit" style="width:100%;min-height:3.4rem;border:0;border-radius:.9rem;background:#16a34a;color:#fff;font-size:1.2rem;font-weight:800;">Entrar</button>
+    <p id="wa-loja-erro" style="min-height:1.4rem;margin:.7rem 0 0;color:#fecaca;font-weight:800;"></p>
+  </form>
+</div>
+<style>
+  body.sspin-locked > #wa-loja-login { pointer-events: auto !important; }
+</style>
+<script>
+(function () {
+  var box = document.getElementById("wa-loja-login");
+  var form = document.getElementById("wa-loja-login-form");
+  var erro = document.getElementById("wa-loja-erro");
+  function csrf() {
+    var el = document.querySelector("input[name=csrfmiddlewaretoken]");
+    return el ? el.value : "";
+  }
+  function mostrar() {
+    box.hidden = false;
+    var pin = document.getElementById("sspin-root");
+    if (pin) pin.style.display = "none";
+    document.body.classList.remove("sspin-locked");
+  }
+  fetch("/api/atendimento-whatsapp/estado/", { credentials: "same-origin", headers: { Accept: "application/json" } })
+    .then(function (r) {
+      return r.json().then(function (j) { return { r: r, j: j }; }, function () { return { r: r, j: null }; });
+    })
+    .then(function (x) {
+      var url = (x.r && x.r.url) || "";
+      if (!x.j || x.r.redirected || url.indexOf("/entrar") >= 0) mostrar();
+    })
+    .catch(function () { mostrar(); });
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
+    erro.textContent = "";
+    var body = new URLSearchParams();
+    body.set("username", document.getElementById("wa-loja-user").value.trim());
+    body.set("password", document.getElementById("wa-loja-pass").value);
+    body.set("csrfmiddlewaretoken", csrf());
+    body.set("next", "/atendimento-whatsapp/celular/");
+    fetch("/entrar/", {
+      method: "POST",
+      credentials: "same-origin",
+      redirect: "manual",
+      headers: { "Content-Type": "application/x-www-form-urlencoded", "X-CSRFToken": csrf() },
+      body: body.toString()
+    }).then(function (r) {
+      if (r.type === "opaqueredirect" || r.status === 302 || r.status === 303) {
+        window.location.reload();
+        return;
+      }
+      erro.textContent = "Usuário ou senha não entrou.";
+    }).catch(function () {
+      erro.textContent = "Não consegui entrar. Tente de novo.";
+    });
+  });
+})();
+</script>
 </body>
 </html>
