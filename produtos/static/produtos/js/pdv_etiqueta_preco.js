@@ -30,11 +30,13 @@
     if (painel && !vendoHistorico) desenhar();
   }
 
+  var cargaSeq = 0;
   function carregar() {
+    var seq = ++cargaSeq;
     fetch('/api/pdv/etiqueta-preco/', { credentials: 'same-origin' })
       .then(function (r) { return r.json(); })
       .then(function (j) {
-        if (!j || !j.ok) return;
+        if (seq !== cargaSeq || !j || !j.ok) return;
         itens = j.itens || [];
         loja = j.loja || '';
         pintar();
@@ -43,7 +45,9 @@
   }
 
   var esperaUso = null;
-  function aoUsarPdv() {
+  function aoUsarPdv(ev) {
+    var alvo = ev && ev.target;
+    if (alvo && alvo.closest && (alvo.closest('#pdv-topbar-etiqueta-preco-btn') || (painel && painel.contains(alvo)))) return;
     if (esperaUso) return;
     esperaUso = setTimeout(function () {
       esperaUso = null;
@@ -314,8 +318,10 @@
         var marcar = function () {
           post('ok', { id: idOk }).then(function (j) {
             if (!j || !j.ok) return;
+            cargaSeq++;
             itens = j.itens || [];
             loja = j.loja || loja;
+            vendoHistorico = false;
             pintar();
           });
         };
