@@ -58,6 +58,7 @@ _CAMPOS_EXTRAS: list[tuple[str, str]] = [
     ("codigos_barras_opcionais", "Barras opcionais"),
     ("custo_familia", "Custo do saco (família)"),
     ("variacoes", "Marcas / códigos"),
+    ("delivery_resumo", "Catálogo delivery"),
 ]
 
 _LABELS = {k: lab for k, lab in _CAMPOS_OVERLAY + _CAMPOS_EXTRAS}
@@ -156,6 +157,11 @@ def snapshot_overlay(ov) -> dict[str, Any]:
         out["c_prods_nf"] = out["c_prod_nf"]
     out["codigos_barras_opcionais"] = ex.get("codigos_barras_opcionais") or []
     out["custo_familia"] = ex.get("custo_familia") if isinstance(ex.get("custo_familia"), dict) else None
+    d = ex.get("delivery") if isinstance(ex.get("delivery"), dict) else {}
+    if d.get("ativo"):
+        out["delivery_resumo"] = "Sim · " + str(d.get("titulo") or "").strip()
+    else:
+        out["delivery_resumo"] = ""
     return out
 
 
@@ -258,6 +264,10 @@ def enriquecer_snapshot_antes_com_catalogo(produto_id: str, snap: dict[str, Any]
         out["classes_vet"] = []
     if out.get("especies_vet") is None:
         out["especies_vet"] = []
+    if out.get("composicao") is None:
+        out["composicao"] = []
+    if _norm_cmp(out.get("precos_modo")) == "":
+        out["precos_modo"] = "por_forma"
     return out
 
 
