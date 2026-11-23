@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <title>Zap loja</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
   <meta name="theme-color" content="#075E54">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
@@ -183,8 +183,10 @@ sessionStorage.setItem("agro_wa_sistapp", "1");
   b.addEventListener("click", function () { p.hidden = !p.hidden; });
 })();
 </script>
-<div id="wa-loja-login" hidden style="position:fixed;inset:0;z-index:2147483647;background:#022c22;color:#ecfdf5;display:flex;align-items:center;justify-content:center;padding:1.25rem;">
-  <form id="wa-loja-login-form" style="width:min(100%,22rem);">
+<div id="wa-loja-login" hidden style="position:fixed;inset:0;z-index:2147483647;background:#022c22;color:#ecfdf5;display:block;overflow:auto;padding:1.25rem 1.25rem 40vh;">
+  <form id="wa-loja-login-form" method="post" action="/entrar/" style="width:min(100%,22rem);margin:0 auto;">
+    {% csrf_token %}
+    <input type="hidden" name="next" value="/atendimento-whatsapp/celular/">
     <h1 style="margin:0 0 .35rem;font-size:1.6rem;">Entrar na loja</h1>
     <p style="margin:0 0 1rem;color:#a7f3d0;font-weight:700;">Usuário e senha da loja. O PIN vem depois.</p>
     <input id="wa-loja-user" name="username" autocomplete="username" placeholder="Usuário" style="width:100%;box-sizing:border-box;min-height:3.2rem;margin-bottom:.6rem;border-radius:.8rem;border:0;padding:0 .8rem;font-size:1.15rem;font-weight:800;color:#022c22;background:#fff;caret-color:#022c22;">
@@ -201,15 +203,15 @@ sessionStorage.setItem("agro_wa_sistapp", "1");
   var box = document.getElementById("wa-loja-login");
   var form = document.getElementById("wa-loja-login-form");
   var erro = document.getElementById("wa-loja-erro");
-  function csrf() {
-    var el = document.querySelector("input[name=csrfmiddlewaretoken]");
-    return el ? el.value : "";
-  }
   function mostrar() {
     box.hidden = false;
     var pin = document.getElementById("sspin-root");
     if (pin) pin.style.display = "none";
     document.body.classList.remove("sspin-locked");
+  }
+  if (location.search.indexOf("login=erro") >= 0) {
+    mostrar();
+    erro.textContent = "Usuário ou senha não entrou. Use agromais, tudo minúsculo.";
   }
   fetch("/api/atendimento-whatsapp/estado/", { credentials: "same-origin", headers: { Accept: "application/json" } })
     .then(function (r) {
@@ -217,33 +219,20 @@ sessionStorage.setItem("agro_wa_sistapp", "1");
     })
     .then(function (x) {
       var url = (x.r && x.r.url) || "";
-      if (!x.j || x.r.redirected || url.indexOf("/entrar") >= 0) mostrar();
+      if (x.j && x.j.ok && !x.r.redirected && url.indexOf("/entrar") < 0) return;
+      mostrar();
     })
     .catch(function () { mostrar(); });
-  form.addEventListener("submit", function (e) {
-    e.preventDefault();
-    erro.textContent = "";
-    var body = new URLSearchParams();
-    body.set("username", document.getElementById("wa-loja-user").value.trim());
-    body.set("password", document.getElementById("wa-loja-pass").value);
-    body.set("csrfmiddlewaretoken", csrf());
-    body.set("next", "/atendimento-whatsapp/celular/");
-    fetch("/entrar/", {
-      method: "POST",
-      credentials: "same-origin",
-      redirect: "follow",
-      headers: { "Content-Type": "application/x-www-form-urlencoded", "X-CSRFToken": csrf() },
-      body: body.toString()
-    }).then(function (r) {
-      var url = r.url || "";
-      if (url.indexOf("/entrar") < 0) {
-        window.location.reload();
-        return;
-      }
-      erro.textContent = "Usuário ou senha não entrou.";
-    }).catch(function () {
-      erro.textContent = "Não consegui entrar. Tente de novo.";
+  ["wa-loja-user", "wa-loja-pass"].forEach(function (id) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener("focus", function () {
+      window.setTimeout(function () { el.scrollIntoView({ block: "start" }); }, 300);
     });
+  });
+  form.addEventListener("submit", function () {
+    var u = document.getElementById("wa-loja-user");
+    u.value = (u.value || "").trim().toLowerCase();
   });
 })();
 </script>
