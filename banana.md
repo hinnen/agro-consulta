@@ -1695,7 +1695,7 @@ Até o build, no ar segue v27.26.53 @ `af7af8cc`. Volta: `git push origin rollba
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### CHECKLIST ÚNICO — **23/11** · 🟢 pronto para envio à produção · os três juntos · não enviado
+### CHECKLIST ÚNICO — **23/11** · ✅ enviado **v27.26.86** @ `a7fa0150` · os três juntos
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
@@ -1703,7 +1703,7 @@ Até o build, no ar segue v27.26.53 @ `af7af8cc`. Volta: `git push origin rollba
 | 2 | **CAD-HIST-ABA10** | 🟢 Pronto | **NÃO** |
 | 3 | **CARTAO-BARRAS-GROSSAS** | 🟢 Pronto | **NÃO** |
 
-Sobe os três de uma vez. Troca de preço pede PIN. Aba 10 só anota o que mudou. Barras do cartão na largura do branco. Não foi para a loja.
+Enviado. Troca de preço pede PIN. Aba 10 só anota o que mudou. Barras do cartão na largura do branco. Até o build terminar, a loja segue na **v27.26.85**.
 
 Corte pronto: **v27.26.86** em cima da loja **v27.26.85** @ `b45d9cbc`. Script `scripts/cutover_loja_checklist_2311_tres.sh`. Sem `--exec` não envia. A tabela nova entra no build. Volta: `git push origin b45d9cbc:producao`.
 
