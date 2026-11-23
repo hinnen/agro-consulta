@@ -209,20 +209,6 @@ sessionStorage.setItem("agro_wa_sistapp", "1");
     if (pin) pin.style.display = "none";
     document.body.classList.remove("sspin-locked");
   }
-  if (location.search.indexOf("login=erro") >= 0) {
-    mostrar();
-    erro.textContent = "Usuário ou senha não entrou. Use agromais, tudo minúsculo.";
-  }
-  fetch("/api/atendimento-whatsapp/estado/", { credentials: "same-origin", headers: { Accept: "application/json" } })
-    .then(function (r) {
-      return r.json().then(function (j) { return { r: r, j: j }; }, function () { return { r: r, j: null }; });
-    })
-    .then(function (x) {
-      var url = (x.r && x.r.url) || "";
-      if (x.j && x.j.ok && !x.r.redirected && url.indexOf("/entrar") < 0) return;
-      mostrar();
-    })
-    .catch(function () { mostrar(); });
   ["wa-loja-user", "wa-loja-pass"].forEach(function (id) {
     var el = document.getElementById(id);
     if (!el) return;
@@ -234,6 +220,21 @@ sessionStorage.setItem("agro_wa_sistapp", "1");
     var u = document.getElementById("wa-loja-user");
     u.value = (u.value || "").trim().toLowerCase();
   });
+  if ({% if wa_logado %}true{% else %}false{% endif %}) return;
+  if ({% if wa_login_erro %}true{% else %}false{% endif %}) {
+    mostrar();
+    erro.textContent = "Usuário ou senha não entrou.";
+    return;
+  }
+  fetch("/api/atendimento-whatsapp/estado/", { credentials: "same-origin", headers: { Accept: "application/json" } })
+    .then(function (r) {
+      return r.json().then(function (j) { return j; }, function () { return null; });
+    })
+    .then(function (j) {
+      if (j && j.ok) return;
+      mostrar();
+    })
+    .catch(function () { mostrar(); });
 })();
 </script>
 </body>

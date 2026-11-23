@@ -270,7 +270,12 @@ def atendimento_whatsapp_celular_view(request):
     resp = render(
         request,
         "produtos/atendimento_whatsapp_celular.html",
-        {"wa_pwa_destaque": destaque, "wa_sistapp": destaque},
+        {
+            "wa_pwa_destaque": destaque,
+            "wa_sistapp": destaque,
+            "wa_logado": bool(request.user.is_authenticated),
+            "wa_login_erro": (request.GET.get("login") or "") == "erro",
+        },
     )
     resp["Cache-Control"] = "no-store"
     return resp
