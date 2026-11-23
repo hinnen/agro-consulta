@@ -4,6 +4,8 @@
 
 **Renan:** anexe `@banana-roteiro` (ou só descreva a tarefa — a rule Cursor já puxa este arquivo).
 
+**Checklist único (23/11b):** **PDV-TROCA-PRECO** — 🟢 pronto para envio à produção, **não enviado**. Botão **Troca de preço** no PDV. Lista numa linha. **Já troquei** pede PIN e grava hora e quem. Imprime no PDV. Migrate **0155** e **0159**. No `teste`.
+
 **Checklist único (23/11):** **CAD-HIST-ABA10** — pronto, **não enviado**. Aba 10 só anota o que mudou de verdade (preço e o resto do cadastro). Sem migrate. Não mexe em PDV, caixa nem venda. No `teste`. Sem migrate.
 
 **Ainda pronto e não enviado (21/11c):** **CARTAO-BARRAS-GROSSAS** — corte **v27.26.86**. Barras na largura do branco. Sem migrate. Na senha: `./scripts/cutover_loja_checklist_2111c_cartao_barras.sh --exec`. Volta: `git push origin b45d9cbc:producao`.

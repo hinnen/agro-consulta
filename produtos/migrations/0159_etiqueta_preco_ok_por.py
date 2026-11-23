@@ -4,7 +4,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("produtos", "0158_etiqueta_preco_gondola"),
+        ("produtos", "0155_etiqueta_preco_gondola"),
     ]
 
     operations = [

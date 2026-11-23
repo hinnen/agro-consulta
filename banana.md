@@ -1695,9 +1695,13 @@ Até o build, no ar segue v27.26.53 @ `af7af8cc`. Volta: `git push origin rollba
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### PDV — etiqueta quando o preço muda · **23/11** · no `teste` · não foi para a loja
+### CHECKLIST ÚNICO — **23/11b** · 🟢 pronto para envio à produção · não enviado
 
-Qualquer mudança no preço de venda (cadastro, planilha, nota) avisa no PDV das duas lojas. Promoção que entra ou acaba também. **Já troquei** é um produto por vez e só naquela loja. Lista 80mm e fila de etiquetas não apagam o aviso. Migrate **0155**.
+| # | Pacote | Status | Migrate | Prova |
+| - | ------ | ------ | ------- | ----- |
+| 1 | **PDV-TROCA-PRECO** | 🟢 Pronto | **SIM** `0155` + `0159` | PIN 9999 ok · sem PIN não grava · hora e usuário · lista na hora |
+
+Botão **Troca de preço**. Uma linha por produto. **Já troquei** pede o PIN do PDV e grava hora e quem. Não usa o login do Chrome. Impressão no PDV, com o último preset. Não foi para a loja.
 
 ### CHECKLIST ÚNICO — **23/11** · 🟢 pronto para envio à produção · não enviado
 
