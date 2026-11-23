@@ -20,6 +20,9 @@ _CAMPOS_OVERLAY: list[tuple[str, str]] = [
     ("fornecedor_texto", "Fornecedor"),
     ("unidade", "Unidade"),
     ("peso_etiqueta", "Peso (etiqueta)"),
+    ("prateleira", "Prateleira"),
+    ("comissao_reais", "Comissão (R$)"),
+    ("comissao_percentual", "Comissão (%)"),
     ("codigo_barras", "Código de barras"),
     ("codigo_nfe", "Código GM / NFe"),
     ("preco_venda", "Preço venda"),
@@ -126,6 +129,9 @@ def snapshot_overlay(ov) -> dict[str, Any]:
     kit = ex.get("kit") if isinstance(ex.get("kit"), dict) else {}
     out["preco_custo"] = ex.get("preco_custo_overlay")
     out["modelo"] = ex.get("modelo") or ""
+    out["prateleira"] = str(ex.get("prateleira") or "").strip()
+    out["comissao_reais"] = ex.get("comissao_vendedor_reais")
+    out["comissao_percentual"] = ex.get("comissao_vendedor_percentual")
     out["permite_venda_estoque_negativo"] = ex.get("permite_venda_estoque_negativo")
     out["validade"] = ex.get("validade") or ""
     out["lote"] = ex.get("lote") or ""

@@ -1699,9 +1699,9 @@ Até o build, no ar segue v27.26.53 @ `af7af8cc`. Volta: `git push origin rollba
 
 | # | Pacote | Status | Migrate | Prova |
 | - | ------ | ------ | ------- | ----- |
-| 1 | **CAD-HIST-ABA10** | 🟢 Pronto | **NÃO** | preço, NCM, kit, ativo, custo e busca só entram se mudarem · salvar sem mexer fica vazio |
+| 1 | **CAD-HIST-ABA10** | 🟢 Pronto | **NÃO** | preço, NCM, kit, ativo, custo, busca, comissão e prateleira só entram se mudarem |
 
-Aba 10 anota preço (nota e aba 4) e o resto do cadastro quando muda. Não anota NCM, CFOP, CSOSN, kit ou ativo se a tela já mostrava. Linhas antigas ficam. Não mexe em PDV, caixa nem venda. `teste` @ `7c8fd6c6` · **v27.26.69**.
+Aba 10 anota preço (nota e aba 4) e o resto do cadastro quando muda. Comissão e prateleira passam a gravar no Salvar e entram na aba 10 se mudarem. Não anota NCM, CFOP, CSOSN, kit ou ativo se a tela já mostrava. Linhas antigas ficam. Não mexe em PDV, caixa nem venda. No `teste`. Sem migrate.
 
 **Ainda falta subir, pacote anterior:** **CARTAO-BARRAS-GROSSAS** (21/11c) · pronto · sem migrate · `./scripts/cutover_loja_checklist_2111c_cartao_barras.sh --exec`.
 

@@ -876,6 +876,12 @@ def _aplicar_produto_gestao_overlay_em_dict(
                     row[_k] = pc_ov
         except (TypeError, ValueError):
             pass
+    if isinstance(ce_pc, dict) and "prateleira" in ce_pc:
+        row["prateleira"] = str(ce_pc.get("prateleira") or "").strip()[:80]
+    if isinstance(ce_pc, dict) and "comissao_vendedor_reais" in ce_pc:
+        row["comissao_vendedor_reais"] = ce_pc.get("comissao_vendedor_reais")
+    if isinstance(ce_pc, dict) and "comissao_vendedor_percentual" in ce_pc:
+        row["comissao_vendedor_percentual"] = ce_pc.get("comissao_vendedor_percentual")
     if isinstance(ce_pc, dict) and ce_pc.get("modelo") is not None:
         row["modelo"] = str(ce_pc.get("modelo") or "").strip()[:200]
     from produtos.catalogo_delivery_util import aplicar_imagem_delivery_no_row
@@ -3133,6 +3139,32 @@ def _api_produtos_gestao_overlay_salvar_core(request):
             ex["modelo"] = mod
         else:
             ex.pop("modelo", None)
+    if "prateleira" in payload:
+        prat = _txt("prateleira", 80)
+        if prat:
+            ex["prateleira"] = prat
+        else:
+            ex.pop("prateleira", None)
+    if "comissao_vendedor_reais" in payload or "comissao_vendedor_percentual" in payload:
+        from produtos.cadastro_alteracao_historico_util import moeda_br_para_decimal
+
+        for chave_in, chave_ex in (
+            ("comissao_vendedor_reais", "comissao_vendedor_reais"),
+            ("comissao_vendedor_percentual", "comissao_vendedor_percentual"),
+        ):
+            if chave_in not in payload:
+                continue
+            bruto = payload.get(chave_in)
+            if bruto is None or str(bruto).strip() == "":
+                ex.pop(chave_ex, None)
+                continue
+            try:
+                val_c = moeda_br_para_decimal(bruto).quantize(Decimal("0.01"))
+            except Exception:
+                return JsonResponse({"ok": False, "erro": "Comissão inválida"}, status=400)
+            if val_c < 0 or val_c > Decimal("999999"):
+                return JsonResponse({"ok": False, "erro": "Comissão fora do intervalo"}, status=400)
+            ex[chave_ex] = float(val_c)
     if "extra_validade" in payload:
         v = str(payload.get("extra_validade") or "").strip()[:16]
         if v:
