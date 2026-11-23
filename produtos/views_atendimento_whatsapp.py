@@ -260,7 +260,7 @@ def atendimento_whatsapp_celular_sw(request):
 
 @require_POST
 def atendimento_whatsapp_celular_entrar_view(request):
-    """Login do aplicativo. Fica neste endereço para o celular não sair da tela."""
+    """Login do aplicativo. Responde na mesma tela, sem ir para outra página."""
     from django.contrib.auth import authenticate, login
 
     username = (request.POST.get("username") or "").strip()
@@ -269,9 +269,9 @@ def atendimento_whatsapp_celular_entrar_view(request):
     if user is None and username.lower() != username:
         user = authenticate(request, username=username.lower(), password=password)
     if user is None or not getattr(user, "is_active", False):
-        return redirect("/atendimento-whatsapp/celular/?login=erro")
+        return JsonResponse({"ok": False, "erro": "Usuário ou senha não entrou."}, status=401)
     login(request, user)
-    return redirect("/atendimento-whatsapp/celular/")
+    return JsonResponse({"ok": True})
 
 
 def atendimento_whatsapp_celular_instalar_view(request):

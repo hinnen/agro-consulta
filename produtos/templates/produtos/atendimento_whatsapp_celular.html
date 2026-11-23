@@ -216,9 +216,35 @@ sessionStorage.setItem("agro_wa_sistapp", "1");
       window.setTimeout(function () { el.scrollIntoView({ block: "start" }); }, 300);
     });
   });
-  form.addEventListener("submit", function () {
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
     var u = document.getElementById("wa-loja-user");
+    var p = document.getElementById("wa-loja-pass");
     u.value = (u.value || "").trim().toLowerCase();
+    erro.textContent = "Entrando…";
+    var token = "";
+    var csrf = form.querySelector("input[name=csrfmiddlewaretoken]");
+    if (csrf) token = csrf.value;
+    var body = new URLSearchParams();
+    body.set("username", u.value);
+    body.set("password", p.value);
+    body.set("csrfmiddlewaretoken", token);
+    fetch(form.action, {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/x-www-form-urlencoded", "X-CSRFToken": token },
+      body: body.toString()
+    }).then(function (r) {
+      return r.json().then(function (j) { return { r: r, j: j }; }, function () { return { r: r, j: null }; });
+    }).then(function (x) {
+      if (x.j && x.j.ok) {
+        window.location.replace("/atendimento-whatsapp/celular/");
+        return;
+      }
+      erro.textContent = (x.j && x.j.erro) || "Usuário ou senha não entrou.";
+    }).catch(function () {
+      erro.textContent = "Não consegui entrar. Tente de novo.";
+    });
   });
   if ({% if wa_logado %}true{% else %}false{% endif %}) return;
   if ({% if wa_login_erro %}true{% else %}false{% endif %}) {
