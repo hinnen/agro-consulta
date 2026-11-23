@@ -1705,6 +1705,8 @@ Até o build, no ar segue v27.26.53 @ `af7af8cc`. Volta: `git push origin rollba
 
 Sobe os três de uma vez. Troca de preço pede PIN. Aba 10 só anota o que mudou. Barras do cartão na largura do branco. Não foi para a loja.
 
+Corte pronto: **v27.26.86** em cima da loja **v27.26.85** @ `b45d9cbc`. Script `scripts/cutover_loja_checklist_2311_tres.sh`. Sem `--exec` não envia. A tabela nova entra no build. Volta: `git push origin b45d9cbc:producao`.
+
 ### ✅ CORTE ENVIADO — **19/11** · **v27.26.82** @ `fb15ae8a` · Pedir loja pausado · aguardando o build
 
 | Campo | Valor |

@@ -1,0 +1,1511 @@
+diff --git a/produtos/cadastro_alteracao_historico_util.py b/produtos/cadastro_alteracao_historico_util.py
+index f0da945c..95adb3fc 100644
+--- a/produtos/cadastro_alteracao_historico_util.py
++++ b/produtos/cadastro_alteracao_historico_util.py
+@@ -20,6 +20,9 @@ _CAMPOS_OVERLAY: list[tuple[str, str]] = [
+     ("fornecedor_texto", "Fornecedor"),
+     ("unidade", "Unidade"),
+     ("peso_etiqueta", "Peso (etiqueta)"),
++    ("prateleira", "Prateleira"),
++    ("comissao_reais", "Comissão (R$)"),
++    ("comissao_percentual", "Comissão (%)"),
+     ("codigo_barras", "Código de barras"),
+     ("codigo_nfe", "Código GM / NFe"),
+     ("preco_venda", "Preço venda"),
+@@ -49,17 +52,31 @@ _CAMPOS_EXTRAS: list[tuple[str, str]] = [
+     ("precos_modo", "Modo preços"),
+     ("precos_por_forma", "Preços por forma"),
+     ("precos_grupos", "Preços grupos A/B"),
++    ("palavras_chave", "Palavras de busca"),
++    ("classes_vet", "Classes"),
++    ("especies_vet", "Espécies"),
+     ("ean_embalagem_nf", "EAN embalagem NF"),
+     ("c_prods_nf", "Cód. produto na NF"),
+     ("c_prod_nf", "Cód. produto na NF"),
+     ("codigos_barras_opcionais", "Barras opcionais"),
+     ("custo_familia", "Custo do saco (família)"),
+     ("variacoes", "Marcas / códigos"),
++    ("delivery_resumo", "Catálogo delivery"),
+ ]
+ 
+ _LABELS = {k: lab for k, lab in _CAMPOS_OVERLAY + _CAMPOS_EXTRAS}
+ 
+ 
++def moeda_br_para_decimal(raw: Any) -> Decimal:
++    """Aceita 23.8, 23,80 e 1.234,56."""
++    s = str(raw or "").strip().replace("R$", "").replace(" ", "")
++    if not s:
++        raise ValueError("vazio")
++    if "," in s:
++        s = s.replace(".", "").replace(",", ".")
++    return Decimal(s)
++
++
+ def _fmt(val: Any) -> str:
+     if val is None:
+         return ""
+@@ -112,6 +129,9 @@ def snapshot_overlay(ov) -> dict[str, Any]:
+     kit = ex.get("kit") if isinstance(ex.get("kit"), dict) else {}
+     out["preco_custo"] = ex.get("preco_custo_overlay")
+     out["modelo"] = ex.get("modelo") or ""
++    out["prateleira"] = str(ex.get("prateleira") or "").strip()
++    out["comissao_reais"] = ex.get("comissao_vendedor_reais")
++    out["comissao_percentual"] = ex.get("comissao_vendedor_percentual")
+     out["permite_venda_estoque_negativo"] = ex.get("permite_venda_estoque_negativo")
+     out["validade"] = ex.get("validade") or ""
+     out["lote"] = ex.get("lote") or ""
+@@ -127,6 +147,9 @@ def snapshot_overlay(ov) -> dict[str, Any]:
+     out["precos_modo"] = ex.get("precos_modo") or ""
+     out["precos_por_forma"] = ex.get("precos_por_forma")
+     out["precos_grupos"] = ex.get("precos_grupos")
++    out["palavras_chave"] = ex.get("palavras_chave") or ""
++    out["classes_vet"] = ex.get("classes_vet") if isinstance(ex.get("classes_vet"), list) else None
++    out["especies_vet"] = ex.get("especies_vet") if isinstance(ex.get("especies_vet"), list) else None
+     out["ean_embalagem_nf"] = ex.get("entrada_nfe_ean_embalagem") or ""
+     from produtos.mongo_index_codigos import _c_prods_nf_de_cadastro_extras
+ 
+@@ -140,6 +163,11 @@ def snapshot_overlay(ov) -> dict[str, Any]:
+         out["c_prods_nf"] = out["c_prod_nf"]
+     out["codigos_barras_opcionais"] = ex.get("codigos_barras_opcionais") or []
+     out["custo_familia"] = ex.get("custo_familia") if isinstance(ex.get("custo_familia"), dict) else None
++    d = ex.get("delivery") if isinstance(ex.get("delivery"), dict) else {}
++    if d.get("ativo"):
++        out["delivery_resumo"] = "Sim · " + str(d.get("titulo") or "").strip()
++    else:
++        out["delivery_resumo"] = ""
+     return out
+ 
+ 
+@@ -178,6 +206,17 @@ def snapshot_efetivo_catalogo(produto_id: str) -> dict[str, Any]:
+     out["codigo_nfe"] = _pick("codigo_nfe", "codigo_gm")
+     out["marca"] = _pick("marca")
+     out["categoria"] = _pick("categoria")
++    out["subcategoria"] = _pick("subcategoria")
++    out["subcategoria_2"] = _pick("subcategoria_2")
++    out["subcategoria_3"] = _pick("subcategoria_3")
++    out["subcategoria_4"] = _pick("subcategoria_4")
++    out["fornecedor_texto"] = _pick("fornecedor", "fornecedor_texto")
++    out["descricao"] = _pick("descricao")
++    ncm = _pick("ncm")
++    if ncm is not None:
++        out["fiscal_ncm"] = ncm
++    if "inativo" in row:
++        out["ativo_exibicao"] = not bool(row.get("inativo"))
+     pv = _pick("preco_venda")
+     if pv is not None:
+         try:
+@@ -200,9 +239,7 @@ def enriquecer_snapshot_antes_com_catalogo(produto_id: str, snap: dict[str, Any]
+     """
+     if not isinstance(snap, dict):
+         return {}
+-    efetivo = snapshot_efetivo_catalogo(produto_id)
+-    if not efetivo:
+-        return dict(snap)
++    efetivo = snapshot_efetivo_catalogo(produto_id) or {}
+     out = dict(snap)
+     for k, v in list(out.items()):
+         if _norm_cmp(v) != "":
+@@ -210,6 +247,33 @@ def enriquecer_snapshot_antes_com_catalogo(produto_id: str, snap: dict[str, Any]
+         ev = efetivo.get(k)
+         if _norm_cmp(ev) != "":
+             out[k] = ev
++    # O modal já mostra estes valores quando o cadastro não gravou o campo.
++    # Salvar sem mexer não pode virar «— → 5102».
++    from produtos.agro_produto_fiscal_defaults import fiscal_padrao_ui_cadastro
++
++    padrao = fiscal_padrao_ui_cadastro()
++    tela = {
++        "fiscal_ncm": padrao.get("ncm") or "",
++        "fiscal_cfop": padrao.get("cfop") or "",
++        "fiscal_csosn": padrao.get("csosn") or "",
++        "fiscal_origem": padrao.get("origem") or "",
++        "fiscal_cst_pis_cofins": padrao.get("cst_pis_cofins") or "",
++    }
++    for k, v in tela.items():
++        if _norm_cmp(out.get(k)) == "" and _norm_cmp(v) != "":
++            out[k] = v
++    if out.get("kit_baixa_componentes") is None:
++        out["kit_baixa_componentes"] = False
++    if out.get("permite_venda_estoque_negativo") is None:
++        out["permite_venda_estoque_negativo"] = True
++    if out.get("classes_vet") is None:
++        out["classes_vet"] = []
++    if out.get("especies_vet") is None:
++        out["especies_vet"] = []
++    if out.get("composicao") is None:
++        out["composicao"] = []
++    if _norm_cmp(out.get("precos_modo")) == "":
++        out["precos_modo"] = "por_forma"
+     return out
+ 
+ 
+@@ -285,9 +349,66 @@ def registrar_diffs_cadastro(
+     if not rows:
+         return 0
+     ProdutoCadastroAlteracaoAgro.objects.bulk_create(rows)
++    for row in rows:
++        if row.campo != "preco_venda":
++            continue
++        from produtos.etiqueta_preco_pendente_util import avisar_mudanca_preco_venda
++
++        avisar_mudanca_preco_venda(
++            produto_id=pid,
++            antes=row.valor_antes,
++            depois=row.valor_depois,
++            nome=str(depois.get("nome") or "")[:300],
++            codigo=str(depois.get("codigo_nfe") or depois.get("codigo_barras") or "")[:80],
++        )
+     return len(rows)
+ 
+ 
++def ids_historico_produto(produto_id: str) -> list[str]:
++    """Id da tela e a chave estável do cadastro, para a aba 10 achar a linha."""
++    pid = str(produto_id or "").strip()[:64]
++    if not pid:
++        return []
++    ids = [pid]
++    try:
++        from produtos.cadastro_busca_codigo_util import canonical_overlay_produto_externo_id
++
++        canon = str(canonical_overlay_produto_externo_id(pid) or "").strip()[:64]
++        if canon and canon not in ids:
++            ids.append(canon)
++    except Exception:
++        pass
++    return ids
++
++
++def aplicar_preco_venda_com_historico(
++    ov,
++    *,
++    produto_id: str,
++    preco_novo,
++    usuario=None,
++    origem: str = "nf",
++) -> int:
++    """Grava o preço de venda no overlay e uma linha na aba 10 se o valor mudou."""
++    pid = str(produto_id or "").strip()[:64]
++    if not pid or ov is None or preco_novo is None:
++        return 0
++    try:
++        novo = Decimal(str(preco_novo)).quantize(Decimal("0.01"))
++    except Exception:
++        return 0
++    antes = enriquecer_snapshot_antes_com_catalogo(pid, snapshot_overlay(ov))
++    ov.preco_venda = novo
++    ov.save(update_fields=["preco_venda", "atualizado_em"])
++    return registrar_diffs_cadastro(
++        produto_id=pid,
++        antes=antes,
++        depois=snapshot_overlay(ov),
++        usuario=usuario,
++        origem=origem,
++    )
++
++
+ def listar_alteracoes_cadastro(
+     *,
+     produto_id: str,
+@@ -295,7 +416,8 @@ def listar_alteracoes_cadastro(
+     offset: int = 0,
+     completo: bool = False,
+ ) -> dict[str, Any]:
+-    pid = str(produto_id or "").strip()[:64]
++    ids = ids_historico_produto(produto_id)
++    pid = ids[0] if ids else ""
+     if not pid:
+         return {"ok": True, "linhas": [], "tem_mais": False, "total_estimado": 0}
+ 
+@@ -313,7 +435,7 @@ def listar_alteracoes_cadastro(
+             return {"ok": True, "linhas": [], "tem_mais": False, "total_estimado": teto}
+ 
+     qs = (
+-        ProdutoCadastroAlteracaoAgro.objects.filter(produto_externo_id=pid)
++        ProdutoCadastroAlteracaoAgro.objects.filter(produto_externo_id__in=ids)
+         .select_related("usuario")
+         .order_by("-criado_em", "-id")
+     )
+diff --git a/produtos/catalogo_agro.py b/produtos/catalogo_agro.py
+index db01bce4..0564f778 100644
+--- a/produtos/catalogo_agro.py
++++ b/produtos/catalogo_agro.py
+@@ -681,6 +681,12 @@ def produto_model_para_detalhe(p: Produto) -> dict:
+     aplicar_fiscal_padrao_em_row_detalhe(row)
+     ce = ov.cadastro_extras if ov and isinstance(ov.cadastro_extras, dict) else {}
+     row["cadastro_extras"] = dict(ce) if ce else {}
++    if "prateleira" in ce:
++        row["prateleira"] = str(ce.get("prateleira") or "").strip()[:80]
++    if "comissao_vendedor_reais" in ce:
++        row["comissao_vendedor_reais"] = ce.get("comissao_vendedor_reais")
++    if "comissao_vendedor_percentual" in ce:
++        row["comissao_vendedor_percentual"] = ce.get("comissao_vendedor_percentual")
+     # Leitura segura 100% Agro: se PG/overlay estiverem em branco, completa do histórico local.
+     # Código antigo do histórico entra como opcional para não perder o novo.
+     try:
+diff --git a/produtos/etiqueta_preco_pendente_util.py b/produtos/etiqueta_preco_pendente_util.py
+new file mode 100644
+index 00000000..57777590
+--- /dev/null
++++ b/produtos/etiqueta_preco_pendente_util.py
+@@ -0,0 +1,278 @@
++"""Aviso de etiqueta quando o preço da prateleira muda. Vale nas duas lojas."""
++from __future__ import annotations
++
++from decimal import Decimal, InvalidOperation
++from typing import Any
++
++from django.utils import timezone
++
++from produtos.models import (
++    EtiquetaPrecoGondolaAgro,
++    EtiquetaPrecoPromoBaseAgro,
++    ProdutoGestaoOverlayAgro,
++    PromocaoAgro,
++    PromocaoProdutoAgro,
++)
++from produtos.pdv_deposito_util import DEPOSITO_CENTRO, DEPOSITO_VILA, normalizar_deposito
++
++DEPOSITOS = (DEPOSITO_CENTRO, DEPOSITO_VILA)
++
++
++def _dinheiro(val) -> Decimal | None:
++    if val is None:
++        return None
++    s = str(val).strip().replace("R$", "").replace(" ", "").replace("—", "")
++    if not s:
++        return None
++    if "," in s:
++        s = s.replace(".", "").replace(",", ".")
++    try:
++        return Decimal(s).quantize(Decimal("0.01"))
++    except (InvalidOperation, ValueError):
++        return None
++
++
++def _fmt_br(val: Decimal) -> str:
++    return f"{val:.2f}".replace(".", ",")
++
++
++def _dados_overlay(pid: str) -> tuple[Decimal | None, str, str]:
++    ov = (
++        ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=pid)
++        .only("preco_venda", "nome", "codigo_nfe", "codigo_barras")
++        .first()
++    )
++    if ov is None:
++        return None, "", ""
++    return (
++        _dinheiro(ov.preco_venda),
++        str(ov.nome or "")[:300],
++        str(ov.codigo_nfe or ov.codigo_barras or "")[:80],
++    )
++
++
++def avisar_mudanca_preco_venda(
++    *,
++    produto_id: str,
++    antes,
++    depois,
++    nome: str = "",
++    codigo: str = "",
++) -> int:
++    """Cadastro, planilha ou nota: o mesmo aviso nas duas lojas."""
++    pid = str(produto_id or "").strip()[:64]
++    a = _dinheiro(antes)
++    b = _dinheiro(depois)
++    if not pid or a is None or b is None or a == b:
++        return 0
++    n = 0
++    for dep in DEPOSITOS:
++        row, _created = EtiquetaPrecoGondolaAgro.objects.get_or_create(
++            produto_externo_id=pid,
++            deposito=dep,
++            defaults={
++                "nome": (nome or "")[:300],
++                "codigo": (codigo or "")[:80],
++                "preco_ok": a,
++                "preco_atual": b,
++                "pendente": True,
++            },
++        )
++        if row.preco_ok is None:
++            row.preco_ok = a
++        row.preco_atual = b
++        if nome:
++            row.nome = nome[:300]
++        if codigo:
++            row.codigo = codigo[:80]
++        row.pendente = row.preco_atual != row.preco_ok
++        if not row.pendente:
++            row.ok_em = timezone.now()
++        row.save()
++        if row.pendente:
++            n += 1
++    return n
++
++
++def _preco_prateleira_promo(promo: dict, base: Decimal) -> Decimal:
++    tipo = str(promo.get("tipo") or "")
++    if tipo == PromocaoAgro.Tipo.VALOR_DIRETO:
++        pp = _dinheiro(promo.get("preco_produto_promo"))
++        if pp and pp > 0:
++            return pp
++        py = _dinheiro(promo.get("preco_y"))
++        if py and py > 0:
++            return py
++        return base
++    py = _dinheiro(promo.get("preco_y"))
++    if py and py > 0 and py != base:
++        return py
++    return base
++
++
++def _promos_da_loja(deposito: str) -> dict[str, dict]:
++    """Só o id do produto. O mapa do PDV também repete o código de barras."""
++    from produtos.promocoes_util import buscar_promocoes_pdv_ativas
++
++    bruto = buscar_promocoes_pdv_ativas(empresa=deposito, tela="pdv")
++    if not bruto:
++        return {}
++    promo_ids = {int(p["id"]) for p in bruto.values() if p.get("id")}
++    linhas = PromocaoProdutoAgro.objects.filter(promocao_id__in=promo_ids).only(
++        "produto_externo_id", "nome_produto", "codigo", "preco_padrao", "promocao_id"
++    )
++    out: dict[str, dict] = {}
++    for linha in linhas:
++        pid = str(linha.produto_externo_id or "").strip()[:64]
++        if not pid or pid in out:
++            continue
++        promo = bruto.get(pid)
++        if not promo:
++            continue
++        out[pid] = {
++            "promo": promo,
++            "nome": str(linha.nome_produto or "")[:300],
++            "codigo": str(linha.codigo or "")[:80],
++            "preco_padrao": _dinheiro(linha.preco_padrao),
++        }
++    return out
++
++
++def _aplicar_prateleira(pid: str, dep: str, shelf: Decimal, nome: str, codigo: str, *, base_se_novo: Decimal) -> None:
++    row = EtiquetaPrecoGondolaAgro.objects.filter(produto_externo_id=pid, deposito=dep).first()
++    if row is None:
++        EtiquetaPrecoGondolaAgro.objects.create(
++            produto_externo_id=pid,
++            deposito=dep,
++            nome=nome,
++            codigo=codigo,
++            preco_ok=base_se_novo,
++            preco_atual=shelf,
++            pendente=base_se_novo != shelf,
++        )
++        return
++    if not row.pendente and shelf == row.preco_ok:
++        return
++    mudou = shelf != row.preco_atual or (nome and nome != row.nome)
++    if not mudou:
++        return
++    row.preco_atual = shelf
++    if nome:
++        row.nome = nome
++    if codigo:
++        row.codigo = codigo
++    row.pendente = row.preco_atual != row.preco_ok
++    row.save()
++
++
++def sincronizar_promocoes(deposito: str) -> None:
++    """Promoção que entra ou acaba muda a etiqueta daquela loja."""
++    dep = normalizar_deposito(deposito)
++    ativos = _promos_da_loja(dep)
++    ja_viu = EtiquetaPrecoPromoBaseAgro.objects.filter(deposito=dep).exists()
++    for pid, info in ativos.items():
++        base, nome_ov, cod_ov = _dados_overlay(pid)
++        if base is None:
++            base = info["preco_padrao"]
++        if base is None:
++            continue
++        shelf = _preco_prateleira_promo(info["promo"], base)
++        _aplicar_prateleira(
++            pid,
++            dep,
++            shelf,
++            nome_ov or info["nome"],
++            cod_ov or info["codigo"],
++            base_se_novo=shelf if not ja_viu else base,
++        )
++    fora = EtiquetaPrecoGondolaAgro.objects.filter(deposito=dep)
++    if ativos:
++        fora = fora.exclude(produto_externo_id__in=list(ativos.keys()))
++    for row in fora:
++        if not row.pendente and row.preco_ok == row.preco_atual:
++            continue
++        base, nome_ov, _cod = _dados_overlay(row.produto_externo_id)
++        if base is None or base == row.preco_atual:
++            continue
++        row.preco_atual = base
++        if nome_ov:
++            row.nome = nome_ov
++        row.pendente = row.preco_atual != row.preco_ok
++        row.save()
++    if not ja_viu:
++        EtiquetaPrecoPromoBaseAgro.objects.get_or_create(deposito=dep)
++
++
++def listar_pendentes(deposito: str) -> list[dict[str, Any]]:
++    dep = normalizar_deposito(deposito)
++    try:
++        sincronizar_promocoes(dep)
++    except Exception:
++        pass
++    out = []
++    qs = EtiquetaPrecoGondolaAgro.objects.filter(deposito=dep, pendente=True).order_by("-atualizado_em", "nome")[:80]
++    for row in qs:
++        out.append(
++            {
++                "id": row.pk,
++                "produto_id": row.produto_externo_id,
++                "nome": row.nome or row.produto_externo_id,
++                "codigo": row.codigo,
++                "preco_de": _fmt_br(row.preco_ok),
++                "preco_para": _fmt_br(row.preco_atual),
++                "preco_para_num": float(row.preco_atual),
++            }
++        )
++    return out
++
++
++def listar_trocadas(deposito: str) -> list[dict[str, Any]]:
++    dep = normalizar_deposito(deposito)
++    out = []
++    qs = (
++        EtiquetaPrecoGondolaAgro.objects.filter(deposito=dep, pendente=False, ok_em__isnull=False)
++        .order_by("-ok_em", "nome")[:80]
++    )
++    for row in qs:
++        quando = timezone.localtime(row.ok_em).strftime("%d/%m %H:%M") if row.ok_em else ""
++        out.append(
++            {
++                "id": row.pk,
++                "nome": row.nome or row.produto_externo_id,
++                "codigo": row.codigo,
++                "preco": _fmt_br(row.preco_ok),
++                "quando": quando,
++                "usuario": row.ok_por or "",
++            }
++        )
++    return out
++
++
++def confirmar(pk: int, deposito: str, usuario: str = "") -> bool:
++    dep = normalizar_deposito(deposito)
++    row = EtiquetaPrecoGondolaAgro.objects.filter(pk=pk, deposito=dep, pendente=True).first()
++    if row is None:
++        return False
++    row.preco_ok = row.preco_atual
++    row.pendente = False
++    row.ok_em = timezone.now()
++    row.ok_por = (usuario or "")[:150]
++    row.save(update_fields=["preco_ok", "pendente", "ok_em", "ok_por", "atualizado_em"])
++    return True
++
++
++def itens_etiqueta(deposito: str) -> list[dict]:
++    dep = normalizar_deposito(deposito)
++    itens = []
++    for row in EtiquetaPrecoGondolaAgro.objects.filter(deposito=dep, pendente=True).order_by("nome")[:80]:
++        itens.append(
++            {
++                "id": row.produto_externo_id,
++                "nome": row.nome or row.produto_externo_id,
++                "codigo_gm": row.codigo,
++                "codigo_barras": row.codigo if str(row.codigo).isdigit() else "",
++                "preco_venda": float(row.preco_atual),
++                "qtd": 1,
++            }
++        )
++    return itens
+diff --git a/produtos/etiqueta_preco_views.py b/produtos/etiqueta_preco_views.py
+new file mode 100644
+index 00000000..b56ff8f5
+--- /dev/null
++++ b/produtos/etiqueta_preco_views.py
+@@ -0,0 +1,99 @@
++"""Lista do PDV: etiquetas de preço para trocar."""
++from __future__ import annotations
++
++import json
++
++from django.http import JsonResponse
++from django.utils import timezone
++from django.views.decorators.http import require_http_methods
++
++from produtos.etiqueta_preco_pendente_util import confirmar, itens_etiqueta, listar_pendentes, listar_trocadas
++from produtos.pdv_deposito_util import resolver_deposito_request, rotulo_deposito
++
++
++def _corpo(request) -> dict:
++    try:
++        data = json.loads(request.body.decode("utf-8") or "{}")
++    except Exception:
++        data = {}
++    return data if isinstance(data, dict) else {}
++
++
++@require_http_methods(["GET", "POST"])
++def api_pdv_etiqueta_preco(request):
++    dep = resolver_deposito_request(request)
++    if request.method == "GET":
++        if request.GET.get("historico") == "1":
++            hist = listar_trocadas(dep)
++            return JsonResponse(
++                {
++                    "ok": True,
++                    "deposito": dep,
++                    "loja": rotulo_deposito(dep),
++                    "total": len(hist),
++                    "historico": hist,
++                }
++            )
++        itens = listar_pendentes(dep)
++        return JsonResponse(
++            {
++                "ok": True,
++                "deposito": dep,
++                "loja": rotulo_deposito(dep),
++                "total": len(itens),
++                "itens": itens,
++            }
++        )
++
++    data = _corpo(request)
++    acao = str(data.get("acao") or "").strip().lower()
++    if acao == "ok":
++        try:
++            pk = int(data.get("id"))
++        except (TypeError, ValueError):
++            return JsonResponse({"ok": False, "erro": "Produto inválido."}, status=400)
++        from produtos.caixa_util import operador_label_request
++
++        quem = operador_label_request(request)
++        if not quem:
++            return JsonResponse(
++                {"ok": False, "erro": "Informe o PIN de quem está no PDV.", "precisa_pin": True},
++                status=403,
++            )
++        if not confirmar(pk, dep, quem):
++            return JsonResponse({"ok": False, "erro": "Esse item já saiu da lista."}, status=404)
++        itens = listar_pendentes(dep)
++        return JsonResponse({"ok": True, "total": len(itens), "itens": itens, "loja": rotulo_deposito(dep)})
++
++    if acao == "etiquetas":
++        from produtos.models import EtiquetaLoteAgro
++        from produtos.views import (
++            _etiquetas_lote_normalizar_itens_entrada,
++            _etiquetas_lote_row,
++            _etiquetas_lote_usuario,
++        )
++
++        brutos = itens_etiqueta(dep)
++        itens = _etiquetas_lote_normalizar_itens_entrada(brutos)
++        if not itens:
++            return JsonResponse({"ok": False, "erro": "Nenhuma etiqueta pendente."}, status=400)
++        lote = EtiquetaLoteAgro.objects.create(
++            nome=f"Preço trocado · {rotulo_deposito(dep)} · {timezone.now():%d/%m %H:%M}",
++            loja="fila",
++            filtros_json={"origem": "fila", "motivo": "preco_gondola"},
++            preset_id="gondola",
++            status=EtiquetaLoteAgro.Status.ABERTO,
++            itens_json=itens,
++            cursor=0,
++            ultima_folha_qtd=0,
++            usuario=_etiquetas_lote_usuario(request),
++        )
++        return JsonResponse(
++            {
++                "ok": True,
++                "lote": _etiquetas_lote_row(lote),
++                "url": "/produtos/etiquetas/",
++            }
++        )
++
++    return JsonResponse({"ok": False, "erro": "Ação inválida."}, status=400)
+diff --git a/produtos/migrations/0158_etiqueta_preco_gondola.py b/produtos/migrations/0158_etiqueta_preco_gondola.py
+new file mode 100644
+index 00000000..7cb1ca72
+--- /dev/null
++++ b/produtos/migrations/0158_etiqueta_preco_gondola.py
+@@ -0,0 +1,42 @@
++from django.db import migrations, models
++
++
++class Migration(migrations.Migration):
++
++    dependencies = [
++        ("produtos", "0157_clienteagro_aniversario"),
++    ]
++
++    operations = [
++        migrations.CreateModel(
++            name="EtiquetaPrecoGondolaAgro",
++            fields=[
++                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
++                ("produto_externo_id", models.CharField(db_index=True, max_length=64)),
++                ("deposito", models.CharField(db_index=True, max_length=16)),
++                ("nome", models.CharField(blank=True, default="", max_length=300)),
++                ("codigo", models.CharField(blank=True, default="", max_length=80)),
++                ("preco_ok", models.DecimalField(decimal_places=2, max_digits=12)),
++                ("preco_atual", models.DecimalField(decimal_places=2, max_digits=12)),
++                ("pendente", models.BooleanField(db_index=True, default=False)),
++                ("ok_em", models.DateTimeField(blank=True, null=True)),
++                ("atualizado_em", models.DateTimeField(auto_now=True)),
++            ],
++            options={"verbose_name": "Etiqueta de preço pendente"},
++        ),
++        migrations.AddConstraint(
++            model_name="etiquetaprecogondolaagro",
++            constraint=models.UniqueConstraint(
++                fields=("produto_externo_id", "deposito"),
++                name="uniq_etq_preco_gondola_prod_loja",
++            ),
++        ),
++        migrations.CreateModel(
++            name="EtiquetaPrecoPromoBaseAgro",
++            fields=[
++                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
++                ("deposito", models.CharField(max_length=16, unique=True)),
++                ("criado_em", models.DateTimeField(auto_now_add=True)),
++            ],
++        ),
++    ]
+diff --git a/produtos/migrations/0159_etiqueta_preco_ok_por.py b/produtos/migrations/0159_etiqueta_preco_ok_por.py
+new file mode 100644
+index 00000000..12af9ae9
+--- /dev/null
++++ b/produtos/migrations/0159_etiqueta_preco_ok_por.py
+@@ -0,0 +1,16 @@
++from django.db import migrations, models
++
++
++class Migration(migrations.Migration):
++
++    dependencies = [
++        ("produtos", "0158_etiqueta_preco_gondola"),
++    ]
++
++    operations = [
++        migrations.AddField(
++            model_name="etiquetaprecogondolaagro",
++            name="ok_por",
++            field=models.CharField(blank=True, default="", max_length=150),
++        ),
++    ]
+diff --git a/produtos/models.py b/produtos/models.py
+index ca3b3aa5..2cb05438 100644
+--- a/produtos/models.py
++++ b/produtos/models.py
+@@ -4761,3 +4761,36 @@ class PdvOperacaoLogAgro(models.Model):
+ 
+     def __str__(self):
+         return f"{self.criado_em:%d/%m %H:%M} · {self.operador_nome or '—'} · {self.acao}"
++
++class EtiquetaPrecoGondolaAgro(models.Model):
++    """Preço da prateleira que a loja ainda não confirmou na etiqueta. Uma linha por produto e loja."""
++
++    produto_externo_id = models.CharField(max_length=64, db_index=True)
++    deposito = models.CharField(max_length=16, db_index=True)
++    nome = models.CharField(max_length=300, blank=True, default="")
++    codigo = models.CharField(max_length=80, blank=True, default="")
++    preco_ok = models.DecimalField(max_digits=12, decimal_places=2)
++    preco_atual = models.DecimalField(max_digits=12, decimal_places=2)
++    pendente = models.BooleanField(default=False, db_index=True)
++    ok_em = models.DateTimeField(null=True, blank=True)
++    ok_por = models.CharField(max_length=150, blank=True, default="")
++    atualizado_em = models.DateTimeField(auto_now=True)
++
++    class Meta:
++        verbose_name = "Etiqueta de preço pendente"
++        constraints = [
++            models.UniqueConstraint(
++                fields=["produto_externo_id", "deposito"],
++                name="uniq_etq_preco_gondola_prod_loja",
++            ),
++        ]
++
++    def __str__(self):
++        return f"{self.deposito} · {self.produto_externo_id} · {self.preco_atual}"
++
++
++class EtiquetaPrecoPromoBaseAgro(models.Model):
++    """Marca que a loja já viu as promoções que estavam no ar. Evita avisar o passado."""
++
++    deposito = models.CharField(max_length=16, unique=True)
++    criado_em = models.DateTimeField(auto_now_add=True)
+diff --git a/produtos/nfe_entrada_util.py b/produtos/nfe_entrada_util.py
+index 0b628aba..e0a3fed8 100644
+--- a/produtos/nfe_entrada_util.py
++++ b/produtos/nfe_entrada_util.py
+@@ -5798,9 +5798,18 @@ def propagar_precos_venda_catalogo_entrada_nota(
+                 except Exception:
+                     pass
+             dec = Decimal(str(pv))
+-            ProdutoGestaoOverlayAgro.objects.update_or_create(
++            ov_preco, _ = ProdutoGestaoOverlayAgro.objects.get_or_create(
+                 produto_externo_id=str(ov_key)[:64],
+-                defaults={"preco_venda": dec},
++            )
++            from produtos.cadastro_alteracao_historico_util import (
++                aplicar_preco_venda_com_historico,
++            )
++
++            aplicar_preco_venda_com_historico(
++                ov_preco,
++                produto_id=str(ov_key)[:64],
++                preco_novo=dec,
++                origem="nf",
+             )
+             out["atualizados_overlay"] += 1
+             ids_erp.add(str(ov_key)[:64])
+diff --git a/produtos/static/produtos/js/pdv_etiqueta_preco.js b/produtos/static/produtos/js/pdv_etiqueta_preco.js
+new file mode 100644
+index 00000000..b515e456
+--- /dev/null
++++ b/produtos/static/produtos/js/pdv_etiqueta_preco.js
+@@ -0,0 +1,346 @@
++/**
++ * PDV — aviso para trocar etiqueta quando o preço da prateleira muda.
++ */
++(function () {
++  var btn = document.getElementById('pdv-topbar-etiqueta-preco-btn');
++  var countEl = document.getElementById('pdv-topbar-etiqueta-preco-count');
++  if (!btn || !countEl) return;
++
++  var itens = [];
++  var loja = '';
++  var painel = null;
++
++  function csrf() {
++    var m = document.querySelector('meta[name=csrfmiddlewaretoken]');
++    return m ? m.getAttribute('content') : '';
++  }
++
++  function esc(s) {
++    return String(s || '')
++      .replace(/&/g, '&amp;')
++      .replace(/</g, '&lt;')
++      .replace(/>/g, '&gt;')
++      .replace(/"/g, '&quot;');
++  }
++
++  function pintar() {
++    var n = itens.length;
++    countEl.textContent = String(n);
++    btn.classList.toggle('hidden', n === 0);
++    if (painel && !vendoHistorico) desenhar();
++  }
++
++  var cargaSeq = 0;
++  function carregar() {
++    var seq = ++cargaSeq;
++    fetch('/api/pdv/etiqueta-preco/', { credentials: 'same-origin' })
++      .then(function (r) { return r.json(); })
++      .then(function (j) {
++        if (seq !== cargaSeq || !j || !j.ok) return;
++        itens = j.itens || [];
++        loja = j.loja || '';
++        pintar();
++      })
++      .catch(function () {});
++  }
++
++  var esperaUso = null;
++  function aoUsarPdv(ev) {
++    var alvo = ev && ev.target;
++    if (alvo && alvo.closest && (alvo.closest('#pdv-topbar-etiqueta-preco-btn') || (painel && painel.contains(alvo)))) return;
++    if (esperaUso) return;
++    esperaUso = setTimeout(function () {
++      esperaUso = null;
++      carregar();
++    }, 1200);
++  }
++
++  function post(acao, extra) {
++    var body = Object.assign({ acao: acao }, extra || {});
++    return fetch('/api/pdv/etiqueta-preco/', {
++      method: 'POST',
++      credentials: 'same-origin',
++      headers: {
++        'Content-Type': 'application/json',
++        'X-CSRFToken': csrf(),
++      },
++      body: JSON.stringify(body),
++    }).then(function (r) { return r.json(); });
++  }
++
++  function cupom() {
++    var linhas = itens.map(function (it) {
++      return (
++        '<div style="margin:0 0 8px;border-bottom:1px dashed #000;padding-bottom:6px;">' +
++        '<div style="font-weight:900;font-size:13px;">' + esc(it.nome) + '</div>' +
++        (it.codigo ? '<div style="font-size:11px;">' + esc(it.codigo) + '</div>' : '') +
++        '<div style="font-size:12px;">De R$ ' + esc(it.preco_de) + '</div>' +
++        '<div style="font-weight:900;font-size:16px;">Para R$ ' + esc(it.preco_para) + '</div>' +
++        '</div>'
++      );
++    }).join('');
++    var html =
++      '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Etiquetas para trocar</title>' +
++      '<style>@page{margin:0;size:80mm auto}html,body{margin:0;padding:0;width:80mm}' +
++      'body{font-family:system-ui,sans-serif;color:#000;background:#fff}' +
++      '.pg{width:80mm;box-sizing:border-box;padding:4mm 3mm}</style></head><body><div class="pg">' +
++      '<div style="text-align:center;font-weight:900;font-size:16px;">TROCAR ETIQUETA</div>' +
++      '<div style="text-align:center;font-weight:800;margin-bottom:8px;">' + esc(loja) + ' · ' + itens.length + '</div>' +
++      linhas +
++      '<div style="text-align:center;font-size:11px;font-weight:800;">Marque Já troquei no PDV</div>' +
++      '</div></body></html>';
++    var w = window.open('', 'etq-preco-80', 'width=420,height=700');
++    if (!w) return;
++    w.document.open();
++    w.document.write(html);
++    w.document.close();
++    w.focus();
++    setTimeout(function () { try { w.print(); } catch (e) {} }, 250);
++  }
++
++  var vendoHistorico = false;
++
++  function cabecalho(modo) {
++    var cab = painel && painel.querySelector('[data-cabeca]');
++    if (!cab) return;
++    cab.innerHTML = modo === 'hist'
++      ? '<span>Produto</span><span>Código</span><span>Preço</span><span>Hora</span><span>Usuário</span>'
++      : '<span>Produto</span><span>Código</span><span>Era</span><span>Agora</span><span></span>';
++  }
++
++  function desenharHistorico(lista) {
++    if (!painel) return;
++    vendoHistorico = true;
++    cabecalho('hist');
++    var corpo = (lista || []).map(function (it) {
++      return (
++        '<div style="display:grid;grid-template-columns:minmax(16rem,1fr) 7rem 6.5rem 8.5rem 8rem;align-items:center;gap:0.75rem;border-bottom:1px solid #e2e8f0;padding:0.45rem 0;">' +
++        '<div style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:0.95rem;font-weight:900;color:#0f172a;" title="' + esc(it.nome) + '">' + esc(it.nome) + '</div>' +
++        '<div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:0.8rem;font-weight:700;color:#64748b;">' + esc(it.codigo) + '</div>' +
++        '<div style="font-size:0.95rem;font-weight:900;color:#0f172a;">R$ ' + esc(it.preco) + '</div>' +
++        '<div style="font-size:0.85rem;font-weight:800;color:#0f172a;">' + esc(it.quando) + '</div>' +
++        '<div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:0.85rem;font-weight:800;color:#0f172a;">' + esc(it.usuario || '—') + '</div>' +
++        '</div>'
++      );
++    }).join('');
++    painel.querySelector('[data-lista]').innerHTML = corpo || '<p class="py-4 text-center font-bold text-slate-500">Nenhuma troca registrada.</p>';
++    painel.querySelector('[data-loja]').textContent = 'Já trocadas · ' + (lista || []).length;
++    var btn = painel.querySelector('[data-hist]');
++    if (btn) btn.textContent = 'Voltar';
++  }
++
++  function alternarHistorico() {
++    if (vendoHistorico) {
++      vendoHistorico = false;
++      cabecalho('pend');
++      var btn = painel.querySelector('[data-hist]');
++      if (btn) btn.textContent = 'Já trocadas';
++      pintar();
++      return;
++    }
++    fetch('/api/pdv/etiqueta-preco/?historico=1', { credentials: 'same-origin' })
++      .then(function (r) { return r.json(); })
++      .then(function (j) {
++        if (!j || !j.ok) return;
++        desenharHistorico(j.historico || []);
++      })
++      .catch(function () {});
++  }
++
++  function desenhar() {
++    cabecalho('pend');
++    var btn = painel && painel.querySelector('[data-hist]');
++    if (btn) btn.textContent = 'Já trocadas';
++    if (!painel) return;
++    var corpo = itens.map(function (it) {
++      return (
++        '<div style="display:grid;grid-template-columns:minmax(16rem,1fr) 7rem 6.5rem 8.5rem 8rem;align-items:center;gap:0.75rem;border-bottom:1px solid #e2e8f0;padding:0.45rem 0;">' +
++        '<div style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:0.95rem;font-weight:900;color:#0f172a;" title="' + esc(it.nome) + '">' + esc(it.nome) + '</div>' +
++        '<div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:0.8rem;font-weight:700;color:#64748b;">' + esc(it.codigo) + '</div>' +
++        '<div style="font-size:0.85rem;font-weight:700;color:#475569;">R$ ' + esc(it.preco_de) + '</div>' +
++        '<div style="font-size:1rem;font-weight:900;color:#c2410c;">R$ ' + esc(it.preco_para) + '</div>' +
++        '<button type="button" data-ok="' + it.id + '" class="rounded-xl border-2 border-emerald-700 bg-emerald-600 px-2 py-2 text-sm font-black text-white">Já troquei</button>' +
++        '</div>'
++      );
++    }).join('');
++    painel.querySelector('[data-lista]').innerHTML = corpo || '<p class="py-4 text-center font-bold text-slate-500">Nada pendente.</p>';
++    painel.querySelector('[data-loja]').textContent = loja + ' · ' + itens.length;
++  }
++
++  function preencherPresets(selectEl) {
++    var Core = window.AgroEtiquetasCore;
++    if (!Core || !selectEl) return;
++    Core.fillPresetSelect(selectEl, null);
++    if (typeof Core.refreshPresetsFromServer === 'function') {
++      Core.refreshPresetsFromServer().then(function (list) {
++        Core.fillPresetSelect(selectEl, null, list);
++      }).catch(function () {});
++    }
++  }
++
++  function abrirImpressaoPdv() {
++    var Core = window.AgroEtiquetasCore;
++    if (!Core || !itens.length) return;
++    var modal = document.getElementById('pdv-pe-etq-modal');
++    var back = document.getElementById('pdv-pe-etq-back');
++    var nomeEl = document.getElementById('pdv-pe-etq-nome');
++    var gmEl = document.getElementById('pdv-pe-etq-gm');
++    var qtdEl = document.getElementById('pdv-pe-etq-qtd');
++    var presetEl = document.getElementById('pdv-pe-etq-preset');
++    var statusEl = document.getElementById('pdv-pe-etq-status');
++    var btnImp = document.getElementById('pdv-pe-etq-imprimir');
++    if (!modal || !presetEl || !btnImp) return;
++    if (itens.length === 1) {
++      if (nomeEl) nomeEl.textContent = itens[0].nome || '—';
++      if (gmEl) gmEl.textContent = (itens[0].codigo || '') + ' · R$ ' + (itens[0].preco_para || '');
++    } else {
++      if (nomeEl) nomeEl.textContent = itens.length + ' etiquetas para trocar';
++      if (gmEl) gmEl.textContent = loja || '';
++    }
++    if (qtdEl) qtdEl.value = '1';
++    if (statusEl) statusEl.textContent = '';
++    preencherPresets(presetEl);
++    modal.dataset.etqPreco = '1';
++    if (back) {
++      back.classList.remove('hidden');
++      back.setAttribute('aria-hidden', 'false');
++    }
++    modal.classList.remove('hidden');
++    modal.setAttribute('aria-hidden', 'false');
++    if (btnImp.dataset.etqPrecoLigado !== '1') {
++      btnImp.dataset.etqPrecoLigado = '1';
++      btnImp.addEventListener('click', function (ev) {
++        if (modal.dataset.etqPreco !== '1') return;
++        ev.stopImmediatePropagation();
++        imprimirPendentes();
++      }, true);
++    }
++  }
++
++  function fecharImpressaoPdv() {
++    var modal = document.getElementById('pdv-pe-etq-modal');
++    var back = document.getElementById('pdv-pe-etq-back');
++    if (modal) {
++      modal.dataset.etqPreco = '';
++      modal.classList.add('hidden');
++      modal.setAttribute('aria-hidden', 'true');
++    }
++    if (back) {
++      back.classList.add('hidden');
++      back.setAttribute('aria-hidden', 'true');
++    }
++  }
++
++  function imprimirPendentes() {
++    var Core = window.AgroEtiquetasCore;
++    var presetEl = document.getElementById('pdv-pe-etq-preset');
++    var qtdEl = document.getElementById('pdv-pe-etq-qtd');
++    var statusEl = document.getElementById('pdv-pe-etq-status');
++    var btnImp = document.getElementById('pdv-pe-etq-imprimir');
++    if (!Core || !itens.length) return;
++    var qtd = parseInt(qtdEl && qtdEl.value, 10) || 1;
++    if (qtd < 1) qtd = 1;
++    if (qtd > 999) qtd = 999;
++    var presetId = presetEl && presetEl.value;
++    var st = Core.loadStorage();
++    if (presetId) {
++      st.preset_ativo = presetId;
++      Core.saveStorage(st);
++    }
++    var lista = itens.map(function (it) {
++      return Core.produtoParaItem({
++        id: it.produto_id,
++        nome: it.nome,
++        codigo_gm: it.codigo,
++        codigo_barras: /^\d{8,}$/.test(String(it.codigo || '')) ? it.codigo : '',
++        preco_venda: it.preco_para_num,
++      }, qtd);
++    });
++    if (statusEl) statusEl.textContent = 'Enviando…';
++    if (btnImp) btnImp.disabled = true;
++    Core.imprimirItens(lista, {
++      presetId: presetId || st.preset_ativo,
++      textoRodape: (st.texto_rodape_global || (Core.getPresetAtivo(st).texto_rodape) || ''),
++      origem: 'pdv_preco',
++    }).then(function (res) {
++      if (res && res.ok) {
++        fecharImpressaoPdv();
++        return;
++      }
++      if (statusEl) statusEl.textContent = 'Falha: ' + ((res && res.reason) || 'erro');
++    }).catch(function (err) {
++      if (statusEl) statusEl.textContent = 'Falha: ' + ((err && err.message) || 'erro de impressão');
++    }).then(function () {
++      if (btnImp) btnImp.disabled = false;
++    });
++  }
++
++  function abrir() {
++    if (!painel) {
++      painel = document.createElement('div');
++      painel.className = 'fixed inset-0 z-[80] flex items-center justify-center bg-slate-900/50 p-3';
++      painel.innerHTML =
++        '<div class="flex max-h-[90dvh] w-[min(96vw,72rem)] flex-col rounded-2xl border-2 border-orange-600 bg-white shadow-2xl">' +
++        '<div class="flex items-center justify-between gap-2 border-b border-orange-200 bg-orange-50 px-3 py-2">' +
++        '<div><div class="text-base font-black uppercase text-orange-900">Trocar etiqueta</div>' +
++        '<div data-loja class="text-xs font-bold text-slate-600"></div></div>' +
++        '<button type="button" data-fechar class="rounded-xl border-2 border-slate-400 bg-white px-3 py-2 text-sm font-black">Fechar</button></div>' +
++        '<div data-cabeca style="display:grid;grid-template-columns:minmax(16rem,1fr) 7rem 6.5rem 8.5rem 8rem;gap:0.75rem;padding:0.35rem 0.75rem 0;font-size:10px;font-weight:900;letter-spacing:0.04em;text-transform:uppercase;color:#94a3b8;">' +
++        '<span>Produto</span><span>Código</span><span>Era</span><span>Agora</span><span></span></div>' +
++        '<div data-lista class="min-h-0 flex-1 overflow-y-auto px-3"></div>' +
++        '<div class="flex flex-wrap gap-2 border-t border-slate-200 p-3">' +
++        '<button type="button" data-cupom class="rounded-xl border-2 border-slate-800 bg-slate-900 px-3 py-2 text-sm font-black text-white">Lista 80mm</button>' +
++        '<button type="button" data-etq class="rounded-xl border-2 border-orange-800 bg-orange-500 px-3 py-2 text-sm font-black text-white">Imprimir etiquetas</button>' +
++        '<button type="button" data-hist class="rounded-xl border-2 border-slate-400 bg-white px-3 py-2 text-sm font-black text-slate-800">Já trocadas</button>' +
++        '</div></div>';
++      document.body.appendChild(painel);
++      painel.addEventListener('click', function (ev) {
++        var t = ev.target;
++        if (t === painel || t.closest('[data-fechar]')) {
++          painel.classList.add('hidden');
++          return;
++        }
++        if (t.closest('[data-cupom]')) {
++          cupom();
++          return;
++        }
++        if (t.closest('[data-etq]')) {
++          abrirImpressaoPdv();
++          return;
++        }
++        if (t.closest('[data-hist]')) {
++          alternarHistorico();
++          return;
++        }
++        var ok = t.closest('[data-ok]');
++        if (!ok) return;
++        var idOk = Number(ok.getAttribute('data-ok'));
++        var marcar = function () {
++          post('ok', { id: idOk }).then(function (j) {
++            if (!j || !j.ok) return;
++            cargaSeq++;
++            itens = j.itens || [];
++            loja = j.loja || loja;
++            vendoHistorico = false;
++            pintar();
++          });
++        };
++        if (typeof window.gmSspinGarantirOperador === 'function') {
++          window.gmSspinGarantirOperador(marcar, { titulo: 'PIN de quem trocou a etiqueta' });
++          return;
++        }
++        marcar();
++      });
++    }
++    painel.classList.remove('hidden');
++    desenhar();
++  }
++
++  btn.addEventListener('click', abrir);
++  document.addEventListener('click', aoUsarPdv, true);
++  document.addEventListener('keydown', aoUsarPdv, true);
++  window.addEventListener('focus', carregar);
++  carregar();
++  setInterval(carregar, 10000);
++  window.AgroEtiquetaPreco = { carregar: carregar };
++})();
+diff --git a/produtos/static/produtos/js/pdv_wizard.js b/produtos/static/produtos/js/pdv_wizard.js
+index 6e3c1e15..ca6f542b 100644
+--- a/produtos/static/produtos/js/pdv_wizard.js
++++ b/produtos/static/produtos/js/pdv_wizard.js
+@@ -11664,6 +11664,7 @@
+ 
+     function closePdvPeEtqModal() {
+         if (dom.peEtqModal) {
++            dom.peEtqModal.dataset.etqPreco = '';
+             dom.peEtqModal.classList.add('hidden');
+             dom.peEtqModal.setAttribute('aria-hidden', 'true');
+         }
+@@ -11686,6 +11687,7 @@
+             return;
+         }
+         if (!quickProductEditProdutoId || !dom.peEtqModal) return;
++        dom.peEtqModal.dataset.etqPreco = '';
+         var prod = buildQuickProductEtqProdFromForm();
+         if (!prod.nome) {
+             if (dom.quickProductEditErro) {
+@@ -12194,6 +12196,9 @@
+                         pack.saldos
+                     );
+                     closeQuickProductEditOverlay();
++                    if (window.AgroEtiquetaPreco && typeof window.AgroEtiquetaPreco.carregar === 'function') {
++                        window.AgroEtiquetaPreco.carregar();
++                    }
+                     if (typeof showPdvAviso === 'function') {
+                         showPdvAviso('Produto atualizado.', { title: 'Salvo', tone: 'success' });
+                     }
+diff --git a/produtos/templates/produtos/_modal_editar_produto_cadastro_erp.inc.html b/produtos/templates/produtos/_modal_editar_produto_cadastro_erp.inc.html
+index d699b029..7ee8f212 100644
+--- a/produtos/templates/produtos/_modal_editar_produto_cadastro_erp.inc.html
++++ b/produtos/templates/produtos/_modal_editar_produto_cadastro_erp.inc.html
+@@ -3796,6 +3796,9 @@
+       modelo: gv('edit-modelo'),
+       preco_venda: gv('edit-venda'),
+       preco_custo: gv('edit-custo'),
++      prateleira: gv('edit-prateleira'),
++      comissao_vendedor_reais: gv('edit-comissao-rs'),
++      comissao_vendedor_percentual: gv('edit-comissao-pct'),
+       custo_familia: (typeof coletarCustoFamiliaPayload === 'function'
+         ? coletarCustoFamiliaPayload()
+         : { ativo: false }),
+diff --git a/produtos/templates/produtos/caixa_cartao_cliente_imprimir.html b/produtos/templates/produtos/caixa_cartao_cliente_imprimir.html
+index 9c37ee47..fac82a22 100644
+--- a/produtos/templates/produtos/caixa_cartao_cliente_imprimir.html
++++ b/produtos/templates/produtos/caixa_cartao_cliente_imprimir.html
+@@ -31,7 +31,7 @@
+     .cartao.sem-arte .buraco-qr { right: 2mm; bottom: 2mm; width: 28mm; height: 28mm; }
+     .buraco-qr svg { width: 100%; height: 100%; display: block; }
+     .buraco-barras { flex-direction: column; }
+-    .buraco-barras svg { width: 100%; height: 74%; }
++    .buraco-barras svg { width: 100%; height: 92%; }
+     .numero-cartao {
+       margin: 0; font: 900 11pt Arial, sans-serif; letter-spacing: 0.12em; color: #0f172a; line-height: 1;
+     }
+@@ -72,7 +72,7 @@
+     codigos.forEach(function (codigo, i) {
+       try {
+         JsBarcode("#bc-" + (i + 1), codigo, {
+-          format: "EAN13", displayValue: false, margin: 12, height: 70, width: 2.4, background: "#ffffff"
++          format: "EAN13", displayValue: false, margin: 1, height: 90, width: 2.8, background: "#ffffff"
+         });
+       } catch (e) {}
+     });
+diff --git a/produtos/templates/produtos/pdv_wizard.html b/produtos/templates/produtos/pdv_wizard.html
+index 730735a7..6607d08c 100644
+--- a/produtos/templates/produtos/pdv_wizard.html
++++ b/produtos/templates/produtos/pdv_wizard.html
+@@ -4546,6 +4546,10 @@
+               <button type="button" id="pdv-topbar-help" class="pdv-wiz-help pdv-topbar-help shrink-0" data-pdv-help="produtos" title="Ajuda — etapa atual">?</button>
+             </div>
+             <div class="pdv-wiz-topbar-estoque-vila" id="pdv-topbar-quente" aria-label="Atalhos frequentes">
++              <button type="button" id="pdv-topbar-etiqueta-preco-btn" class="pdv-action-btn pdv-wiz-topbar-btn relative hidden border-2 border-orange-700 bg-orange-500 text-white" title="Preço mudou. Trocar a etiqueta da prateleira.">
++                Troca de preço
++                <span id="pdv-topbar-etiqueta-preco-count" class="absolute -right-1 -top-1 min-w-[1.1rem] rounded-full bg-slate-900 px-1 text-[8px] font-black leading-tight text-white tabular-nums">0</span>
++              </button>
+               <button type="button" id="pdv-topbar-pedir-loja-btn" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate pdv-wiz-topbar-btn--pausado relative" data-pdv-topbar-key="pedir_loja" data-pdv-topbar-node="pedir_loja" title="Pedir loja pausado por enquanto">
+                 Pedir loja
+                 <span id="pdv-topbar-pedir-loja-count" class="pdv-topbar-pedir-loja-count hidden absolute -right-1 -top-1 min-w-[1.1rem] rounded-full bg-slate-600 px-1 text-[8px] font-black leading-tight text-white tabular-nums">0</span>
+@@ -5531,7 +5535,8 @@ window.AGRO_ETQ_CFG = window.AGRO_ETQ_CFG || {
+   <p id="pdv-rapidos-msg" class="hidden" role="status"></p>
+   <div id="pdv-rapidos-grid"></div>
+ </div>
+-<script src="{% static 'produtos/js/pdv_wizard.js' %}?v={{ agro_pdv_assets_v|default:'1' }}-cartao12"></script>
++<script src="{% static 'produtos/js/pdv_wizard.js' %}?v={{ agro_pdv_assets_v|default:'1' }}-etqpreco"></script>
++<script src="{% static 'produtos/js/pdv_etiqueta_preco.js' %}?v={{ agro_pdv_assets_v|default:'1' }}-na-hora"></script>
+ <script src="{% static 'produtos/js/pdv_rapidos.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
+ <script src="{% static 'produtos/js/pdv_topbar_mais.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
+ <script src="{% static 'produtos/js/pdv_topbar_whatsapp.js' %}?v={{ agro_pdv_assets_v|default:'1' }}-wa2"></script>
+diff --git a/produtos/tests_cadastro_hist_preco_venda.py b/produtos/tests_cadastro_hist_preco_venda.py
+new file mode 100644
+index 00000000..79240f78
+--- /dev/null
++++ b/produtos/tests_cadastro_hist_preco_venda.py
+@@ -0,0 +1,86 @@
++"""Aba 10 registra mudança do preço de venda (nota e cadastro)."""
++from decimal import Decimal
++
++from django.test import TestCase
++
++from produtos.cadastro_alteracao_historico_util import (
++    aplicar_preco_venda_com_historico,
++    enriquecer_snapshot_antes_com_catalogo,
++    moeda_br_para_decimal,
++    registrar_diffs_cadastro,
++)
++from produtos.models import Produto, ProdutoCadastroAlteracaoAgro, ProdutoGestaoOverlayAgro
++
++
++class HistPrecoVendaTests(TestCase):
++    def setUp(self):
++        self.pid = "pid-preco-hist"
++        Produto.objects.create(
++            produto_externo_id=self.pid,
++            codigo_interno="4252",
++            nome="Pomada teste",
++            unidade="UN",
++            preco_venda=Decimal("23.80"),
++        )
++        self.ov = ProdutoGestaoOverlayAgro.objects.create(
++            produto_externo_id=self.pid,
++            preco_venda=Decimal("23.80"),
++        )
++
++    def test_milhar_br(self):
++        self.assertEqual(moeda_br_para_decimal("1.234,56"), Decimal("1234.56"))
++        self.assertEqual(moeda_br_para_decimal("23,80"), Decimal("23.80"))
++
++    def test_nota_grava_preco_na_aba_alteracoes(self):
++        n = aplicar_preco_venda_com_historico(
++            self.ov,
++            produto_id=self.pid,
++            preco_novo=Decimal("24.00"),
++            origem="nf",
++        )
++        self.assertEqual(n, 1)
++        row = ProdutoCadastroAlteracaoAgro.objects.get(produto_externo_id=self.pid)
++        self.assertEqual(row.campo, "preco_venda")
++        self.assertEqual(row.valor_antes, "23.8")
++        self.assertEqual(row.valor_depois, "24")
++        self.assertEqual(row.origem, "nf")
++        self.ov.refresh_from_db()
++        self.assertEqual(self.ov.preco_venda, Decimal("24.00"))
++
++    def test_mesmo_valor_nao_gera_linha(self):
++        n = aplicar_preco_venda_com_historico(
++            self.ov,
++            produto_id=self.pid,
++            preco_novo=Decimal("23.80"),
++            origem="nf",
++        )
++        self.assertEqual(n, 0)
++        self.assertFalse(ProdutoCadastroAlteracaoAgro.objects.exists())
++
++    def test_salvar_sem_mexer_nao_finge_fiscal_kit_ativo(self):
++        antes = enriquecer_snapshot_antes_com_catalogo(
++            self.pid,
++            {
++                "preco_venda": Decimal("23.80"),
++                "fiscal_ncm": "",
++                "fiscal_cfop": "",
++                "fiscal_csosn": "",
++                "kit_baixa_componentes": None,
++                "ativo_exibicao": None,
++            },
++        )
++        depois = dict(antes)
++        depois["preco_venda"] = Decimal("23.81")
++        n = registrar_diffs_cadastro(
++            produto_id=self.pid,
++            antes=antes,
++            depois=depois,
++            origem="modal",
++        )
++        campos = set(
++            ProdutoCadastroAlteracaoAgro.objects.filter(produto_externo_id=self.pid).values_list(
++                "campo", flat=True
++            )
++        )
++        self.assertEqual(n, 1)
++        self.assertEqual(campos, {"preco_venda"})
+diff --git a/produtos/tests_etiqueta_preco_pdv.py b/produtos/tests_etiqueta_preco_pdv.py
+new file mode 100644
+index 00000000..24f3ad4a
+--- /dev/null
++++ b/produtos/tests_etiqueta_preco_pdv.py
+@@ -0,0 +1,41 @@
++"""Aviso de etiqueta no PDV quando o preço de venda muda."""
++from decimal import Decimal
++
++from django.test import TestCase
++
++from produtos.etiqueta_preco_pendente_util import avisar_mudanca_preco_venda, confirmar, listar_pendentes
++from produtos.models import EtiquetaPrecoGondolaAgro
++
++
++class EtiquetaPrecoPdvTests(TestCase):
++    def test_mudanca_avisa_as_duas_lojas_e_ok_e_por_loja(self):
++        n = avisar_mudanca_preco_venda(
++            produto_id="gm1",
++            antes="10.00",
++            depois="12.50",
++            nome="Racao",
++            codigo="GM1",
++        )
++        self.assertEqual(n, 2)
++        centro = listar_pendentes("centro")
++        vila = listar_pendentes("vila")
++        self.assertEqual(len(centro), 1)
++        self.assertEqual(centro[0]["preco_de"], "10,00")
++        self.assertEqual(centro[0]["preco_para"], "12,50")
++        self.assertEqual(len(vila), 1)
++        self.assertTrue(confirmar(centro[0]["id"], "centro"))
++        self.assertEqual(listar_pendentes("centro"), [])
++        self.assertEqual(len(listar_pendentes("vila")), 1)
++
++    def test_segunda_mudanca_atualiza_o_mesmo_aviso(self):
++        avisar_mudanca_preco_venda(produto_id="gm2", antes="5", depois="6", nome="A")
++        avisar_mudanca_preco_venda(produto_id="gm2", antes="6", depois="7", nome="A")
++        self.assertEqual(EtiquetaPrecoGondolaAgro.objects.filter(produto_externo_id="gm2").count(), 2)
++        item = listar_pendentes("centro")[0]
++        self.assertEqual(item["preco_de"], "5,00")
++        self.assertEqual(item["preco_para"], "7,00")
++
++    def test_mesmo_preco_nao_avisa(self):
++        n = avisar_mudanca_preco_venda(produto_id="gm3", antes="4,00", depois="4,00", nome="B")
++        self.assertEqual(n, 0)
++        self.assertFalse(EtiquetaPrecoGondolaAgro.objects.exists())
+diff --git a/produtos/urls.py b/produtos/urls.py
+index 7d964faa..a3ebc8e9 100644
+--- a/produtos/urls.py
++++ b/produtos/urls.py
+@@ -35,6 +35,7 @@ from . import views_fotos_produto
+ from . import views_etiquetas_solicitacao
+ from . import views_meta_vendas
+ from . import views_gestao_logs
++from . import etiqueta_preco_views
+ 
+ urlpatterns = [
+     path('api/gm-vendas-band/', api_gm_vendas_band.api_gm_vendas_band, name='api_gm_vendas_band'),
+@@ -1006,6 +1007,11 @@ urlpatterns = [
+         name='api_pdv_zap_entrada',
+     ),
+     path('api/pdv/deposito/', views.api_pdv_deposito, name='api_pdv_deposito'),
++    path(
++        'api/pdv/etiqueta-preco/',
++        etiqueta_preco_views.api_pdv_etiqueta_preco,
++        name='api_pdv_etiqueta_preco',
++    ),
+     path(
+         'api/pdv/uso-loja/meta/',
+         views_uso_loja.api_pdv_uso_loja_meta,
+diff --git a/produtos/views.py b/produtos/views.py
+index 3daf50ed..71a28902 100644
+--- a/produtos/views.py
++++ b/produtos/views.py
+@@ -877,6 +877,12 @@ def _aplicar_produto_gestao_overlay_em_dict(
+                     row[_k] = pc_ov
+         except (TypeError, ValueError):
+             pass
++    if isinstance(ce_pc, dict) and "prateleira" in ce_pc:
++        row["prateleira"] = str(ce_pc.get("prateleira") or "").strip()[:80]
++    if isinstance(ce_pc, dict) and "comissao_vendedor_reais" in ce_pc:
++        row["comissao_vendedor_reais"] = ce_pc.get("comissao_vendedor_reais")
++    if isinstance(ce_pc, dict) and "comissao_vendedor_percentual" in ce_pc:
++        row["comissao_vendedor_percentual"] = ce_pc.get("comissao_vendedor_percentual")
+     if isinstance(ce_pc, dict) and ce_pc.get("modelo") is not None:
+         row["modelo"] = str(ce_pc.get("modelo") or "").strip()[:200]
+     from produtos.catalogo_delivery_util import aplicar_imagem_delivery_no_row
+@@ -2819,13 +2825,15 @@ def _api_produtos_gestao_overlay_salvar_core(request):
+         desc = str(payload.get("descricao") or "")[:16000]
+         if not (pdv_rapida and not str(desc or "").strip()):
+             ov.descricao = desc
++    from produtos.cadastro_alteracao_historico_util import moeda_br_para_decimal
++
+     pv = payload.get("preco_venda")
+     if pv is not None:
+         if str(pv).strip() == "":
+             ov.preco_venda = None
+         else:
+             try:
+-                ov.preco_venda = Decimal(str(pv).replace(",", ".").strip()).quantize(Decimal("0.01"))
++                ov.preco_venda = moeda_br_para_decimal(pv).quantize(Decimal("0.01"))
+             except Exception:
+                 return JsonResponse({"ok": False, "erro": "preço inválido"}, status=400)
+     inativar_erp_raw = payload.get("inativar_erp") if "inativar_erp" in payload else None
+@@ -3132,6 +3140,32 @@ def _api_produtos_gestao_overlay_salvar_core(request):
+             ex["modelo"] = mod
+         else:
+             ex.pop("modelo", None)
++    if "prateleira" in payload:
++        prat = _txt("prateleira", 80)
++        if prat:
++            ex["prateleira"] = prat
++        else:
++            ex.pop("prateleira", None)
++    if "comissao_vendedor_reais" in payload or "comissao_vendedor_percentual" in payload:
++        from produtos.cadastro_alteracao_historico_util import moeda_br_para_decimal
++
++        for chave_in, chave_ex in (
++            ("comissao_vendedor_reais", "comissao_vendedor_reais"),
++            ("comissao_vendedor_percentual", "comissao_vendedor_percentual"),
++        ):
++            if chave_in not in payload:
++                continue
++            bruto = payload.get(chave_in)
++            if bruto is None or str(bruto).strip() == "":
++                ex.pop(chave_ex, None)
++                continue
++            try:
++                val_c = moeda_br_para_decimal(bruto).quantize(Decimal("0.01"))
++            except Exception:
++                return JsonResponse({"ok": False, "erro": "Comissão inválida"}, status=400)
++            if val_c < 0 or val_c > Decimal("999999"):
++                return JsonResponse({"ok": False, "erro": "Comissão fora do intervalo"}, status=400)
++            ex[chave_ex] = float(val_c)
+     if "extra_validade" in payload:
+         v = str(payload.get("extra_validade") or "").strip()[:16]
+         if v:
+@@ -20733,6 +20767,32 @@ def api_entrada_nota_produto_margem(request):
+                 },
+                 status=404,
+             )
++        if pvr is not None:
++            try:
++                from produtos.cadastro_alteracao_historico_util import (
++                    aplicar_preco_venda_com_historico,
++                )
++                from produtos.catalogo_agro import obter_produto_model
++
++                p_hit = obter_produto_model(id_para_filtro) or obter_produto_model(pid)
++                pid_h = str(
++                    getattr(p_hit, "produto_externo_id", None) or id_para_filtro or pid
++                ).strip()[:64]
++                ov_h, _ = ProdutoGestaoOverlayAgro.objects.get_or_create(
++                    produto_externo_id=pid_h
++                )
++                aplicar_preco_venda_com_historico(
++                    ov_h,
++                    produto_id=pid_h,
++                    preco_novo=pvr,
++                    usuario=request.user if request.user.is_authenticated else None,
++                    origem="nf",
++                )
++                if p_hit is not None:
++                    p_hit.preco_venda = Decimal(str(pvr))
++                    p_hit.save(update_fields=["preco_venda", "atualizado_em"])
++            except Exception:
++                logger.warning("entrada NF: histórico do preço de venda", exc_info=True)
+     else:
+         from produtos.agro_fonte_config import agro_catalogo_usa_postgres
+         from produtos.catalogo_agro import obter_produto_model, sincronizar_modelo_produto_de_overlay
+@@ -20758,10 +20818,19 @@ def api_entrada_nota_produto_margem(request):
+         ex["percentual_lucro_overlay"] = mround
+         ov.cadastro_extras = ex
+         upd_fields = ["cadastro_extras", "atualizado_em"]
+-        if pvr is not None:
+-            ov.preco_venda = Decimal(str(pvr))
+-            upd_fields.append("preco_venda")
+         ov.save(update_fields=upd_fields)
++        if pvr is not None:
++            from produtos.cadastro_alteracao_historico_util import (
++                aplicar_preco_venda_com_historico,
++            )
++
++            aplicar_preco_venda_com_historico(
++                ov,
++                produto_id=id_para_filtro,
++                preco_novo=pvr,
++                usuario=request.user if request.user.is_authenticated else None,
++                origem="nf",
++            )
+         if agro_catalogo_usa_postgres():
+             sync_payload = {"preco_venda": str(pvr)} if pvr is not None else {}
+             sincronizar_modelo_produto_de_overlay(
+diff --git a/produtos/views_cliente_cartao.py b/produtos/views_cliente_cartao.py
+index e2c130c0..c0dd3f9a 100644
+--- a/produtos/views_cliente_cartao.py
++++ b/produtos/views_cliente_cartao.py
+@@ -40,7 +40,7 @@ def _qr_svg(url: str) -> str:
+         url,
+         image_factory=qrcode.image.svg.SvgPathImage,
+         box_size=8,
+-        border=4,
++        border=1,
+     )
+     return imagem.to_string(encoding="unicode")
+ 
