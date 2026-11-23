@@ -173,7 +173,8 @@ def _wa_pwa_sw_js() -> str:
         "self.addEventListener('install',function(e){self.skipWaiting();});\n"
         "self.addEventListener('activate',function(e){e.waitUntil(self.clients.claim());});\n"
         "self.addEventListener('fetch',function(e){"
-        "if(e.request.mode==='navigate'||e.request.destination==='image')return;"
+        "var u=e.request.url||'';"
+        "if(e.request.mode==='navigate'||e.request.destination==='image'||u.indexOf('/entrar/')>=0)return;"
         "e.respondWith(fetch(e.request));"
         "});\n"
     )
@@ -264,7 +265,7 @@ def atendimento_whatsapp_celular_entrar_view(request):
     from django.contrib.auth import authenticate, login
 
     username = (request.POST.get("username") or "").strip()
-    password = request.POST.get("password") or ""
+    password = (request.POST.get("password") or "").strip()
     user = authenticate(request, username=username, password=password)
     if user is None and username.lower() != username:
         user = authenticate(request, username=username.lower(), password=password)

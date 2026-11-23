@@ -171,7 +171,7 @@ sessionStorage.setItem("agro_wa_sistapp", "1");
 <script>
 (function () {
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("{% url 'atendimento_whatsapp_celular_sw' %}?v=3", { scope: "/atendimento-whatsapp/celular/" }).catch(function () {});
+    navigator.serviceWorker.register("{% url 'atendimento_whatsapp_celular_sw' %}?v=4", { scope: "/atendimento-whatsapp/celular/" }).catch(function () {});
   }
 })();
 </script>
@@ -238,7 +238,10 @@ sessionStorage.setItem("agro_wa_sistapp", "1");
       return r.json().then(function (j) { return { r: r, j: j }; }, function () { return { r: r, j: null }; });
     }).then(function (x) {
       if (x.j && x.j.ok) {
-        window.location.replace("/atendimento-whatsapp/celular/");
+        erro.textContent = "Entrou. Abrindo…";
+        window.setTimeout(function () {
+          window.location.replace("/atendimento-whatsapp/celular/");
+        }, 400);
         return;
       }
       erro.textContent = (x.j && x.j.erro) || "Usuário ou senha não entrou.";
