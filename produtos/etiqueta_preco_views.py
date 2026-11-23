@@ -7,7 +7,7 @@ from django.http import JsonResponse
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods
 
-from produtos.etiqueta_preco_pendente_util import confirmar, itens_etiqueta, listar_pendentes
+from produtos.etiqueta_preco_pendente_util import confirmar, itens_etiqueta, listar_pendentes, listar_trocadas
 from produtos.pdv_deposito_util import resolver_deposito_request, rotulo_deposito
 
 
@@ -23,6 +23,17 @@ def _corpo(request) -> dict:
 def api_pdv_etiqueta_preco(request):
     dep = resolver_deposito_request(request)
     if request.method == "GET":
+        if request.GET.get("historico") == "1":
+            hist = listar_trocadas(dep)
+            return JsonResponse(
+                {
+                    "ok": True,
+                    "deposito": dep,
+                    "loja": rotulo_deposito(dep),
+                    "total": len(hist),
+                    "historico": hist,
+                }
+            )
         itens = listar_pendentes(dep)
         return JsonResponse(
             {

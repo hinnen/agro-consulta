@@ -222,6 +222,27 @@ def listar_pendentes(deposito: str) -> list[dict[str, Any]]:
     return out
 
 
+def listar_trocadas(deposito: str) -> list[dict[str, Any]]:
+    dep = normalizar_deposito(deposito)
+    out = []
+    qs = (
+        EtiquetaPrecoGondolaAgro.objects.filter(deposito=dep, pendente=False, ok_em__isnull=False)
+        .order_by("-ok_em", "nome")[:80]
+    )
+    for row in qs:
+        quando = timezone.localtime(row.ok_em).strftime("%d/%m %H:%M") if row.ok_em else ""
+        out.append(
+            {
+                "id": row.pk,
+                "nome": row.nome or row.produto_externo_id,
+                "codigo": row.codigo,
+                "preco": _fmt_br(row.preco_ok),
+                "quando": quando,
+            }
+        )
+    return out
+
+
 def confirmar(pk: int, deposito: str) -> bool:
     dep = normalizar_deposito(deposito)
     row = EtiquetaPrecoGondolaAgro.objects.filter(pk=pk, deposito=dep, pendente=True).first()
