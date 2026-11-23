@@ -1695,23 +1695,15 @@ Até o build, no ar segue v27.26.53 @ `af7af8cc`. Volta: `git push origin rollba
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### CHECKLIST ÚNICO — **23/11b** · 🟢 pronto para envio à produção · não enviado
+### CHECKLIST ÚNICO — **23/11** · 🟢 pronto para envio à produção · os três juntos · não enviado
 
-| # | Pacote | Status | Migrate | Prova |
-| - | ------ | ------ | ------- | ----- |
-| 1 | **PDV-TROCA-PRECO** | 🟢 Pronto | **SIM** `0155` + `0159` | PIN 9999 ok · sem PIN não grava · hora e usuário · lista na hora |
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **PDV-TROCA-PRECO** | 🟢 Pronto | **SIM** |
+| 2 | **CAD-HIST-ABA10** | 🟢 Pronto | **NÃO** |
+| 3 | **CARTAO-BARRAS-GROSSAS** | 🟢 Pronto | **NÃO** |
 
-Botão **Troca de preço**. Uma linha por produto. **Já troquei** pede o PIN do PDV e grava hora e quem. Não usa o login do Chrome. Impressão no PDV, com o último preset. Não foi para a loja.
-
-### CHECKLIST ÚNICO — **23/11** · 🟢 pronto para envio à produção · não enviado
-
-| # | Pacote | Status | Migrate | Prova |
-| - | ------ | ------ | ------- | ----- |
-| 1 | **CAD-HIST-ABA10** | 🟢 Pronto | **NÃO** | preço, NCM, kit, ativo, custo, busca, comissão e prateleira só entram se mudarem |
-
-Aba 10 anota preço (nota e aba 4) e o resto do cadastro quando muda. Comissão e prateleira passam a gravar no Salvar e entram na aba 10 se mudarem. Não anota NCM, CFOP, CSOSN, kit ou ativo se a tela já mostrava. Linhas antigas ficam. Não mexe em PDV, caixa nem venda. No `teste`. Sem migrate.
-
-**Ainda falta subir, pacote anterior:** **CARTAO-BARRAS-GROSSAS** (21/11c) · pronto · sem migrate · `./scripts/cutover_loja_checklist_2111c_cartao_barras.sh --exec`.
+Sobe os três de uma vez. Troca de preço pede PIN. Aba 10 só anota o que mudou. Barras do cartão na largura do branco. Não foi para a loja.
 
 ### ✅ CORTE ENVIADO — **19/11** · **v27.26.82** @ `fb15ae8a` · Pedir loja pausado · aguardando o build
 
