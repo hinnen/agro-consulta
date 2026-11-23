@@ -1695,6 +1695,10 @@ Até o build, no ar segue v27.26.53 @ `af7af8cc`. Volta: `git push origin rollba
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### PDV — etiqueta quando o preço muda · **23/11** · no `teste` · não foi para a loja
+
+Qualquer mudança no preço de venda (cadastro, planilha, nota) avisa no PDV das duas lojas. Promoção que entra ou acaba também. **Já troquei** é um produto por vez e só naquela loja. Lista 80mm e fila de etiquetas não apagam o aviso. Migrate **0155**.
+
 ### CHECKLIST ÚNICO — **23/11** · 🟢 pronto para envio à produção · não enviado
 
 | # | Pacote | Status | Migrate | Prova |

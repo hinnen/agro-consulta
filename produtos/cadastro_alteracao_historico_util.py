@@ -349,6 +349,18 @@ def registrar_diffs_cadastro(
     if not rows:
         return 0
     ProdutoCadastroAlteracaoAgro.objects.bulk_create(rows)
+    for row in rows:
+        if row.campo != "preco_venda":
+            continue
+        from produtos.etiqueta_preco_pendente_util import avisar_mudanca_preco_venda
+
+        avisar_mudanca_preco_venda(
+            produto_id=pid,
+            antes=row.valor_antes,
+            depois=row.valor_depois,
+            nome=str(depois.get("nome") or "")[:300],
+            codigo=str(depois.get("codigo_nfe") or depois.get("codigo_barras") or "")[:80],
+        )
     return len(rows)
 
 

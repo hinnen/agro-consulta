@@ -34,6 +34,7 @@ from . import views_fotos_produto
 from . import views_etiquetas_solicitacao
 from . import views_meta_vendas
 from . import views_gestao_logs
+from . import etiqueta_preco_views
 
 urlpatterns = [
     path('api/gm-vendas-band/', api_gm_vendas_band.api_gm_vendas_band, name='api_gm_vendas_band'),
@@ -1010,6 +1011,11 @@ urlpatterns = [
     path('api/login-mobile/', views.api_login_mobile, name='api_login_mobile'),
     path('api/pdv/operador/', views.api_pdv_registrar_operador, name='api_pdv_registrar_operador'),
     path('api/pdv/deposito/', views.api_pdv_deposito, name='api_pdv_deposito'),
+    path(
+        'api/pdv/etiqueta-preco/',
+        etiqueta_preco_views.api_pdv_etiqueta_preco,
+        name='api_pdv_etiqueta_preco',
+    ),
     path(
         'api/pdv/uso-loja/meta/',
         views_uso_loja.api_pdv_uso_loja_meta,
