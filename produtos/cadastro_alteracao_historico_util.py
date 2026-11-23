@@ -49,6 +49,9 @@ _CAMPOS_EXTRAS: list[tuple[str, str]] = [
     ("precos_modo", "Modo preços"),
     ("precos_por_forma", "Preços por forma"),
     ("precos_grupos", "Preços grupos A/B"),
+    ("palavras_chave", "Palavras de busca"),
+    ("classes_vet", "Classes"),
+    ("especies_vet", "Espécies"),
     ("ean_embalagem_nf", "EAN embalagem NF"),
     ("c_prods_nf", "Cód. produto na NF"),
     ("c_prod_nf", "Cód. produto na NF"),
@@ -137,6 +140,9 @@ def snapshot_overlay(ov) -> dict[str, Any]:
     out["precos_modo"] = ex.get("precos_modo") or ""
     out["precos_por_forma"] = ex.get("precos_por_forma")
     out["precos_grupos"] = ex.get("precos_grupos")
+    out["palavras_chave"] = ex.get("palavras_chave") or ""
+    out["classes_vet"] = ex.get("classes_vet") if isinstance(ex.get("classes_vet"), list) else None
+    out["especies_vet"] = ex.get("especies_vet") if isinstance(ex.get("especies_vet"), list) else None
     out["ean_embalagem_nf"] = ex.get("entrada_nfe_ean_embalagem") or ""
     from produtos.mongo_index_codigos import _c_prods_nf_de_cadastro_extras
 
@@ -188,6 +194,17 @@ def snapshot_efetivo_catalogo(produto_id: str) -> dict[str, Any]:
     out["codigo_nfe"] = _pick("codigo_nfe", "codigo_gm")
     out["marca"] = _pick("marca")
     out["categoria"] = _pick("categoria")
+    out["subcategoria"] = _pick("subcategoria")
+    out["subcategoria_2"] = _pick("subcategoria_2")
+    out["subcategoria_3"] = _pick("subcategoria_3")
+    out["subcategoria_4"] = _pick("subcategoria_4")
+    out["fornecedor_texto"] = _pick("fornecedor", "fornecedor_texto")
+    out["descricao"] = _pick("descricao")
+    ncm = _pick("ncm")
+    if ncm is not None:
+        out["fiscal_ncm"] = ncm
+    if "inativo" in row:
+        out["ativo_exibicao"] = not bool(row.get("inativo"))
     pv = _pick("preco_venda")
     if pv is not None:
         try:
@@ -210,9 +227,7 @@ def enriquecer_snapshot_antes_com_catalogo(produto_id: str, snap: dict[str, Any]
     """
     if not isinstance(snap, dict):
         return {}
-    efetivo = snapshot_efetivo_catalogo(produto_id)
-    if not efetivo:
-        return dict(snap)
+    efetivo = snapshot_efetivo_catalogo(produto_id) or {}
     out = dict(snap)
     for k, v in list(out.items()):
         if _norm_cmp(v) != "":
@@ -220,6 +235,29 @@ def enriquecer_snapshot_antes_com_catalogo(produto_id: str, snap: dict[str, Any]
         ev = efetivo.get(k)
         if _norm_cmp(ev) != "":
             out[k] = ev
+    # O modal já mostra estes valores quando o cadastro não gravou o campo.
+    # Salvar sem mexer não pode virar «— → 5102».
+    from produtos.agro_produto_fiscal_defaults import fiscal_padrao_ui_cadastro
+
+    padrao = fiscal_padrao_ui_cadastro()
+    tela = {
+        "fiscal_ncm": padrao.get("ncm") or "",
+        "fiscal_cfop": padrao.get("cfop") or "",
+        "fiscal_csosn": padrao.get("csosn") or "",
+        "fiscal_origem": padrao.get("origem") or "",
+        "fiscal_cst_pis_cofins": padrao.get("cst_pis_cofins") or "",
+    }
+    for k, v in tela.items():
+        if _norm_cmp(out.get(k)) == "" and _norm_cmp(v) != "":
+            out[k] = v
+    if out.get("kit_baixa_componentes") is None:
+        out["kit_baixa_componentes"] = False
+    if out.get("permite_venda_estoque_negativo") is None:
+        out["permite_venda_estoque_negativo"] = True
+    if out.get("classes_vet") is None:
+        out["classes_vet"] = []
+    if out.get("especies_vet") is None:
+        out["especies_vet"] = []
     return out
 
 

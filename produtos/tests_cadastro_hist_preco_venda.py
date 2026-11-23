@@ -5,7 +5,9 @@ from django.test import TestCase
 
 from produtos.cadastro_alteracao_historico_util import (
     aplicar_preco_venda_com_historico,
+    enriquecer_snapshot_antes_com_catalogo,
     moeda_br_para_decimal,
+    registrar_diffs_cadastro,
 )
 from produtos.models import Produto, ProdutoCadastroAlteracaoAgro, ProdutoGestaoOverlayAgro
 
@@ -54,3 +56,31 @@ class HistPrecoVendaTests(TestCase):
         )
         self.assertEqual(n, 0)
         self.assertFalse(ProdutoCadastroAlteracaoAgro.objects.exists())
+
+    def test_salvar_sem_mexer_nao_finge_fiscal_kit_ativo(self):
+        antes = enriquecer_snapshot_antes_com_catalogo(
+            self.pid,
+            {
+                "preco_venda": Decimal("23.80"),
+                "fiscal_ncm": "",
+                "fiscal_cfop": "",
+                "fiscal_csosn": "",
+                "kit_baixa_componentes": None,
+                "ativo_exibicao": None,
+            },
+        )
+        depois = dict(antes)
+        depois["preco_venda"] = Decimal("23.81")
+        n = registrar_diffs_cadastro(
+            produto_id=self.pid,
+            antes=antes,
+            depois=depois,
+            origem="modal",
+        )
+        campos = set(
+            ProdutoCadastroAlteracaoAgro.objects.filter(produto_externo_id=self.pid).values_list(
+                "campo", flat=True
+            )
+        )
+        self.assertEqual(n, 1)
+        self.assertEqual(campos, {"preco_venda"})

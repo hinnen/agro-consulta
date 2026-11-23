@@ -1697,7 +1697,7 @@ Até o build, no ar segue v27.26.53 @ `af7af8cc`. Volta: `git push origin rollba
 
 ### CAD-HIST-PRECO-VENDA — **23/11** · em `teste` · não foi para a loja
 
-Mudar o preço de venda na entrada da nota passa a aparecer na aba **10. Alterações** (de / para, origem Entrada NF). O mesmo preço de novo não gera linha. Sem migrate.
+Mudar o preço de venda na entrada da nota passa a aparecer na aba **10. Alterações**. Salvar o cadastro sem mexer em NCM, CFOP, CSOSN, kit ou «ativo» não gera mais linha falsa «— → valor». Sem migrate.
 
 ### ✅ CORTE ENVIADO — **19/11** · **v27.26.82** @ `fb15ae8a` · Pedir loja pausado · aguardando o build
 
