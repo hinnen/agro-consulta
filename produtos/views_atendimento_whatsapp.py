@@ -172,11 +172,7 @@ def _wa_pwa_sw_js() -> str:
     return (
         "self.addEventListener('install',function(e){self.skipWaiting();});\n"
         "self.addEventListener('activate',function(e){e.waitUntil(self.clients.claim());});\n"
-        "self.addEventListener('fetch',function(e){"
-        "var u=e.request.url||'';"
-        "if(e.request.mode==='navigate'||e.request.destination==='image'||u.indexOf('/entrar/')>=0)return;"
-        "e.respondWith(fetch(e.request));"
-        "});\n"
+        "self.addEventListener('fetch',function(){});\n"
     )
 
 
@@ -270,9 +266,9 @@ def atendimento_whatsapp_celular_entrar_view(request):
     if user is None and username.lower() != username:
         user = authenticate(request, username=username.lower(), password=password)
     if user is None or not getattr(user, "is_active", False):
-        return JsonResponse({"ok": False, "erro": "Usuário ou senha não entrou."}, status=401)
+        return redirect("/atendimento-whatsapp/celular/?login=erro")
     login(request, user)
-    return JsonResponse({"ok": True})
+    return redirect("/atendimento-whatsapp/celular/")
 
 
 def atendimento_whatsapp_celular_instalar_view(request):
