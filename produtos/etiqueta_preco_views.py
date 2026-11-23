@@ -52,7 +52,10 @@ def api_pdv_etiqueta_preco(request):
             pk = int(data.get("id"))
         except (TypeError, ValueError):
             return JsonResponse({"ok": False, "erro": "Produto inválido."}, status=400)
-        if not confirmar(pk, dep):
+        quem = ""
+        if request.user.is_authenticated:
+            quem = (request.user.get_full_name() or request.user.get_username() or "")[:150]
+        if not confirmar(pk, dep, quem):
             return JsonResponse({"ok": False, "erro": "Esse item já saiu da lista."}, status=404)
         itens = listar_pendentes(dep)
         return JsonResponse({"ok": True, "total": len(itens), "itens": itens, "loja": rotulo_deposito(dep)})

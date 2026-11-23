@@ -4246,6 +4246,7 @@ class EtiquetaPrecoGondolaAgro(models.Model):
     preco_atual = models.DecimalField(max_digits=12, decimal_places=2)
     pendente = models.BooleanField(default=False, db_index=True)
     ok_em = models.DateTimeField(null=True, blank=True)
+    ok_por = models.CharField(max_length=150, blank=True, default="")
     atualizado_em = models.DateTimeField(auto_now=True)
 
     class Meta:

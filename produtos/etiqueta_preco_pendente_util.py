@@ -242,12 +242,13 @@ def listar_trocadas(deposito: str) -> list[dict[str, Any]]:
                 "codigo": row.codigo,
                 "preco": _fmt_br(row.preco_ok),
                 "quando": quando,
+                "usuario": row.ok_por or "",
             }
         )
     return out
 
 
-def confirmar(pk: int, deposito: str) -> bool:
+def confirmar(pk: int, deposito: str, usuario: str = "") -> bool:
     dep = normalizar_deposito(deposito)
     row = EtiquetaPrecoGondolaAgro.objects.filter(pk=pk, deposito=dep, pendente=True).first()
     if row is None:
@@ -255,7 +256,8 @@ def confirmar(pk: int, deposito: str) -> bool:
     row.preco_ok = row.preco_atual
     row.pendente = False
     row.ok_em = timezone.now()
-    row.save(update_fields=["preco_ok", "pendente", "ok_em", "atualizado_em"])
+    row.ok_por = (usuario or "")[:150]
+    row.save(update_fields=["preco_ok", "pendente", "ok_em", "ok_por", "atualizado_em"])
     return True
 
 

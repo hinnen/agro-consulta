@@ -100,7 +100,7 @@
     var cab = painel && painel.querySelector('[data-cabeca]');
     if (!cab) return;
     cab.innerHTML = modo === 'hist'
-      ? '<span>Produto</span><span>Código</span><span>Preço</span><span>Quando</span><span></span>'
+      ? '<span>Produto</span><span>Código</span><span>Preço</span><span>Hora</span><span>Usuário</span>'
       : '<span>Produto</span><span>Código</span><span>Era</span><span>Agora</span><span></span>';
   }
 
@@ -110,12 +110,12 @@
     cabecalho('hist');
     var corpo = (lista || []).map(function (it) {
       return (
-        '<div style="display:grid;grid-template-columns:minmax(18rem,1fr) 7.5rem 7rem 8rem 8.5rem;align-items:center;gap:0.75rem;border-bottom:1px solid #e2e8f0;padding:0.45rem 0;">' +
+        '<div style="display:grid;grid-template-columns:minmax(16rem,1fr) 7rem 6.5rem 8.5rem 8rem;align-items:center;gap:0.75rem;border-bottom:1px solid #e2e8f0;padding:0.45rem 0;">' +
         '<div style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:0.95rem;font-weight:900;color:#0f172a;" title="' + esc(it.nome) + '">' + esc(it.nome) + '</div>' +
         '<div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:0.8rem;font-weight:700;color:#64748b;">' + esc(it.codigo) + '</div>' +
         '<div style="font-size:0.95rem;font-weight:900;color:#0f172a;">R$ ' + esc(it.preco) + '</div>' +
-        '<div style="font-size:0.85rem;font-weight:700;color:#475569;">' + esc(it.quando) + '</div>' +
-        '<div></div>' +
+        '<div style="font-size:0.85rem;font-weight:800;color:#0f172a;">' + esc(it.quando) + '</div>' +
+        '<div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:0.85rem;font-weight:800;color:#0f172a;">' + esc(it.usuario || '—') + '</div>' +
         '</div>'
       );
     }).join('');
@@ -150,7 +150,7 @@
     if (!painel) return;
     var corpo = itens.map(function (it) {
       return (
-        '<div style="display:grid;grid-template-columns:minmax(18rem,1fr) 7.5rem 7rem 8rem 8.5rem;align-items:center;gap:0.75rem;border-bottom:1px solid #e2e8f0;padding:0.45rem 0;">' +
+        '<div style="display:grid;grid-template-columns:minmax(16rem,1fr) 7rem 6.5rem 8.5rem 8rem;align-items:center;gap:0.75rem;border-bottom:1px solid #e2e8f0;padding:0.45rem 0;">' +
         '<div style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:0.95rem;font-weight:900;color:#0f172a;" title="' + esc(it.nome) + '">' + esc(it.nome) + '</div>' +
         '<div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:0.8rem;font-weight:700;color:#64748b;">' + esc(it.codigo) + '</div>' +
         '<div style="font-size:0.85rem;font-weight:700;color:#475569;">R$ ' + esc(it.preco_de) + '</div>' +
@@ -281,7 +281,7 @@
         '<div><div class="text-base font-black uppercase text-orange-900">Trocar etiqueta</div>' +
         '<div data-loja class="text-xs font-bold text-slate-600"></div></div>' +
         '<button type="button" data-fechar class="rounded-xl border-2 border-slate-400 bg-white px-3 py-2 text-sm font-black">Fechar</button></div>' +
-        '<div data-cabeca style="display:grid;grid-template-columns:minmax(18rem,1fr) 7.5rem 7rem 8rem 8.5rem;gap:0.75rem;padding:0.35rem 0.75rem 0;font-size:10px;font-weight:900;letter-spacing:0.04em;text-transform:uppercase;color:#94a3b8;">' +
+        '<div data-cabeca style="display:grid;grid-template-columns:minmax(16rem,1fr) 7rem 6.5rem 8.5rem 8rem;gap:0.75rem;padding:0.35rem 0.75rem 0;font-size:10px;font-weight:900;letter-spacing:0.04em;text-transform:uppercase;color:#94a3b8;">' +
         '<span>Produto</span><span>Código</span><span>Era</span><span>Agora</span><span></span></div>' +
         '<div data-lista class="min-h-0 flex-1 overflow-y-auto px-3"></div>' +
         '<div class="flex flex-wrap gap-2 border-t border-slate-200 p-3">' +
