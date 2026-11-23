@@ -19,7 +19,8 @@ trap cleanup EXIT
 git -C "$WT" apply --binary "$ROOT/scripts/prep_patch_checklist_2111c_cartao_barras.patch"
 [[ "$(tr -d '[:space:]' < "$WT/VERSION")" == "$VER" ]] || { echo "FAIL: versao"; exit 2; }
 grep -q "preserveAspectRatio" "$WT/produtos/templates/produtos/caixa_cartao_cliente_imprimir.html"
-grep -q "margin: 4" "$WT/produtos/templates/produtos/caixa_cartao_cliente_imprimir.html"
+grep -q "margin: 1" "$WT/produtos/templates/produtos/caixa_cartao_cliente_imprimir.html"
+grep -q "border=1" "$WT/produtos/views_cliente_cartao.py"
 grep -q "top: 64.5%" "$WT/produtos/templates/produtos/caixa_cartao_cliente_imprimir.html"
 git -C "$WT" add -A
 EMAIL="$(git -C "$ROOT" config user.email || true)"
@@ -29,7 +30,7 @@ NAME="${NAME:-Cursor Agent}"
 git -C "$WT" -c user.email="$EMAIL" -c user.name="$NAME" commit -m "prep(loja): v27.26.86 barras grossas do cartao"
 echo "OK: corte v$VER em cima de ${PROD:0:8}"
 echo "Entra: barras ocupam a largura do retangulo branco."
-echo "Nao muda: QR, cartao ja impresso, PDV, caixa, venda. Sem tabela nova."
+echo "Nao muda: cartao ja impresso, PDV, caixa, venda. QR so cresce dentro do quadrado. Sem tabela nova."
 echo "VOLTA: git push origin ${PROD}:producao"
 [[ "${1:-}" != "--exec" ]] && exit 0
 FRASE="${AGRO_PIN_FRASE:-${AGRO_LOJA_FRASE:-}}"

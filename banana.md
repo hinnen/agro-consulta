@@ -1758,7 +1758,7 @@ A v27.26.84 subiu o QR na faixa colorida. Esta corrige: barras no retângulo bra
 | - | ------ | ------ | ------- | ----- |
 | 1 | **CARTAO-BARRAS-GROSSAS** | 🟢 Pronto | **NÃO** | folha de 2 cartões ok |
 
-As barras passam a ocupar a largura do retângulo branco. O QR continua no quadrado. O cartão já impresso não muda. Não mexe em PDV, caixa nem venda. Base **v27.26.85** @ `b45d9cbc`. **Na senha:** `./scripts/cutover_loja_checklist_2111c_cartao_barras.sh --exec`. **Volta:** `git push origin b45d9cbc:producao`.
+As barras ocupam quase toda a largura do retângulo branco, mais grossas. O QR cresce dentro do quadrado, sem aumentar o branco. O cartão já impresso não muda. Não mexe em PDV, caixa nem venda. Base **v27.26.85** @ `b45d9cbc`. **Na senha:** `./scripts/cutover_loja_checklist_2111c_cartao_barras.sh --exec`. **Volta:** `git push origin b45d9cbc:producao`.
 
 ### ✅ CHECKLIST ÚNICO — **18/11d** · enviado · **v27.26.79** @ `ef23e2e7`
 
