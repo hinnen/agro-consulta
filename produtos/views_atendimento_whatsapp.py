@@ -9,7 +9,7 @@ from pathlib import Path
 from django.contrib.auth.decorators import login_required
 from django.db import close_old_connections
 from django.http import FileResponse, Http404, HttpResponse, JsonResponse
-from django.shortcuts import render
+from django.shortcuts import redirect, render
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_POST
 
@@ -173,7 +173,7 @@ def _wa_pwa_sw_js() -> str:
         "self.addEventListener('install',function(e){self.skipWaiting();});\n"
         "self.addEventListener('activate',function(e){e.waitUntil(self.clients.claim());});\n"
         "self.addEventListener('fetch',function(e){"
-        "if(e.request.destination==='image')return;"
+        "if(e.request.mode==='navigate'||e.request.destination==='image')return;"
         "e.respondWith(fetch(e.request));"
         "});\n"
     )
@@ -256,6 +256,22 @@ def atendimento_whatsapp_celular_sw(request):
     resp["Service-Worker-Allowed"] = "/atendimento-whatsapp/celular/"
     resp["Cache-Control"] = "no-cache"
     return resp
+
+
+@require_POST
+def atendimento_whatsapp_celular_entrar_view(request):
+    """Login do aplicativo. Fica neste endereço para o celular não sair da tela."""
+    from django.contrib.auth import authenticate, login
+
+    username = (request.POST.get("username") or "").strip()
+    password = request.POST.get("password") or ""
+    user = authenticate(request, username=username, password=password)
+    if user is None and username.lower() != username:
+        user = authenticate(request, username=username.lower(), password=password)
+    if user is None or not getattr(user, "is_active", False):
+        return redirect("/atendimento-whatsapp/celular/?login=erro")
+    login(request, user)
+    return redirect("/atendimento-whatsapp/celular/")
 
 
 def atendimento_whatsapp_celular_instalar_view(request):

@@ -171,7 +171,7 @@ sessionStorage.setItem("agro_wa_sistapp", "1");
 <script>
 (function () {
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("{% url 'atendimento_whatsapp_celular_sw' %}", { scope: "/atendimento-whatsapp/celular/" }).catch(function () {});
+    navigator.serviceWorker.register("{% url 'atendimento_whatsapp_celular_sw' %}?v=3", { scope: "/atendimento-whatsapp/celular/" }).catch(function () {});
   }
 })();
 </script>
@@ -184,7 +184,7 @@ sessionStorage.setItem("agro_wa_sistapp", "1");
 })();
 </script>
 <div id="wa-loja-login" hidden style="position:fixed;inset:0;z-index:2147483647;background:#022c22;color:#ecfdf5;display:block;overflow:auto;padding:1.25rem 1.25rem 40vh;">
-  <form id="wa-loja-login-form" method="post" action="/entrar/" style="width:min(100%,22rem);margin:0 auto;">
+  <form id="wa-loja-login-form" method="post" action="/atendimento-whatsapp/celular/entrar/" style="width:min(100%,22rem);margin:0 auto;">
     {% csrf_token %}
     <input type="hidden" name="next" value="/atendimento-whatsapp/celular/">
     <h1 style="margin:0 0 .35rem;font-size:1.6rem;">Entrar na loja</h1>
