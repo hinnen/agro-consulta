@@ -20,6 +20,9 @@ _CAMPOS_OVERLAY: list[tuple[str, str]] = [
     ("fornecedor_texto", "Fornecedor"),
     ("unidade", "Unidade"),
     ("peso_etiqueta", "Peso (etiqueta)"),
+    ("prateleira", "Prateleira"),
+    ("comissao_reais", "Comissão (R$)"),
+    ("comissao_percentual", "Comissão (%)"),
     ("codigo_barras", "Código de barras"),
     ("codigo_nfe", "Código GM / NFe"),
     ("preco_venda", "Preço venda"),
@@ -49,15 +52,29 @@ _CAMPOS_EXTRAS: list[tuple[str, str]] = [
     ("precos_modo", "Modo preços"),
     ("precos_por_forma", "Preços por forma"),
     ("precos_grupos", "Preços grupos A/B"),
+    ("palavras_chave", "Palavras de busca"),
+    ("classes_vet", "Classes"),
+    ("especies_vet", "Espécies"),
     ("ean_embalagem_nf", "EAN embalagem NF"),
     ("c_prods_nf", "Cód. produto na NF"),
     ("c_prod_nf", "Cód. produto na NF"),
     ("codigos_barras_opcionais", "Barras opcionais"),
     ("custo_familia", "Custo do saco (família)"),
     ("variacoes", "Marcas / códigos"),
+    ("delivery_resumo", "Catálogo delivery"),
 ]
 
 _LABELS = {k: lab for k, lab in _CAMPOS_OVERLAY + _CAMPOS_EXTRAS}
+
+
+def moeda_br_para_decimal(raw: Any) -> Decimal:
+    """Aceita 23.8, 23,80 e 1.234,56."""
+    s = str(raw or "").strip().replace("R$", "").replace(" ", "")
+    if not s:
+        raise ValueError("vazio")
+    if "," in s:
+        s = s.replace(".", "").replace(",", ".")
+    return Decimal(s)
 
 
 def _fmt(val: Any) -> str:
@@ -112,6 +129,9 @@ def snapshot_overlay(ov) -> dict[str, Any]:
     kit = ex.get("kit") if isinstance(ex.get("kit"), dict) else {}
     out["preco_custo"] = ex.get("preco_custo_overlay")
     out["modelo"] = ex.get("modelo") or ""
+    out["prateleira"] = str(ex.get("prateleira") or "").strip()
+    out["comissao_reais"] = ex.get("comissao_vendedor_reais")
+    out["comissao_percentual"] = ex.get("comissao_vendedor_percentual")
     out["permite_venda_estoque_negativo"] = ex.get("permite_venda_estoque_negativo")
     out["validade"] = ex.get("validade") or ""
     out["lote"] = ex.get("lote") or ""
@@ -127,6 +147,9 @@ def snapshot_overlay(ov) -> dict[str, Any]:
     out["precos_modo"] = ex.get("precos_modo") or ""
     out["precos_por_forma"] = ex.get("precos_por_forma")
     out["precos_grupos"] = ex.get("precos_grupos")
+    out["palavras_chave"] = ex.get("palavras_chave") or ""
+    out["classes_vet"] = ex.get("classes_vet") if isinstance(ex.get("classes_vet"), list) else None
+    out["especies_vet"] = ex.get("especies_vet") if isinstance(ex.get("especies_vet"), list) else None
     out["ean_embalagem_nf"] = ex.get("entrada_nfe_ean_embalagem") or ""
     from produtos.mongo_index_codigos import _c_prods_nf_de_cadastro_extras
 
@@ -140,6 +163,11 @@ def snapshot_overlay(ov) -> dict[str, Any]:
         out["c_prods_nf"] = out["c_prod_nf"]
     out["codigos_barras_opcionais"] = ex.get("codigos_barras_opcionais") or []
     out["custo_familia"] = ex.get("custo_familia") if isinstance(ex.get("custo_familia"), dict) else None
+    d = ex.get("delivery") if isinstance(ex.get("delivery"), dict) else {}
+    if d.get("ativo"):
+        out["delivery_resumo"] = "Sim · " + str(d.get("titulo") or "").strip()
+    else:
+        out["delivery_resumo"] = ""
     return out
 
 
@@ -178,6 +206,17 @@ def snapshot_efetivo_catalogo(produto_id: str) -> dict[str, Any]:
     out["codigo_nfe"] = _pick("codigo_nfe", "codigo_gm")
     out["marca"] = _pick("marca")
     out["categoria"] = _pick("categoria")
+    out["subcategoria"] = _pick("subcategoria")
+    out["subcategoria_2"] = _pick("subcategoria_2")
+    out["subcategoria_3"] = _pick("subcategoria_3")
+    out["subcategoria_4"] = _pick("subcategoria_4")
+    out["fornecedor_texto"] = _pick("fornecedor", "fornecedor_texto")
+    out["descricao"] = _pick("descricao")
+    ncm = _pick("ncm")
+    if ncm is not None:
+        out["fiscal_ncm"] = ncm
+    if "inativo" in row:
+        out["ativo_exibicao"] = not bool(row.get("inativo"))
     pv = _pick("preco_venda")
     if pv is not None:
         try:
@@ -200,9 +239,7 @@ def enriquecer_snapshot_antes_com_catalogo(produto_id: str, snap: dict[str, Any]
     """
     if not isinstance(snap, dict):
         return {}
-    efetivo = snapshot_efetivo_catalogo(produto_id)
-    if not efetivo:
-        return dict(snap)
+    efetivo = snapshot_efetivo_catalogo(produto_id) or {}
     out = dict(snap)
     for k, v in list(out.items()):
         if _norm_cmp(v) != "":
@@ -210,6 +247,33 @@ def enriquecer_snapshot_antes_com_catalogo(produto_id: str, snap: dict[str, Any]
         ev = efetivo.get(k)
         if _norm_cmp(ev) != "":
             out[k] = ev
+    # O modal já mostra estes valores quando o cadastro não gravou o campo.
+    # Salvar sem mexer não pode virar «— → 5102».
+    from produtos.agro_produto_fiscal_defaults import fiscal_padrao_ui_cadastro
+
+    padrao = fiscal_padrao_ui_cadastro()
+    tela = {
+        "fiscal_ncm": padrao.get("ncm") or "",
+        "fiscal_cfop": padrao.get("cfop") or "",
+        "fiscal_csosn": padrao.get("csosn") or "",
+        "fiscal_origem": padrao.get("origem") or "",
+        "fiscal_cst_pis_cofins": padrao.get("cst_pis_cofins") or "",
+    }
+    for k, v in tela.items():
+        if _norm_cmp(out.get(k)) == "" and _norm_cmp(v) != "":
+            out[k] = v
+    if out.get("kit_baixa_componentes") is None:
+        out["kit_baixa_componentes"] = False
+    if out.get("permite_venda_estoque_negativo") is None:
+        out["permite_venda_estoque_negativo"] = True
+    if out.get("classes_vet") is None:
+        out["classes_vet"] = []
+    if out.get("especies_vet") is None:
+        out["especies_vet"] = []
+    if out.get("composicao") is None:
+        out["composicao"] = []
+    if _norm_cmp(out.get("precos_modo")) == "":
+        out["precos_modo"] = "por_forma"
     return out
 
 
@@ -285,7 +349,64 @@ def registrar_diffs_cadastro(
     if not rows:
         return 0
     ProdutoCadastroAlteracaoAgro.objects.bulk_create(rows)
+    for row in rows:
+        if row.campo != "preco_venda":
+            continue
+        from produtos.etiqueta_preco_pendente_util import avisar_mudanca_preco_venda
+
+        avisar_mudanca_preco_venda(
+            produto_id=pid,
+            antes=row.valor_antes,
+            depois=row.valor_depois,
+            nome=str(depois.get("nome") or "")[:300],
+            codigo=str(depois.get("codigo_nfe") or depois.get("codigo_barras") or "")[:80],
+        )
     return len(rows)
+
+
+def ids_historico_produto(produto_id: str) -> list[str]:
+    """Id da tela e a chave estável do cadastro, para a aba 10 achar a linha."""
+    pid = str(produto_id or "").strip()[:64]
+    if not pid:
+        return []
+    ids = [pid]
+    try:
+        from produtos.cadastro_busca_codigo_util import canonical_overlay_produto_externo_id
+
+        canon = str(canonical_overlay_produto_externo_id(pid) or "").strip()[:64]
+        if canon and canon not in ids:
+            ids.append(canon)
+    except Exception:
+        pass
+    return ids
+
+
+def aplicar_preco_venda_com_historico(
+    ov,
+    *,
+    produto_id: str,
+    preco_novo,
+    usuario=None,
+    origem: str = "nf",
+) -> int:
+    """Grava o preço de venda no overlay e uma linha na aba 10 se o valor mudou."""
+    pid = str(produto_id or "").strip()[:64]
+    if not pid or ov is None or preco_novo is None:
+        return 0
+    try:
+        novo = Decimal(str(preco_novo)).quantize(Decimal("0.01"))
+    except Exception:
+        return 0
+    antes = enriquecer_snapshot_antes_com_catalogo(pid, snapshot_overlay(ov))
+    ov.preco_venda = novo
+    ov.save(update_fields=["preco_venda", "atualizado_em"])
+    return registrar_diffs_cadastro(
+        produto_id=pid,
+        antes=antes,
+        depois=snapshot_overlay(ov),
+        usuario=usuario,
+        origem=origem,
+    )
 
 
 def listar_alteracoes_cadastro(
@@ -295,7 +416,8 @@ def listar_alteracoes_cadastro(
     offset: int = 0,
     completo: bool = False,
 ) -> dict[str, Any]:
-    pid = str(produto_id or "").strip()[:64]
+    ids = ids_historico_produto(produto_id)
+    pid = ids[0] if ids else ""
     if not pid:
         return {"ok": True, "linhas": [], "tem_mais": False, "total_estimado": 0}
 
@@ -313,7 +435,7 @@ def listar_alteracoes_cadastro(
             return {"ok": True, "linhas": [], "tem_mais": False, "total_estimado": teto}
 
     qs = (
-        ProdutoCadastroAlteracaoAgro.objects.filter(produto_externo_id=pid)
+        ProdutoCadastroAlteracaoAgro.objects.filter(produto_externo_id__in=ids)
         .select_related("usuario")
         .order_by("-criado_em", "-id")
     )

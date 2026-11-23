@@ -5798,9 +5798,18 @@ def propagar_precos_venda_catalogo_entrada_nota(
                 except Exception:
                     pass
             dec = Decimal(str(pv))
-            ProdutoGestaoOverlayAgro.objects.update_or_create(
+            ov_preco, _ = ProdutoGestaoOverlayAgro.objects.get_or_create(
                 produto_externo_id=str(ov_key)[:64],
-                defaults={"preco_venda": dec},
+            )
+            from produtos.cadastro_alteracao_historico_util import (
+                aplicar_preco_venda_com_historico,
+            )
+
+            aplicar_preco_venda_com_historico(
+                ov_preco,
+                produto_id=str(ov_key)[:64],
+                preco_novo=dec,
+                origem="nf",
             )
             out["atualizados_overlay"] += 1
             ids_erp.add(str(ov_key)[:64])

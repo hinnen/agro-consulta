@@ -877,6 +877,12 @@ def _aplicar_produto_gestao_overlay_em_dict(
                     row[_k] = pc_ov
         except (TypeError, ValueError):
             pass
+    if isinstance(ce_pc, dict) and "prateleira" in ce_pc:
+        row["prateleira"] = str(ce_pc.get("prateleira") or "").strip()[:80]
+    if isinstance(ce_pc, dict) and "comissao_vendedor_reais" in ce_pc:
+        row["comissao_vendedor_reais"] = ce_pc.get("comissao_vendedor_reais")
+    if isinstance(ce_pc, dict) and "comissao_vendedor_percentual" in ce_pc:
+        row["comissao_vendedor_percentual"] = ce_pc.get("comissao_vendedor_percentual")
     if isinstance(ce_pc, dict) and ce_pc.get("modelo") is not None:
         row["modelo"] = str(ce_pc.get("modelo") or "").strip()[:200]
     from produtos.catalogo_delivery_util import aplicar_imagem_delivery_no_row
@@ -2819,13 +2825,15 @@ def _api_produtos_gestao_overlay_salvar_core(request):
         desc = str(payload.get("descricao") or "")[:16000]
         if not (pdv_rapida and not str(desc or "").strip()):
             ov.descricao = desc
+    from produtos.cadastro_alteracao_historico_util import moeda_br_para_decimal
+
     pv = payload.get("preco_venda")
     if pv is not None:
         if str(pv).strip() == "":
             ov.preco_venda = None
         else:
             try:
-                ov.preco_venda = Decimal(str(pv).replace(",", ".").strip()).quantize(Decimal("0.01"))
+                ov.preco_venda = moeda_br_para_decimal(pv).quantize(Decimal("0.01"))
             except Exception:
                 return JsonResponse({"ok": False, "erro": "preço inválido"}, status=400)
     inativar_erp_raw = payload.get("inativar_erp") if "inativar_erp" in payload else None
@@ -3132,6 +3140,32 @@ def _api_produtos_gestao_overlay_salvar_core(request):
             ex["modelo"] = mod
         else:
             ex.pop("modelo", None)
+    if "prateleira" in payload:
+        prat = _txt("prateleira", 80)
+        if prat:
+            ex["prateleira"] = prat
+        else:
+            ex.pop("prateleira", None)
+    if "comissao_vendedor_reais" in payload or "comissao_vendedor_percentual" in payload:
+        from produtos.cadastro_alteracao_historico_util import moeda_br_para_decimal
+
+        for chave_in, chave_ex in (
+            ("comissao_vendedor_reais", "comissao_vendedor_reais"),
+            ("comissao_vendedor_percentual", "comissao_vendedor_percentual"),
+        ):
+            if chave_in not in payload:
+                continue
+            bruto = payload.get(chave_in)
+            if bruto is None or str(bruto).strip() == "":
+                ex.pop(chave_ex, None)
+                continue
+            try:
+                val_c = moeda_br_para_decimal(bruto).quantize(Decimal("0.01"))
+            except Exception:
+                return JsonResponse({"ok": False, "erro": "Comissão inválida"}, status=400)
+            if val_c < 0 or val_c > Decimal("999999"):
+                return JsonResponse({"ok": False, "erro": "Comissão fora do intervalo"}, status=400)
+            ex[chave_ex] = float(val_c)
     if "extra_validade" in payload:
         v = str(payload.get("extra_validade") or "").strip()[:16]
         if v:
@@ -20733,6 +20767,32 @@ def api_entrada_nota_produto_margem(request):
                 },
                 status=404,
             )
+        if pvr is not None:
+            try:
+                from produtos.cadastro_alteracao_historico_util import (
+                    aplicar_preco_venda_com_historico,
+                )
+                from produtos.catalogo_agro import obter_produto_model
+
+                p_hit = obter_produto_model(id_para_filtro) or obter_produto_model(pid)
+                pid_h = str(
+                    getattr(p_hit, "produto_externo_id", None) or id_para_filtro or pid
+                ).strip()[:64]
+                ov_h, _ = ProdutoGestaoOverlayAgro.objects.get_or_create(
+                    produto_externo_id=pid_h
+                )
+                aplicar_preco_venda_com_historico(
+                    ov_h,
+                    produto_id=pid_h,
+                    preco_novo=pvr,
+                    usuario=request.user if request.user.is_authenticated else None,
+                    origem="nf",
+                )
+                if p_hit is not None:
+                    p_hit.preco_venda = Decimal(str(pvr))
+                    p_hit.save(update_fields=["preco_venda", "atualizado_em"])
+            except Exception:
+                logger.warning("entrada NF: histórico do preço de venda", exc_info=True)
     else:
         from produtos.agro_fonte_config import agro_catalogo_usa_postgres
         from produtos.catalogo_agro import obter_produto_model, sincronizar_modelo_produto_de_overlay
@@ -20758,10 +20818,19 @@ def api_entrada_nota_produto_margem(request):
         ex["percentual_lucro_overlay"] = mround
         ov.cadastro_extras = ex
         upd_fields = ["cadastro_extras", "atualizado_em"]
-        if pvr is not None:
-            ov.preco_venda = Decimal(str(pvr))
-            upd_fields.append("preco_venda")
         ov.save(update_fields=upd_fields)
+        if pvr is not None:
+            from produtos.cadastro_alteracao_historico_util import (
+                aplicar_preco_venda_com_historico,
+            )
+
+            aplicar_preco_venda_com_historico(
+                ov,
+                produto_id=id_para_filtro,
+                preco_novo=pvr,
+                usuario=request.user if request.user.is_authenticated else None,
+                origem="nf",
+            )
         if agro_catalogo_usa_postgres():
             sync_payload = {"preco_venda": str(pvr)} if pvr is not None else {}
             sincronizar_modelo_produto_de_overlay(

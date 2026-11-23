@@ -4761,3 +4761,36 @@ class PdvOperacaoLogAgro(models.Model):
 
     def __str__(self):
         return f"{self.criado_em:%d/%m %H:%M} · {self.operador_nome or '—'} · {self.acao}"
+
+class EtiquetaPrecoGondolaAgro(models.Model):
+    """Preço da prateleira que a loja ainda não confirmou na etiqueta. Uma linha por produto e loja."""
+
+    produto_externo_id = models.CharField(max_length=64, db_index=True)
+    deposito = models.CharField(max_length=16, db_index=True)
+    nome = models.CharField(max_length=300, blank=True, default="")
+    codigo = models.CharField(max_length=80, blank=True, default="")
+    preco_ok = models.DecimalField(max_digits=12, decimal_places=2)
+    preco_atual = models.DecimalField(max_digits=12, decimal_places=2)
+    pendente = models.BooleanField(default=False, db_index=True)
+    ok_em = models.DateTimeField(null=True, blank=True)
+    ok_por = models.CharField(max_length=150, blank=True, default="")
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Etiqueta de preço pendente"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["produto_externo_id", "deposito"],
+                name="uniq_etq_preco_gondola_prod_loja",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.deposito} · {self.produto_externo_id} · {self.preco_atual}"
+
+
+class EtiquetaPrecoPromoBaseAgro(models.Model):
+    """Marca que a loja já viu as promoções que estavam no ar. Evita avisar o passado."""
+
+    deposito = models.CharField(max_length=16, unique=True)
+    criado_em = models.DateTimeField(auto_now_add=True)

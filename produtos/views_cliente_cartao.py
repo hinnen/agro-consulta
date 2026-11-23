@@ -40,7 +40,7 @@ def _qr_svg(url: str) -> str:
         url,
         image_factory=qrcode.image.svg.SvgPathImage,
         box_size=8,
-        border=4,
+        border=1,
     )
     return imagem.to_string(encoding="unicode")
 

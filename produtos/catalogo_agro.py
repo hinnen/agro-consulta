@@ -681,6 +681,12 @@ def produto_model_para_detalhe(p: Produto) -> dict:
     aplicar_fiscal_padrao_em_row_detalhe(row)
     ce = ov.cadastro_extras if ov and isinstance(ov.cadastro_extras, dict) else {}
     row["cadastro_extras"] = dict(ce) if ce else {}
+    if "prateleira" in ce:
+        row["prateleira"] = str(ce.get("prateleira") or "").strip()[:80]
+    if "comissao_vendedor_reais" in ce:
+        row["comissao_vendedor_reais"] = ce.get("comissao_vendedor_reais")
+    if "comissao_vendedor_percentual" in ce:
+        row["comissao_vendedor_percentual"] = ce.get("comissao_vendedor_percentual")
     # Leitura segura 100% Agro: se PG/overlay estiverem em branco, completa do histórico local.
     # Código antigo do histórico entra como opcional para não perder o novo.
     try:
