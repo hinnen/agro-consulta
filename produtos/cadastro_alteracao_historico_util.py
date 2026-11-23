@@ -60,6 +60,16 @@ _CAMPOS_EXTRAS: list[tuple[str, str]] = [
 _LABELS = {k: lab for k, lab in _CAMPOS_OVERLAY + _CAMPOS_EXTRAS}
 
 
+def moeda_br_para_decimal(raw: Any) -> Decimal:
+    """Aceita 23.8, 23,80 e 1.234,56."""
+    s = str(raw or "").strip().replace("R$", "").replace(" ", "")
+    if not s:
+        raise ValueError("vazio")
+    if "," in s:
+        s = s.replace(".", "").replace(",", ".")
+    return Decimal(s)
+
+
 def _fmt(val: Any) -> str:
     if val is None:
         return ""
@@ -288,6 +298,51 @@ def registrar_diffs_cadastro(
     return len(rows)
 
 
+def ids_historico_produto(produto_id: str) -> list[str]:
+    """Id da tela e a chave estável do cadastro, para a aba 10 achar a linha."""
+    pid = str(produto_id or "").strip()[:64]
+    if not pid:
+        return []
+    ids = [pid]
+    try:
+        from produtos.cadastro_busca_codigo_util import canonical_overlay_produto_externo_id
+
+        canon = str(canonical_overlay_produto_externo_id(pid) or "").strip()[:64]
+        if canon and canon not in ids:
+            ids.append(canon)
+    except Exception:
+        pass
+    return ids
+
+
+def aplicar_preco_venda_com_historico(
+    ov,
+    *,
+    produto_id: str,
+    preco_novo,
+    usuario=None,
+    origem: str = "nf",
+) -> int:
+    """Grava o preço de venda no overlay e uma linha na aba 10 se o valor mudou."""
+    pid = str(produto_id or "").strip()[:64]
+    if not pid or ov is None or preco_novo is None:
+        return 0
+    try:
+        novo = Decimal(str(preco_novo)).quantize(Decimal("0.01"))
+    except Exception:
+        return 0
+    antes = enriquecer_snapshot_antes_com_catalogo(pid, snapshot_overlay(ov))
+    ov.preco_venda = novo
+    ov.save(update_fields=["preco_venda", "atualizado_em"])
+    return registrar_diffs_cadastro(
+        produto_id=pid,
+        antes=antes,
+        depois=snapshot_overlay(ov),
+        usuario=usuario,
+        origem=origem,
+    )
+
+
 def listar_alteracoes_cadastro(
     *,
     produto_id: str,
@@ -295,7 +350,8 @@ def listar_alteracoes_cadastro(
     offset: int = 0,
     completo: bool = False,
 ) -> dict[str, Any]:
-    pid = str(produto_id or "").strip()[:64]
+    ids = ids_historico_produto(produto_id)
+    pid = ids[0] if ids else ""
     if not pid:
         return {"ok": True, "linhas": [], "tem_mais": False, "total_estimado": 0}
 
@@ -313,7 +369,7 @@ def listar_alteracoes_cadastro(
             return {"ok": True, "linhas": [], "tem_mais": False, "total_estimado": teto}
 
     qs = (
-        ProdutoCadastroAlteracaoAgro.objects.filter(produto_externo_id=pid)
+        ProdutoCadastroAlteracaoAgro.objects.filter(produto_externo_id__in=ids)
         .select_related("usuario")
         .order_by("-criado_em", "-id")
     )

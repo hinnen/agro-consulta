@@ -1695,6 +1695,10 @@ Até o build, no ar segue v27.26.53 @ `af7af8cc`. Volta: `git push origin rollba
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### CAD-HIST-PRECO-VENDA — **23/11** · em `teste` · não foi para a loja
+
+Mudar o preço de venda na entrada da nota passa a aparecer na aba **10. Alterações** (de / para, origem Entrada NF). O mesmo preço de novo não gera linha. Sem migrate.
+
 ### ✅ CORTE ENVIADO — **19/11** · **v27.26.82** @ `fb15ae8a` · Pedir loja pausado · aguardando o build
 
 | Campo | Valor |
