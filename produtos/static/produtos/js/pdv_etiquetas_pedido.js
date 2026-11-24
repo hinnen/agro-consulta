@@ -107,7 +107,7 @@
     if (found) found.qtd = Math.min(999, (parseInt(found.qtd, 10) || 1) + qq);
     else sacola.push({ id: id, nome: String(prod.nome || '').trim(), qtd: qq });
     renderSacola();
-    setStatus('Na sacola: ' + (prod.nome || id));
+    setStatus('No pedido: ' + (prod.nome || id));
   }
   function money(v) {
     var n = Number(v);
@@ -169,7 +169,7 @@
     var t = String(termo || '').trim();
     semEl.classList.add('hidden');
     if (t.length < 2) {
-      aviso('<p class="py-6 text-center text-sm font-bold text-slate-500">Digite 2 letras. Setas escolhem a linha. Enter joga na sacola.</p>');
+      aviso('<p class="py-6 text-center text-sm font-bold text-slate-500">Digite 2 letras. Setas escolhem a linha. Enter entra no pedido.</p>');
       return;
     }
     var termoN = typeof normalizarBuscaLocal === 'function' ? normalizarBuscaLocal(t) : t.toLowerCase();
@@ -246,7 +246,7 @@
       semEl.classList.add('hidden');
       add(hits[0], 1);
       busca.value = '';
-      aviso('<p class="py-6 text-center text-sm font-bold text-slate-500">Na sacola. Pode bipar o próximo.</p>');
+      aviso('<p class="py-6 text-center text-sm font-bold text-slate-500">Entrou no pedido. Pode bipar o próximo.</p>');
       return true;
     }
     if (hits.length > 1) {
@@ -276,7 +276,7 @@
       var res = await fetch(URL_SLIM, { credentials: 'same-origin' });
       var j = await res.json();
       base = (j && j.produtos) || [];
-      aviso('<p class="py-6 text-center text-sm font-bold text-slate-500">Busque ou bipe. Setas e Enter jogam na sacola.</p>');
+      aviso('<p class="py-6 text-center text-sm font-bold text-slate-500">Busque ou bipe. Setas e Enter entram no pedido.</p>');
     } catch (e) {
       aviso('<p class="py-6 text-center text-sm font-bold text-red-700">Sem catálogo.</p>');
     }
@@ -314,7 +314,7 @@
     if (pick) {
       add(pick, 1);
       busca.value = '';
-      aviso('<p class="py-6 text-center text-sm font-bold text-slate-500">Na sacola. Pode buscar o próximo.</p>');
+      aviso('<p class="py-6 text-center text-sm font-bold text-slate-500">Entrou no pedido. Pode buscar o próximo.</p>');
     }
   });
   lista.addEventListener('click', function (ev) {

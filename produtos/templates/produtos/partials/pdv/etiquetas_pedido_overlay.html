@@ -9,12 +9,12 @@
     </header>
     <div class="grid min-h-0 flex-1 grid-cols-1 gap-3 p-3 lg:grid-cols-[minmax(0,1fr)_22rem]">
       <section class="flex min-h-0 flex-col gap-2">
-        <input id="pdv-etq-pedido-busca" type="search" class="min-h-16 w-full rounded-xl border-2 border-slate-300 bg-white px-4 text-2xl font-bold" placeholder="Nome, GM ou bipe o código e Enter" autocomplete="off" spellcheck="false" aria-label="Buscar produto para etiqueta">
+        <input id="pdv-etq-pedido-busca" type="search" class="w-full rounded-xl border-2 border-slate-300 bg-white" style="height:4.25rem;min-height:4.25rem;font-size:1.7rem;font-weight:800;padding:0.65rem 1rem;line-height:1.2" placeholder="Nome, GM ou bipe o código e Enter" autocomplete="off" spellcheck="false" aria-label="Buscar produto para etiqueta">
         <p id="pdv-etq-pedido-sem" class="hidden rounded-xl border-2 border-amber-400 bg-amber-50 px-3 py-2 text-sm font-bold text-amber-950"></p>
         <div id="pdv-etq-pedido-lista" class="min-h-0 flex-1 overflow-y-auto rounded-xl border-2 border-slate-200 bg-white" role="listbox" aria-label="Produtos"></div>
       </section>
       <aside class="flex min-h-0 flex-col rounded-xl border-2 border-slate-200 bg-white p-3">
-        <h3 class="text-sm font-black uppercase text-slate-800">Sacola · <span id="pdv-etq-pedido-total">0</span></h3>
+        <h3 class="text-sm font-black uppercase text-slate-800">Pedido · <span id="pdv-etq-pedido-total">0</span></h3>
         <div id="pdv-etq-pedido-sacola" class="mt-2 min-h-0 flex-1 space-y-2 overflow-y-auto"></div>
         <p id="pdv-etq-pedido-status" class="mt-2 min-h-[1.25rem] text-sm font-bold text-slate-600" role="status"></p>
         <button type="button" id="pdv-etq-pedido-enviar" class="mt-2 min-h-12 rounded-xl bg-sky-600 text-sm font-black uppercase text-white disabled:opacity-40" disabled>Enviar para a loja</button>
@@ -23,12 +23,10 @@
   </div>
 </div>
 <style>
-  #pdv-etq-pedido-busca {
-    min-height: 4.25rem;
-    height: 4.25rem;
-    font-size: 1.7rem;
+  #pdv-etq-pedido-busca,
+  #pdv-etq-pedido-busca::placeholder {
+    font-size: 1.7rem !important;
     font-weight: 800;
-    padding: 0.65rem 1rem;
     line-height: 1.2;
   }
   #pdv-etq-pedido-lista .etq-tabela {
