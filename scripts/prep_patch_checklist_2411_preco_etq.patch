@@ -1,0 +1,703 @@
+diff --git a/produtos/pdv_topbar_clique_util.py b/produtos/pdv_topbar_clique_util.py
+index 89db8210..b628e21b 100644
+--- a/produtos/pdv_topbar_clique_util.py
++++ b/produtos/pdv_topbar_clique_util.py
+@@ -12,6 +12,7 @@ BOTAO_KEYS = frozenset(
+     {
+         "mais",
+         "saldo_vila",
++        "etiquetas",
+         "pedir_loja",
+         "pesar",
+         "caixa",
+diff --git a/produtos/pdv_topbar_layout_util.py b/produtos/pdv_topbar_layout_util.py
+index 1238d3fb..157fd8a7 100644
+--- a/produtos/pdv_topbar_layout_util.py
++++ b/produtos/pdv_topbar_layout_util.py
+@@ -9,6 +9,7 @@ CHAVE_DEFAULT = "default"
+ 
+ # Ordem padrão após Fiado no quente (PDV-TOPBAR-LAYOUT).
+ QUENTE_DEFAULT: list[str] = [
++    "etiquetas",
+     "pedir_loja",
+     "vendas",
+     "uso_loja",
+@@ -27,6 +28,7 @@ FRIO_DEFAULT: list[str] = [
+ MOVABLE_KEYS: frozenset[str] = frozenset(QUENTE_DEFAULT + FRIO_DEFAULT)
+ 
+ LABELS: dict[str, str] = {
++    "etiquetas": "Etiquetas",
+     "pedir_loja": "Pedir loja",
+     "vendas": "Vendas",
+     "uso_loja": "Uso loja",
+diff --git a/produtos/static/produtos/js/pdv_etiquetas_pedido.js b/produtos/static/produtos/js/pdv_etiquetas_pedido.js
+new file mode 100644
+index 00000000..8ce5af95
+--- /dev/null
++++ b/produtos/static/produtos/js/pdv_etiquetas_pedido.js
+@@ -0,0 +1,362 @@
++/**
++ * PDV — pedir etiquetas (mesmo pacote do app celular, sem câmera).
++ */
++(function () {
++  'use strict';
++
++  var URL_SLIM = '/api/pdv/catalogo-slim/';
++  var URL_ENVIAR = '/api/produtos/etiquetas/solicitacoes/pdv/';
++  var overlay = document.getElementById('pdv-etq-pedido-overlay');
++  var btn = document.getElementById('pdv-topbar-etiquetas-btn');
++  var busca = document.getElementById('pdv-etq-pedido-busca');
++  var lista = document.getElementById('pdv-etq-pedido-lista');
++  var sacolaEl = document.getElementById('pdv-etq-pedido-sacola');
++  var totalEl = document.getElementById('pdv-etq-pedido-total');
++  var statusEl = document.getElementById('pdv-etq-pedido-status');
++  var btnEnviar = document.getElementById('pdv-etq-pedido-enviar');
++  var semEl = document.getElementById('pdv-etq-pedido-sem');
++  if (!overlay || !btn || !busca) return;
++
++  var base = [];
++  var sacola = [];
++  var enviando = false;
++  var timer = null;
++  var lastCodigo = '';
++  var lastAt = 0;
++  var lastRows = [];
++  var selIndex = 0;
++
++  function csrf() {
++    var m = document.cookie.match(/(?:^|; )csrftoken=([^;]+)/);
++    return m ? decodeURIComponent(m[1]) : '';
++  }
++  function esc(s) {
++    return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
++  }
++  function aberto() {
++    return !overlay.classList.contains('hidden');
++  }
++  function somOk() {
++    try {
++      var Ctx = window.AudioContext || window.webkitAudioContext;
++      if (!Ctx) return;
++      var ctx = new Ctx();
++      var o = ctx.createOscillator();
++      var g = ctx.createGain();
++      o.connect(g);
++      g.connect(ctx.destination);
++      o.frequency.value = 880;
++      g.gain.value = 0.08;
++      o.start();
++      o.stop(ctx.currentTime + 0.09);
++      setTimeout(function () {
++        var o2 = ctx.createOscillator();
++        var g2 = ctx.createGain();
++        o2.connect(g2);
++        g2.connect(ctx.destination);
++        o2.frequency.value = 1175;
++        g2.gain.value = 0.07;
++        o2.start();
++        o2.stop(ctx.currentTime + 0.12);
++      }, 110);
++    } catch (e) {}
++  }
++  function nuvemOk(qtd) {
++    var host = document.getElementById('pdv-etq-toast');
++    if (!host) {
++      host = document.createElement('div');
++      host.id = 'pdv-etq-toast';
++      host.setAttribute('role', 'status');
++      document.body.appendChild(host);
++    }
++    host.className = 'pointer-events-none fixed bottom-4 right-4 z-[200] w-[min(22rem,calc(100vw-2rem))]';
++    host.innerHTML = '<div class="rounded-2xl border-2 border-emerald-400 bg-emerald-50 px-4 py-3 text-emerald-950 shadow-2xl shadow-emerald-200/50">' +
++      '<div class="flex items-start gap-3"><span class="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-lg font-black">✓</span>' +
++      '<div><p class="text-base font-black leading-tight">Pedido enviado</p>' +
++      '<p class="mt-1 text-sm font-semibold leading-snug">' + qtd + ' etiqueta' + (qtd === 1 ? '' : 's') + '. Na tela Etiquetas: Solicitações.</p></div></div></div>';
++    if (nuvemOk._t) clearTimeout(nuvemOk._t);
++    nuvemOk._t = setTimeout(function () { host.innerHTML = ''; }, 4200);
++  }
++  function setStatus(msg, err) {
++    statusEl.textContent = msg || '';
++    statusEl.className = 'mt-2 min-h-[1.25rem] text-sm font-bold ' + (err ? 'text-red-700' : 'text-slate-600');
++  }
++  function total() {
++    return sacola.reduce(function (s, it) { return s + (parseInt(it.qtd, 10) || 1); }, 0);
++  }
++  function renderSacola() {
++    var n = total();
++    totalEl.textContent = String(n);
++    btnEnviar.disabled = !sacola.length || enviando;
++    btnEnviar.textContent = sacola.length ? 'Enviar ' + n + ' etiqueta' + (n === 1 ? '' : 's') : 'Enviar para a loja';
++    sacolaEl.innerHTML = sacola.map(function (it, idx) {
++      var q = parseInt(it.qtd, 10) || 1;
++      return '<div class="flex items-center gap-2 rounded-lg border border-slate-200 px-2 py-1.5">' +
++        '<span class="min-w-0 flex-1 text-sm font-black leading-tight">' + esc(it.nome || it.id) + '</span>' +
++        '<button type="button" data-menos="' + idx + '" class="min-h-9 min-w-9 rounded-lg border border-slate-300 font-black">−</button>' +
++        '<input data-qtd="' + idx + '" type="number" min="1" max="999" value="' + q + '" class="w-14 rounded-lg border border-slate-300 text-center font-black">' +
++        '<button type="button" data-mais="' + idx + '" class="min-h-9 min-w-9 rounded-lg border border-slate-300 font-black">+</button>' +
++        '<button type="button" data-rm="' + idx + '" class="min-h-9 min-w-9 rounded-lg border border-red-200 text-red-700 font-black" aria-label="Remover">×</button>' +
++        '</div>';
++    }).join('');
++  }
++  function add(prod, qtd) {
++    var id = String(prod.id);
++    var found = sacola.find(function (x) { return String(x.id) === id; });
++    var qq = qtd > 0 ? qtd : 1;
++    if (found) found.qtd = Math.min(999, (parseInt(found.qtd, 10) || 1) + qq);
++    else sacola.push({ id: id, nome: String(prod.nome || '').trim(), qtd: qq });
++    renderSacola();
++    setStatus('No pedido: ' + (prod.nome || id));
++  }
++  function moneyNum(v) {
++    var n = Number(v);
++    if (!isFinite(n)) n = 0;
++    return n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
++  }
++  function gmDe(p) {
++    return String((p && (p.codigo_nfe || p.codigo)) || '').trim() || '—';
++  }
++  function marcaDe(p) {
++    return String((p && p.marca) || '').trim() || '—';
++  }
++  function precoDe(p) {
++    if (!p) return 0;
++    if (p.preco_venda != null && p.preco_venda !== '') return p.preco_venda;
++    if (p.preco != null && p.preco !== '') return p.preco;
++    return 0;
++  }
++  function aviso(html) {
++    lastRows = [];
++    selIndex = 0;
++    lista.innerHTML = html;
++  }
++  function renderLista(rows, keepSel) {
++    lastRows = rows || [];
++    var cap = Math.min(lastRows.length, 40);
++    if (!cap) {
++      aviso('<p class="py-6 text-center text-sm font-bold text-slate-500">Nenhum produto.</p>');
++      lastRows = [];
++      return;
++    }
++    if (!keepSel || selIndex < 0 || selIndex >= cap) selIndex = 0;
++    var head = '<thead><tr class="etq-head"><th>Produto</th><th>Marca</th><th>GM</th><th>Preço</th></tr></thead>';
++    var body = '<tbody>' + lastRows.slice(0, cap).map(function (p, i) {
++      var nome = String(p.nome || 'Sem nome');
++      return '<tr role="option" class="etq-row' + (i === selIndex ? ' etq-sel' : '') + '" data-id="' + esc(p.id) + '" data-idx="' + i + '" aria-selected="' + (i === selIndex ? 'true' : 'false') + '">' +
++        '<td class="etq-nome"><span class="etq-nome-txt">' + esc(nome) + '</span></td>' +
++        '<td class="etq-marca">' + esc(marcaDe(p)) + '</td>' +
++        '<td class="etq-gm">' + esc(gmDe(p)) + '</td>' +
++        '<td class="etq-preco"><span class="etq-preco-linha"><span class="etq-rs">R$</span><span class="etq-val">' + esc(moneyNum(precoDe(p))) + '</span></span></td></tr>';
++    }).join('') + '</tbody>';
++    var mais = rows.length > 40 ? '<p class="py-2 text-center text-xs font-black text-sky-800">Refine a busca</p>' : '';
++    lista.innerHTML = '<table class="etq-tabela">' + head + body + '</table>' + mais;
++    var sel = lista.querySelector('.etq-sel');
++    if (sel && sel.scrollIntoView) sel.scrollIntoView({ block: 'nearest' });
++  }
++  function mover(delta) {
++    var cap = Math.min(lastRows.length, 40);
++    if (!cap) return;
++    selIndex = Math.max(0, Math.min(cap - 1, selIndex + delta));
++    renderLista(lastRows, true);
++  }
++  function pegarSelecionado() {
++    var cap = Math.min(lastRows.length, 40);
++    if (!cap) return null;
++    if (selIndex < 0 || selIndex >= cap) selIndex = 0;
++    return lastRows[selIndex];
++  }
++  function buscar(termo) {
++    var t = String(termo || '').trim();
++    semEl.classList.add('hidden');
++    if (t.length < 2) {
++      aviso('<p class="py-6 text-center text-sm font-bold text-slate-500">Digite 2 letras. Setas escolhem a linha. Enter entra no pedido.</p>');
++      return;
++    }
++    var termoN = typeof normalizarBuscaLocal === 'function' ? normalizarBuscaLocal(t) : t.toLowerCase();
++    var rows = typeof filtrarProdutosBuscaInteligente === 'function'
++      ? filtrarProdutosBuscaInteligente(base, termoN, 'normal')
++      : base.filter(function (p) { return String(p.nome || '').toLowerCase().indexOf(t.toLowerCase()) >= 0; });
++    renderLista(rows);
++  }
++  function matchCodigo(codigo) {
++    var raw = String(codigo || '').trim();
++    var c = raw.replace(/\D/g, '') || raw;
++    if (!c) return [];
++    return base.filter(function (p) {
++      var bag = [].concat(p.codigo_barras || '', p.codigo || '', p.codigo_nfe || '').concat(p.index_codigos || []);
++      return bag.some(function (x) {
++        var s = String(x || '').trim();
++        return s === raw || s === c || s.replace(/\D/g, '') === c;
++      });
++    });
++  }
++  function debounceCodigo(codigo) {
++    var c = String(codigo || '').trim();
++    var now = Date.now();
++    if (c && c === lastCodigo && now - lastAt < 1400) return true;
++    lastCodigo = c;
++    lastAt = now;
++    return false;
++  }
++  function operadorNome() {
++    var chip = document.getElementById('gm-sspin-operador-chip');
++    var t = chip && !chip.classList.contains('hidden') ? String(chip.textContent || '').trim() : '';
++    return t.slice(0, 150);
++  }
++  async function enviar(itens) {
++    if (!itens.length || enviando) return false;
++    enviando = true;
++    renderSacola();
++    setStatus('Enviando…');
++    try {
++      var res = await fetch(URL_ENVIAR, {
++        method: 'POST',
++        credentials: 'same-origin',
++        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
++        body: JSON.stringify({ itens: itens, operador: operadorNome(), observacao: 'PDV' }),
++      });
++      var j = await res.json().catch(function () { return {}; });
++      enviando = false;
++      if (!res.ok || !j.ok) {
++        setStatus(j.erro || 'Não enviou.', true);
++        renderSacola();
++        return false;
++      }
++      var nEnv = itens.reduce(function (s, it) { return s + (parseInt(it.qtd, 10) || 1); }, 0);
++      setStatus('');
++      somOk();
++      nuvemOk(nEnv);
++      renderSacola();
++      return true;
++    } catch (e) {
++      enviando = false;
++      setStatus('Erro de rede.', true);
++      renderSacola();
++      return false;
++    }
++  }
++  function tentarBip(codigo) {
++    if (!base.length) {
++      setStatus('Aguarde o catálogo.', true);
++      return true;
++    }
++    if (debounceCodigo(codigo)) return true;
++    var hits = matchCodigo(codigo);
++    if (hits.length === 1) {
++      semEl.classList.add('hidden');
++      add(hits[0], 1);
++      busca.value = '';
++      aviso('<p class="py-6 text-center text-sm font-bold text-slate-500">Entrou no pedido. Pode bipar o próximo.</p>');
++      return true;
++    }
++    if (hits.length > 1) {
++      renderLista(hits);
++      setStatus('Vários produtos. Setas e Enter escolhem.', true);
++      return true;
++    }
++    semEl.textContent = 'Código sem cadastro: ' + codigo;
++    semEl.classList.remove('hidden');
++    buscar(codigo);
++    setStatus('Código não cadastrado.', true);
++    return false;
++  }
++  function abrir() {
++    overlay.classList.remove('hidden');
++    overlay.classList.add('flex');
++    setTimeout(function () { busca.focus(); }, 30);
++  }
++  function fechar() {
++    overlay.classList.add('hidden');
++    overlay.classList.remove('flex');
++  }
++  async function carregar() {
++    if (base.length) return;
++    aviso('<p class="py-6 text-center text-sm font-bold text-slate-500">Carregando catálogo…</p>');
++    try {
++      var res = await fetch(URL_SLIM, { credentials: 'same-origin' });
++      var j = await res.json();
++      base = (j && j.produtos) || [];
++      aviso('<p class="py-6 text-center text-sm font-bold text-slate-500">Busque ou bipe. Setas e Enter entram no pedido.</p>');
++    } catch (e) {
++      aviso('<p class="py-6 text-center text-sm font-bold text-red-700">Sem catálogo.</p>');
++    }
++  }
++
++  btn.addEventListener('click', function () {
++    abrir();
++    carregar();
++  });
++  document.getElementById('pdv-etq-pedido-fechar').addEventListener('click', fechar);
++  overlay.addEventListener('click', function (ev) {
++    if (ev.target === overlay) fechar();
++  });
++  busca.addEventListener('input', function () {
++    var v = busca.value;
++    if (timer) clearTimeout(timer);
++    timer = setTimeout(function () { buscar(v); }, 160);
++  });
++  busca.addEventListener('keydown', function (ev) {
++    if (ev.key === 'ArrowDown' || ev.key === 'ArrowUp') {
++      ev.preventDefault();
++      ev.stopPropagation();
++      mover(ev.key === 'ArrowDown' ? 1 : -1);
++      return;
++    }
++    if (ev.key !== 'Enter') return;
++    ev.preventDefault();
++    ev.stopPropagation();
++    if (timer) clearTimeout(timer);
++    var t = busca.value.trim();
++    if (!t) return;
++    if (tentarBip(t)) return;
++    if (!lastRows.length) buscar(t);
++    var pick = pegarSelecionado();
++    if (pick) {
++      add(pick, 1);
++      busca.value = '';
++      aviso('<p class="py-6 text-center text-sm font-bold text-slate-500">Entrou no pedido. Pode buscar o próximo.</p>');
++    }
++  });
++  lista.addEventListener('click', function (ev) {
++    var b = ev.target.closest ? ev.target.closest('[data-id]') : null;
++    if (!b) return;
++    var id = b.getAttribute('data-id');
++    var prod = base.find(function (x) { return String(x.id) === String(id); });
++    if (prod) add(prod, 1);
++    busca.focus();
++  });
++  sacolaEl.addEventListener('click', function (ev) {
++    var t = ev.target;
++    var i = parseInt(t.getAttribute('data-menos') || t.getAttribute('data-mais') || t.getAttribute('data-rm'), 10);
++    if (isNaN(i) || !sacola[i]) return;
++    if (t.hasAttribute('data-menos')) sacola[i].qtd = Math.max(1, (parseInt(sacola[i].qtd, 10) || 1) - 1);
++    else if (t.hasAttribute('data-mais')) sacola[i].qtd = Math.min(999, (parseInt(sacola[i].qtd, 10) || 1) + 1);
++    else sacola.splice(i, 1);
++    renderSacola();
++  });
++  sacolaEl.addEventListener('change', function (ev) {
++    var inp = ev.target;
++    if (!inp.hasAttribute('data-qtd')) return;
++    var i = parseInt(inp.getAttribute('data-qtd'), 10);
++    if (sacola[i]) sacola[i].qtd = Math.max(1, Math.min(999, parseInt(inp.value, 10) || 1));
++    renderSacola();
++  });
++  btnEnviar.addEventListener('click', async function () {
++    var ok = await enviar(sacola.slice());
++    if (ok) {
++      sacola = [];
++      renderSacola();
++      busca.focus();
++    }
++  });
++  document.addEventListener('keydown', function (ev) {
++    if (!aberto()) return;
++    if (ev.key === 'Escape') {
++      ev.preventDefault();
++      ev.stopPropagation();
++      fechar();
++    }
++  }, true);
++  renderSacola();
++})();
+diff --git a/produtos/templates/produtos/entrada_nota.html b/produtos/templates/produtos/entrada_nota.html
+index b787ba0f..375b3edd 100644
+--- a/produtos/templates/produtos/entrada_nota.html
++++ b/produtos/templates/produtos/entrada_nota.html
+@@ -2714,6 +2714,15 @@
+     const un = entradaNfeLinhaUnEmbCalculo(tr);
+     if (!(un > 0)) return;
+ 
++    if (fromUnEmbChange && prevUn > 0 && un > 0 && prevUn !== un) {
++      const escala = prevUn / un;
++      ['nfeVunBaseNf', 'nfeVunBaseManual'].forEach((key) => {
++        const b = entradaNfeParseDecimalApi(tr.dataset[key] || '');
++        if (b == null || !Number.isFinite(b) || b < 0) return;
++        tr.dataset[key] = String(b * escala);
++      });
++    }
++
+     if (fromUnEmbChange && prevUn <= 1 && un > 1) {
+       const custoPacote = entradaNfeLinhaValorUnitarioCalculo(tr);
+       if (custoPacote != null && Number.isFinite(custoPacote) && custoPacote >= 0) {
+@@ -7020,8 +7029,36 @@
+     return { tipo: '', valor: 0 };
+   }
+ 
++  /**
++   * Base da NF nasceu com Un/emb = 1 (preço do pacote).
++   * Se a embalagem passou de 1, essa base ainda é o pacote: divide pela Un/emb.
++   * Sem isso, reabrir a nota ou marcar acréscimos multiplica o pacote de novo.
++   */
++  function entradaNfeLinhaCorrigirBasePacote(tr) {
++    if (!tr) return;
++    const un = entradaNfeLinhaUnEmbCalculo(tr);
++    if (!(un > 1)) return;
++    const qNf = Number(tr.dataset.nfeQComNf) || Number(tr.querySelector('.in-qtd')?.value) || 0;
++    const vp = Number(tr.dataset.nfeVprodNf);
++    if (!(qNf > 0) || !(Number.isFinite(vp) && vp > 0)) return;
++    const porPacote = vp / qNf;
++    if (!(porPacote > 0)) return;
++    ['nfeVunBaseNf', 'nfeVunBaseManual'].forEach((key) => {
++      const b = entradaNfeParseDecimalApi(tr.dataset[key] || '');
++      if (b == null || !Number.isFinite(b) || b <= 0) return;
++      if (Math.abs(b - porPacote) / porPacote > 0.02) return;
++      tr.dataset[key] = String(porPacote / un);
++    });
++    const vun = entradaNfeParseDecimalApi(tr.dataset.nfeVunPreciso || '');
++    if (vun != null && vun > 0 && Math.abs(vun - porPacote) / porPacote <= 0.02) {
++      tr.dataset.nfeVunPreciso = String(porPacote / un);
++      tr.dataset.nfeCustoEmbalagem = String(porPacote);
++    }
++  }
++
+   function entradaNfeLinhaBaseUnit(tr) {
+     if (!tr) return null;
++    entradaNfeLinhaCorrigirBasePacote(tr);
+     const bNf = entradaNfeParseDecimalApi(tr.dataset.nfeVunBaseNf || '');
+     if (bNf != null && Number.isFinite(bNf) && bNf >= 0) return bNf;
+     const bMan = entradaNfeParseDecimalApi(tr.dataset.nfeVunBaseManual || '');
+@@ -8647,7 +8684,14 @@
+     } else {
+       delete tr.dataset.nfeCustoEmbalagem;
+     }
+-    entradaNfeDefinirInputMoedaBr2(tr.querySelector('.in-vun'), Number(d.v_un_com != null ? d.v_un_com : 0));
++    entradaNfeLinhaCorrigirBasePacote(tr);
++    const vunAposCorrecao = entradaNfeParseDecimalApi(tr.dataset.nfeVunPreciso || '');
++    entradaNfeDefinirInputMoedaBr2(
++      tr.querySelector('.in-vun'),
++      vunAposCorrecao != null && Number.isFinite(vunAposCorrecao)
++        ? vunAposCorrecao
++        : Number(d.v_un_com != null ? d.v_un_com : 0)
++    );
+     entradaNfeDefinirInputMoedaBr2(tr.querySelector('.in-pvenda'), Number(d.preco_venda != null ? d.preco_venda : 0));
+     const mEl0 = tr.querySelector('.in-margem');
+     if (mEl0) mEl0.value = '';
+diff --git a/produtos/templates/produtos/partials/pdv/etiquetas_pedido_overlay.html b/produtos/templates/produtos/partials/pdv/etiquetas_pedido_overlay.html
+new file mode 100644
+index 00000000..b2b58593
+--- /dev/null
++++ b/produtos/templates/produtos/partials/pdv/etiquetas_pedido_overlay.html
+@@ -0,0 +1,108 @@
++<div id="pdv-etq-pedido-overlay" class="fixed inset-0 z-[140] hidden items-center justify-center bg-slate-950/60 p-2" role="dialog" aria-modal="true" aria-labelledby="pdv-etq-pedido-titulo">
++  <div class="flex h-[min(94dvh,52rem)] w-[min(98vw,96rem)] flex-col overflow-hidden rounded-2xl border-2 border-sky-500 bg-slate-100 shadow-2xl">
++    <header class="flex shrink-0 items-center gap-3 border-b-2 border-sky-200 bg-sky-50 px-4 py-3">
++      <div class="min-w-0 flex-1">
++        <p class="text-[0.7rem] font-black uppercase tracking-[0.16em] text-sky-800">PDV · mesmo pedido do celular</p>
++        <h2 id="pdv-etq-pedido-titulo" class="text-xl font-black text-slate-900">Pedir etiquetas</h2>
++      </div>
++      <button type="button" id="pdv-etq-pedido-fechar" class="inline-flex min-h-12 min-w-12 items-center justify-center rounded-xl border-2 border-slate-300 bg-white text-2xl font-black text-slate-800" title="Fechar · Esc" aria-label="Fechar">×</button>
++    </header>
++    <div class="grid min-h-0 flex-1 grid-cols-1 gap-3 p-3 lg:grid-cols-[minmax(0,1fr)_22rem]">
++      <section class="flex min-h-0 flex-col gap-2">
++        <input id="pdv-etq-pedido-busca" type="search" class="w-full rounded-xl border-2 border-slate-300 bg-white" style="height:4.25rem;min-height:4.25rem;font-size:1.7rem;font-weight:800;padding:0.65rem 1rem;line-height:1.2" placeholder="Nome, GM ou bipe o código e Enter" autocomplete="off" spellcheck="false" aria-label="Buscar produto para etiqueta">
++        <p id="pdv-etq-pedido-sem" class="hidden rounded-xl border-2 border-amber-400 bg-amber-50 px-3 py-2 text-sm font-bold text-amber-950"></p>
++        <div id="pdv-etq-pedido-lista" class="min-h-0 flex-1 overflow-y-auto rounded-xl border-2 border-slate-200 bg-white" role="listbox" aria-label="Produtos"></div>
++      </section>
++      <aside class="flex min-h-0 flex-col rounded-xl border-2 border-slate-200 bg-white p-3">
++        <h3 class="text-sm font-black uppercase text-slate-800">Pedido · <span id="pdv-etq-pedido-total">0</span></h3>
++        <div id="pdv-etq-pedido-sacola" class="mt-2 min-h-0 flex-1 space-y-2 overflow-y-auto"></div>
++        <p id="pdv-etq-pedido-status" class="mt-2 min-h-[1.25rem] text-sm font-bold text-slate-600" role="status"></p>
++        <button type="button" id="pdv-etq-pedido-enviar" class="mt-2 min-h-12 rounded-xl bg-sky-600 text-sm font-black uppercase text-white disabled:opacity-40" disabled>Enviar para a loja</button>
++      </aside>
++    </div>
++  </div>
++</div>
++<style>
++  #pdv-etq-pedido-busca,
++  #pdv-etq-pedido-busca::placeholder {
++    font-size: 1.7rem !important;
++    font-weight: 800;
++    line-height: 1.2;
++  }
++  #pdv-etq-pedido-lista .etq-tabela {
++    width: 100%;
++    border-collapse: collapse;
++    table-layout: fixed;
++  }
++  #pdv-etq-pedido-lista .etq-tabela th:nth-child(1),
++  #pdv-etq-pedido-lista .etq-tabela td:nth-child(1) { width: auto; text-align: left; }
++  #pdv-etq-pedido-lista .etq-tabela th:nth-child(2),
++  #pdv-etq-pedido-lista .etq-tabela td:nth-child(2) { width: 11rem; text-align: left; }
++  #pdv-etq-pedido-lista .etq-tabela th:nth-child(3),
++  #pdv-etq-pedido-lista .etq-tabela td:nth-child(3) { width: 9.4rem; text-align: left; }
++  #pdv-etq-pedido-lista .etq-tabela th:nth-child(4),
++  #pdv-etq-pedido-lista .etq-tabela td:nth-child(4) { width: 7.6rem; text-align: right; }
++  #pdv-etq-pedido-lista .etq-head th {
++    position: sticky;
++    top: 0;
++    z-index: 1;
++    background: #e0f2fe;
++    border-bottom: 2px solid #0284c7;
++    padding: 0.45rem 0.75rem;
++    font-size: 0.85rem;
++    font-weight: 900;
++    letter-spacing: 0.06em;
++    text-transform: uppercase;
++    color: #0c4a6e;
++  }
++  #pdv-etq-pedido-lista .etq-row td {
++    padding: 0.6rem 0.7rem;
++    font-size: 1rem;
++    border-bottom: 2px solid #94a3b8;
++    vertical-align: middle;
++    background: #fff;
++    cursor: pointer;
++  }
++  #pdv-etq-pedido-lista .etq-row:hover td,
++  #pdv-etq-pedido-lista .etq-row.etq-sel td {
++    background: #bfdbfe;
++  }
++  #pdv-etq-pedido-lista .etq-row.etq-sel td:first-child {
++    box-shadow: inset 4px 0 0 #059669;
++  }
++  #pdv-etq-pedido-lista .etq-row td.etq-nome { font-size: 1.55rem; }
++  #pdv-etq-pedido-lista .etq-nome-txt {
++    display: -webkit-box;
++    -webkit-line-clamp: 2;
++    -webkit-box-orient: vertical;
++    overflow: hidden;
++    white-space: normal;
++    line-height: 1.25;
++    font-weight: 900;
++    color: #0f172a;
++  }
++  #pdv-etq-pedido-lista .etq-marca {
++    overflow: hidden;
++    text-overflow: ellipsis;
++    white-space: nowrap;
++    font-weight: 900;
++    color: #0f172a;
++  }
++  #pdv-etq-pedido-lista .etq-marca { font-weight: 800; color: #334155; }
++  #pdv-etq-pedido-lista .etq-gm,
++  #pdv-etq-pedido-lista .etq-preco {
++    font-weight: 800;
++    font-variant-numeric: tabular-nums;
++    white-space: nowrap;
++    color: #334155;
++  }
++  #pdv-etq-pedido-lista .etq-preco { color: #047857; }
++  #pdv-etq-pedido-lista .etq-preco-linha {
++    display: flex;
++    justify-content: space-between;
++    align-items: baseline;
++    gap: 0.35rem;
++    width: 100%;
++  }
++  #pdv-etq-pedido-lista .etq-val { text-align: right; }
++</style>
+diff --git a/produtos/templates/produtos/pdv_wizard.html b/produtos/templates/produtos/pdv_wizard.html
+index bcb6f6e8..1aa9401c 100644
+--- a/produtos/templates/produtos/pdv_wizard.html
++++ b/produtos/templates/produtos/pdv_wizard.html
+@@ -4527,7 +4527,7 @@
+           <div class="pdv-wiz-topbar-row">
+             <div class="pdv-wiz-topbar-stepper-wrap pdv-wizard-scroll">
+               <span class="pdv-wiz-topbar-brand">PDV</span>
+-              <span id="pdv-deposito-badge" class="inline-flex items-center self-stretch rounded-md border px-1.5 text-[9px] font-black uppercase tracking-wide shrink-0 {% if caixa_aberto %}hidden {% endif %}{% if pdv_deposito == 'vila' %}border-slate-400 bg-slate-100 text-slate-800{% else %}border-emerald-300 bg-emerald-50 text-emerald-900{% endif %}" title="Depósito que este PDV baixa no estoque. Troque na home (Loja).">{{ pdv_estoque_ativo_label|default:"Esto: Centro" }}</span>
++              <span id="pdv-deposito-badge" class="hidden" hidden aria-hidden="true">{{ pdv_estoque_ativo_label|default:"" }}</span>
+               <nav class="pdv-wiz-stepper" id="pdv-stepper" aria-label="Etapas da venda">
+                 <button type="button" class="pdv-step-nav pdv-step-badge-active text-left" data-step-nav="produtos" title="Ir para etapa 1 · Alt+1" aria-current="step">
+                   <kbd class="pdv-wiz-stepper-num pdv-wiz-stepper-num--sky">1</kbd><span class="pdv-step-label">Produtos</span>
+@@ -4542,6 +4542,7 @@
+               <button type="button" id="pdv-topbar-help" class="pdv-wiz-help pdv-topbar-help shrink-0" data-pdv-help="produtos" title="Ajuda — etapa atual">?</button>
+             </div>
+             <div class="pdv-wiz-topbar-estoque-vila" id="pdv-topbar-quente" aria-label="Atalhos frequentes">
++              <button type="button" id="pdv-topbar-etiquetas-btn" class="pdv-action-btn pdv-wiz-topbar-btn border-2 border-sky-700 bg-sky-600 text-white" data-pdv-topbar-key="etiquetas" data-pdv-topbar-node="etiquetas" title="Pedir etiquetas de preço — o mesmo pedido do celular">Etiquetas</button>
+               <button type="button" id="pdv-topbar-etiqueta-preco-btn" class="pdv-action-btn pdv-wiz-topbar-btn relative hidden border-2 border-orange-700 bg-orange-500 text-white" title="Preço mudou. Trocar a etiqueta da prateleira.">
+                 Troca de preço
+                 <span id="pdv-topbar-etiqueta-preco-count" class="absolute -right-1 -top-1 min-w-[1.1rem] rounded-full bg-slate-900 px-1 text-[8px] font-black leading-tight text-white tabular-nums">0</span>
+@@ -4625,6 +4626,7 @@
+ 
+ {% include "produtos/partials/pdv/entrega_wizard_overlay.html" %}
+ {% include "produtos/partials/pdv/uso_loja_overlay.html" %}
++{% include "produtos/partials/pdv/etiquetas_pedido_overlay.html" %}
+ {% include "produtos/partials/pdv/pedir_loja_escolha_overlay.html" %}
+ {% include "produtos/partials/pdv/pedir_loja_overlay.html" %}
+ {% include "produtos/partials/pdv/transf_forcada_overlay.html" %}
+@@ -5536,6 +5538,8 @@ window.AGRO_ETQ_CFG = window.AGRO_ETQ_CFG || {
+ <script src="{% static 'produtos/js/pdv_rapidos.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
+ <script src="{% static 'produtos/js/pdv_topbar_mais.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
+ <script src="{% static 'produtos/js/pdv_topbar_whatsapp.js' %}?v={{ agro_pdv_assets_v|default:'1' }}-wa2"></script>
++{% include "produtos/_js_busca_produto_inteligente.html" %}
++<script src="{% static 'produtos/js/pdv_etiquetas_pedido.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
+ <script src="{% static 'produtos/js/pdv_topbar_layout.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
+ <script src="{% static 'produtos/js/pdv_uso_loja.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
+ <script src="{% static 'produtos/js/pdv_pedir_loja.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
+diff --git a/produtos/tests_etiquetas_solicitacao.py b/produtos/tests_etiquetas_solicitacao.py
+index 55417e9c..a723de02 100644
+--- a/produtos/tests_etiquetas_solicitacao.py
++++ b/produtos/tests_etiquetas_solicitacao.py
+@@ -81,3 +81,26 @@ class EtiquetaSolicitacaoApiTests(TestCase):
+         )
+         self.assertEqual(res.status_code, 200)
+         criar_mock.assert_called_once()
++
++    def test_pdv_criar_grava_pacote_sem_pin_do_sistapp(self):
++        self.client.force_login(self.user)
++        res = self.client.post(
++            "/api/produtos/etiquetas/solicitacoes/pdv/",
++            data=json.dumps({"itens": [{"id": "77", "qtd": 2, "nome": "Ração"}], "operador": "Balcão"}),
++            content_type="application/json",
++        )
++        self.assertEqual(res.status_code, 200)
++        body = res.json()
++        self.assertTrue(body.get("ok"))
++        pac = EtiquetaSolicitacaoPacoteAgro.objects.get(pk=body["pacote"]["id"])
++        self.assertEqual(pac.operador_nome, "Balcão")
++        self.assertEqual(pac.total_etiquetas, 2)
++        self.assertEqual(pac.status, EtiquetaSolicitacaoPacoteAgro.Status.PENDENTE)
++
++    def test_pdv_criar_sem_login_recusa(self):
++        res = self.client.post(
++            "/api/produtos/etiquetas/solicitacoes/pdv/",
++            data=json.dumps({"itens": [{"id": "1", "qtd": 1}]}),
++            content_type="application/json",
++        )
++        self.assertIn(res.status_code, (302, 401, 403))
+diff --git a/produtos/urls.py b/produtos/urls.py
+index 86fb2e6d..9ee6ee79 100644
+--- a/produtos/urls.py
++++ b/produtos/urls.py
+@@ -493,6 +493,11 @@ urlpatterns = [
+         views_etiquetas_solicitacao.api_etiquetas_solicitacoes_lista,
+         name='api_etiquetas_solicitacoes_lista',
+     ),
++    path(
++        'api/produtos/etiquetas/solicitacoes/pdv/',
++        views_etiquetas_solicitacao.api_etiquetas_solicitacao_pdv_criar,
++        name='api_etiquetas_solicitacao_pdv_criar',
++    ),
+     path(
+         'api/produtos/etiquetas/solicitacoes/<int:pk>/',
+         views_etiquetas_solicitacao.api_etiquetas_solicitacao_detalhe,
+diff --git a/produtos/views_etiquetas_solicitacao.py b/produtos/views_etiquetas_solicitacao.py
+index b9b8413c..44a1a521 100644
+--- a/produtos/views_etiquetas_solicitacao.py
++++ b/produtos/views_etiquetas_solicitacao.py
+@@ -114,6 +114,26 @@ def api_etiquetas_solicitacao_mobile_criar(request):
+     return JsonResponse({"ok": True, "pacote": serializar_pacote(pac)})
+ 
+ 
++@login_required(login_url="/entrar/")
++@require_POST
++def api_etiquetas_solicitacao_pdv_criar(request):
++    """Mesma sacola do celular, pelo PDV (login da loja, sem PIN do app)."""
++    body = _payload_json(request)
++    operador = str(body.get("operador") or "").strip()[:150] or _usuario_etiquetas(request) or "PDV"
++    try:
++        pac = criar_pacote_solicitacao(
++            operador_nome=operador,
++            itens_raw=body.get("itens"),
++            observacao=str(body.get("observacao") or "PDV"),
++        )
++    except ValueError as exc:
++        return JsonResponse({"ok": False, "erro": str(exc)}, status=400)
++    except Exception:
++        logger.exception("api_etiquetas_solicitacao_pdv_criar")
++        return JsonResponse({"ok": False, "erro": "Falha ao gravar solicitação."}, status=500)
++    return JsonResponse({"ok": True, "pacote": serializar_pacote(pac)})
++
++
+ @login_required(login_url="/entrar/")
+ @require_GET
+ def api_etiquetas_solicitacoes_lista(request):

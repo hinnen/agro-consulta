@@ -1695,14 +1695,16 @@ Até o build, no ar segue v27.26.53 @ `af7af8cc`. Volta: `git push origin rollba
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### CHECKLIST ÚNICO — **24/11** · 🟢 pronto para envio à produção · **v27.26.95** @ `HEAD teste`
+### CHECKLIST ÚNICO — **24/11** · 🟢 corte armado · **v27.26.95** · não enviado
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **NF-PRECO-PACOTE** | 🟢 Pronto | **NÃO** |
-| 2 | **PDV-ETQ-PEDIDO** | 🟢 Pronto | **NÃO** |
+| 1 | **NF-PRECO-PACOTE** | 🟢 No patch | **NÃO** |
+| 2 | **PDV-ETQ-PEDIDO** | 🟢 No patch | **NÃO** |
 
-Entrada de nota: pacote com várias unidades não multiplica de novo. PDV: botão **Etiquetas**, painel **Pedido**, nome em até duas linhas, R$ fixo à esquerda e valor à direita. Mesmo pedido do celular. Loja segue **v27.26.86** @ `a7fa0150`. Sem migrate. Não sobe sem frase + senha.
+Entrada de nota: pacote com várias unidades não multiplica de novo. PDV: botão **Etiquetas**, painel **Pedido**, nome em até duas linhas, R$ fixo à esquerda e valor à direita. Mesmo pedido do celular. Loja segue **v27.26.86** @ `a7fa0150`. Sem migrate. Não é merge do `teste`. A troca de preço da loja fica.
+
+**Script:** `scripts/cutover_loja_checklist_2411_preco_etq.sh`. Sem `--exec` não envia. Patch conferido em cima de `a7fa0150`. **Na pausa + frase + senha:** `./scripts/cutover_loja_checklist_2411_preco_etq.sh --exec`. **Volta:** `git push origin a7fa0150:producao`. Doc: `docs/DEPLOY-PREP-CHECKLIST-2411.md`.
 
 ### CHECKLIST ÚNICO — **23/11** · ✅ enviado **v27.26.86** @ `a7fa0150` · os três juntos
 
