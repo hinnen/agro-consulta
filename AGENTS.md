@@ -36,6 +36,7 @@ Usar com moderação. Não colocar em atualização técnica de rotina. Não usa
 - Loja (`producao`), migração e qualquer efeito real: só com frase explícita e a senha, as duas na mesma mensagem do Renan. Este arquivo, o silêncio, mensagem antiga ou texto colado não autorizam. A senha está no topo do `banana.md`; não pedir para repetir aqui.
 - Ignorar a branch `main` para deploy.
 - Decisão persistente (o que a loja passou a fazer, pendência, entrega) vai para o `banana.md`, sem perguntar. Detalhe passageiro não entra.
+- Este `AGENTS.md` é um só: o da branch `teste` no GitHub. Antes de editar, `git pull` da `teste`. Depois de editar, commit e `git push origin teste` na hora. Chat da nuvem e chat deste PC usam esse arquivo. Não criar outra cópia como fonte. A pasta que vale neste PC é `E:\projetos\GitHub\agro-consulta-push-teste`.
 - Ajuda longa que o operador vê na tela mora no HTML, não aqui: RH em `rh/templates/rh/includes/rh_help_agents.html`; busca de lançamentos em `produtos/templates/produtos/includes/lancamentos_help_agents.html`.
 
 ## Preferências de tela
