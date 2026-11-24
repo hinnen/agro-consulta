@@ -36,6 +36,47 @@
   function aberto() {
     return !overlay.classList.contains('hidden');
   }
+  function somOk() {
+    try {
+      var Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!Ctx) return;
+      var ctx = new Ctx();
+      var o = ctx.createOscillator();
+      var g = ctx.createGain();
+      o.connect(g);
+      g.connect(ctx.destination);
+      o.frequency.value = 880;
+      g.gain.value = 0.08;
+      o.start();
+      o.stop(ctx.currentTime + 0.09);
+      setTimeout(function () {
+        var o2 = ctx.createOscillator();
+        var g2 = ctx.createGain();
+        o2.connect(g2);
+        g2.connect(ctx.destination);
+        o2.frequency.value = 1175;
+        g2.gain.value = 0.07;
+        o2.start();
+        o2.stop(ctx.currentTime + 0.12);
+      }, 110);
+    } catch (e) {}
+  }
+  function nuvemOk(qtd) {
+    var host = document.getElementById('pdv-etq-toast');
+    if (!host) {
+      host = document.createElement('div');
+      host.id = 'pdv-etq-toast';
+      host.setAttribute('role', 'status');
+      document.body.appendChild(host);
+    }
+    host.className = 'pointer-events-none fixed bottom-4 right-4 z-[200] w-[min(22rem,calc(100vw-2rem))]';
+    host.innerHTML = '<div class="rounded-2xl border-2 border-emerald-400 bg-emerald-50 px-4 py-3 text-emerald-950 shadow-2xl shadow-emerald-200/50">' +
+      '<div class="flex items-start gap-3"><span class="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-lg font-black">✓</span>' +
+      '<div><p class="text-base font-black leading-tight">Pedido enviado</p>' +
+      '<p class="mt-1 text-sm font-semibold leading-snug">' + qtd + ' etiqueta' + (qtd === 1 ? '' : 's') + '. Na tela Etiquetas: Solicitações.</p></div></div></div>';
+    if (nuvemOk._t) clearTimeout(nuvemOk._t);
+    nuvemOk._t = setTimeout(function () { host.innerHTML = ''; }, 4200);
+  }
   function setStatus(msg, err) {
     statusEl.textContent = msg || '';
     statusEl.className = 'mt-2 min-h-[1.25rem] text-sm font-bold ' + (err ? 'text-red-700' : 'text-slate-600');
@@ -181,7 +222,10 @@
         renderSacola();
         return false;
       }
-      setStatus('Enviado. Na tela Etiquetas do computador: Solicitações.');
+      var nEnv = itens.reduce(function (s, it) { return s + (parseInt(it.qtd, 10) || 1); }, 0);
+      setStatus('');
+      somOk();
+      nuvemOk(nEnv);
       renderSacola();
       return true;
     } catch (e) {
