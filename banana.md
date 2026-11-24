@@ -54,7 +54,7 @@
 | **UsuÃ¡rios**                 | Operadores de loja (PDV, caixa), gestÃ£o, financeiro, RH, compras                                                                                                     |
 | **Stack**                    | Django + Postgres (Agro) + Mongo (espelho ERP) + Render + Electron opcional                                                                                          |
 | **Branch dia a dia**         | `**teste`** = commit + **push GitHub ao fechar entrega** (backup) · validação = **local PC** · `**producao**` = loja **só** frase+senha |
-| **Tela inicial**             | `/` = BI gerencial Â· PDV da loja = `/pdv/` (24/11/2026, Renan). `/consulta/` nao usa mais. Pedir etiquetas no PC: colunas nome, GM e preco; setas e Enter na sacola; sem enviar direto. Barra do teste tem botoes que a loja ainda nao tem (ex. Troca de preco). Esto: Centro so aparece com caixa fechado, na loja tambem.                                                                                         |
+| **Tela inicial**             | `/` = BI gerencial · PDV da loja = `/pdv/` (24/11/2026, Renan). `/consulta/` nao usa mais. Pedir etiquetas no PC: colunas nome, marca, GM e preco; nome em ate duas linhas; R$ fixo; setas e Enter no pedido; sem enviar direto. |
 | **Regra de ouro**            | Operador usa **saldo do Agro**; ERP alimenta Mongo; Agro nÃ£o devolve estoque ao ERP                                                                                  |
 | **UX loja**                  | Compacto, alto contraste, teclado/scanner primeiro, paleta emerald/orange/slate                                                                                      |
 | **Escala de tela**           | **Agro Display Scale** global (nÃ£o zoom do Chrome) â€” ver AGENTS.md Â§11                                                                                               |
@@ -1695,14 +1695,14 @@ Até o build, no ar segue v27.26.53 @ `af7af8cc`. Volta: `git push origin rollba
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### CHECKLIST ÚNICO — **24/11** · 🟢 pronto para envio à produção · **v27.26.94**
+### CHECKLIST ÚNICO — **24/11** · 🟢 pronto para envio à produção · **v27.26.95** @ `HEAD teste`
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
 | 1 | **NF-PRECO-PACOTE** | 🟢 Pronto | **NÃO** |
 | 2 | **PDV-ETQ-PEDIDO** | 🟢 Pronto | **NÃO** |
 
-Entrada de nota: pacote com várias unidades não multiplica de novo ao reabrir nem ao marcar acréscimos. PDV do computador: botão **Etiquetas** (mesmo pedido do celular). Loja segue **v27.26.86** @ `a7fa0150`. Sem migrate.
+Entrada de nota: pacote com várias unidades não multiplica de novo. PDV: botão **Etiquetas**, painel **Pedido**, nome em até duas linhas, R$ fixo à esquerda e valor à direita. Mesmo pedido do celular. Loja segue **v27.26.86** @ `a7fa0150`. Sem migrate. Não sobe sem frase + senha.
 
 ### CHECKLIST ÚNICO — **23/11** · ✅ enviado **v27.26.86** @ `a7fa0150` · os três juntos
 

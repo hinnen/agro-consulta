@@ -4,7 +4,7 @@
 
 **Renan:** anexe `@banana-roteiro` (ou só descreva a tarefa — a rule Cursor já puxa este arquivo).
 
-**Pacote pronto (24/11):** **v27.26.94** · **NF-PRECO-PACOTE** + **PDV-ETQ-PEDIDO** · pronto para envio · sem migrate. Loja segue **v27.26.86** @ `a7fa0150`.
+**Pacote pronto (24/11):** **v27.26.95** · **NF-PRECO-PACOTE** + **PDV-ETQ-PEDIDO** · pronto para envio · sem migrate. Loja segue **v27.26.86** @ `a7fa0150`.
 
 **Loja (23/11):** os três enviados · **v27.26.86** @ `a7fa0150`. Troca de preço, aba 10 e barras do cartão. Tabela nova no build. Até o build, no ar segue **v27.26.85** @ `b45d9cbc`. Volta: `git push origin b45d9cbc:producao`.
 
