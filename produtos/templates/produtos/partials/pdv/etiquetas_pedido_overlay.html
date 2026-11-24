@@ -1,5 +1,5 @@
 <div id="pdv-etq-pedido-overlay" class="fixed inset-0 z-[140] hidden items-center justify-center bg-slate-950/60 p-2" role="dialog" aria-modal="true" aria-labelledby="pdv-etq-pedido-titulo">
-  <div class="flex h-[min(92dvh,40rem)] w-[min(96vw,72rem)] flex-col overflow-hidden rounded-2xl border-2 border-sky-500 bg-slate-100 shadow-2xl">
+  <div class="flex h-[min(94dvh,52rem)] w-[min(98vw,96rem)] flex-col overflow-hidden rounded-2xl border-2 border-sky-500 bg-slate-100 shadow-2xl">
     <header class="flex shrink-0 items-center gap-3 border-b-2 border-sky-200 bg-sky-50 px-4 py-3">
       <div class="min-w-0 flex-1">
         <p class="text-[0.7rem] font-black uppercase tracking-[0.16em] text-sky-800">PDV · mesmo pedido do celular</p>
@@ -7,22 +7,73 @@
       </div>
       <button type="button" id="pdv-etq-pedido-fechar" class="inline-flex min-h-12 min-w-12 items-center justify-center rounded-xl border-2 border-slate-300 bg-white text-2xl font-black text-slate-800" title="Fechar · Esc" aria-label="Fechar">×</button>
     </header>
-    <div class="grid min-h-0 flex-1 grid-cols-1 gap-3 p-3 lg:grid-cols-[minmax(0,1.4fr)_minmax(18rem,0.8fr)]">
+    <div class="grid min-h-0 flex-1 grid-cols-1 gap-3 p-3 lg:grid-cols-[minmax(0,1fr)_22rem]">
       <section class="flex min-h-0 flex-col gap-2">
         <input id="pdv-etq-pedido-busca" type="search" class="min-h-12 w-full rounded-xl border-2 border-slate-300 bg-white px-3 text-base font-bold" placeholder="Nome, GM ou bipe o código e Enter" autocomplete="off" spellcheck="false" aria-label="Buscar produto para etiqueta">
         <p id="pdv-etq-pedido-sem" class="hidden rounded-xl border-2 border-amber-400 bg-amber-50 px-3 py-2 text-sm font-bold text-amber-950"></p>
-        <div id="pdv-etq-pedido-lista" class="min-h-0 flex-1 space-y-2 overflow-y-auto" role="list"></div>
+        <div id="pdv-etq-pedido-lista" class="min-h-0 flex-1 overflow-y-auto rounded-xl border-2 border-slate-200 bg-white" role="listbox" aria-label="Produtos"></div>
       </section>
       <aside class="flex min-h-0 flex-col rounded-xl border-2 border-slate-200 bg-white p-3">
         <h3 class="text-sm font-black uppercase text-slate-800">Sacola · <span id="pdv-etq-pedido-total">0</span></h3>
         <div id="pdv-etq-pedido-sacola" class="mt-2 min-h-0 flex-1 space-y-2 overflow-y-auto"></div>
-        <label class="mt-2 flex items-center gap-2 text-sm font-bold text-slate-700">
-          <input type="checkbox" id="pdv-etq-pedido-direto">
-          Bipar e enviar direto (1 etiqueta)
-        </label>
         <p id="pdv-etq-pedido-status" class="mt-2 min-h-[1.25rem] text-sm font-bold text-slate-600" role="status"></p>
         <button type="button" id="pdv-etq-pedido-enviar" class="mt-2 min-h-12 rounded-xl bg-sky-600 text-sm font-black uppercase text-white disabled:opacity-40" disabled>Enviar para a loja</button>
       </aside>
     </div>
   </div>
 </div>
+<style>
+  #pdv-etq-pedido-lista .etq-head,
+  #pdv-etq-pedido-lista .etq-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 9.5rem 8.5rem;
+    column-gap: 0.75rem;
+    align-items: center;
+    padding: 0.55rem 0.75rem;
+  }
+  #pdv-etq-pedido-lista .etq-head {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: #e0f2fe;
+    border-bottom: 2px solid #0284c7;
+    font-size: 0.72rem;
+    font-weight: 900;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #0c4a6e;
+  }
+  #pdv-etq-pedido-lista .etq-head span:nth-child(2),
+  #pdv-etq-pedido-lista .etq-head span:nth-child(3),
+  #pdv-etq-pedido-lista .etq-gm,
+  #pdv-etq-pedido-lista .etq-preco { text-align: right; }
+  #pdv-etq-pedido-lista .etq-row {
+    width: 100%;
+    border: 0;
+    border-bottom: 1px solid #e2e8f0;
+    background: #fff;
+    text-align: left;
+    cursor: pointer;
+  }
+  #pdv-etq-pedido-lista .etq-row:hover,
+  #pdv-etq-pedido-lista .etq-row.etq-sel {
+    background: #bfdbfe;
+    box-shadow: inset 4px 0 0 #059669;
+  }
+  #pdv-etq-pedido-lista .etq-nome {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 900;
+    color: #0f172a;
+  }
+  #pdv-etq-pedido-lista .etq-gm,
+  #pdv-etq-pedido-lista .etq-preco {
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    color: #334155;
+  }
+  #pdv-etq-pedido-lista .etq-preco { color: #047857; }
+</style>

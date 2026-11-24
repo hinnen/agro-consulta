@@ -6,7 +6,6 @@
 
   var URL_SLIM = '/api/pdv/catalogo-slim/';
   var URL_ENVIAR = '/api/produtos/etiquetas/solicitacoes/pdv/';
-  var LS_DIRETO = 'agro_etq_bip_enviar_direto';
   var overlay = document.getElementById('pdv-etq-pedido-overlay');
   var btn = document.getElementById('pdv-topbar-etiquetas-btn');
   var busca = document.getElementById('pdv-etq-pedido-busca');
@@ -15,7 +14,6 @@
   var totalEl = document.getElementById('pdv-etq-pedido-total');
   var statusEl = document.getElementById('pdv-etq-pedido-status');
   var btnEnviar = document.getElementById('pdv-etq-pedido-enviar');
-  var chkDireto = document.getElementById('pdv-etq-pedido-direto');
   var semEl = document.getElementById('pdv-etq-pedido-sem');
   if (!overlay || !btn || !busca) return;
 
@@ -25,6 +23,8 @@
   var timer = null;
   var lastCodigo = '';
   var lastAt = 0;
+  var lastRows = [];
+  var selIndex = 0;
 
   function csrf() {
     var m = document.cookie.match(/(?:^|; )csrftoken=([^;]+)/);
@@ -68,24 +68,63 @@
     renderSacola();
     setStatus('Na sacola: ' + (prod.nome || id));
   }
-  function renderLista(rows) {
-    if (!rows || !rows.length) {
-      lista.innerHTML = '<p class="py-6 text-center text-sm font-bold text-slate-500">Nenhum produto.</p>';
+  function money(v) {
+    var n = Number(v);
+    if (!isFinite(n)) n = 0;
+    return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  }
+  function gmDe(p) {
+    return String((p && (p.codigo_nfe || p.codigo)) || '').trim() || '—';
+  }
+  function precoDe(p) {
+    if (!p) return 0;
+    if (p.preco_venda != null && p.preco_venda !== '') return p.preco_venda;
+    if (p.preco != null && p.preco !== '') return p.preco;
+    return 0;
+  }
+  function aviso(html) {
+    lastRows = [];
+    selIndex = 0;
+    lista.innerHTML = html;
+  }
+  function renderLista(rows, keepSel) {
+    lastRows = rows || [];
+    var cap = Math.min(lastRows.length, 40);
+    if (!cap) {
+      aviso('<p class="py-6 text-center text-sm font-bold text-slate-500">Nenhum produto.</p>');
+      lastRows = [];
       return;
     }
-    var slice = rows.slice(0, 40);
-    lista.innerHTML = slice.map(function (p) {
-      var meta = [p.codigo || p.codigo_nfe || '', p.codigo_barras || ''].filter(Boolean).join(' · ');
-      return '<button type="button" class="block w-full rounded-xl border-2 border-slate-200 bg-white px-3 py-2 text-left" data-id="' + esc(p.id) + '">' +
-        '<strong class="block text-sm font-black">' + esc(p.nome || 'Sem nome') + '</strong>' +
-        '<span class="text-xs font-bold text-slate-500">' + esc(meta) + '</span></button>';
-    }).join('') + (rows.length > 40 ? '<p class="text-center text-xs font-black text-sky-800">Refine a busca</p>' : '');
+    if (!keepSel || selIndex < 0 || selIndex >= cap) selIndex = 0;
+    var head = '<div class="etq-head" aria-hidden="true"><span>Produto</span><span>GM</span><span>Preço</span></div>';
+    var body = lastRows.slice(0, cap).map(function (p, i) {
+      return '<button type="button" role="option" class="etq-row' + (i === selIndex ? ' etq-sel' : '') + '" data-id="' + esc(p.id) + '" data-idx="' + i + '" aria-selected="' + (i === selIndex ? 'true' : 'false') + '">' +
+        '<span class="etq-nome">' + esc(p.nome || 'Sem nome') + '</span>' +
+        '<span class="etq-gm">' + esc(gmDe(p)) + '</span>' +
+        '<span class="etq-preco">' + esc(money(precoDe(p))) + '</span></button>';
+    }).join('');
+    var mais = rows.length > 40 ? '<p class="py-2 text-center text-xs font-black text-sky-800">Refine a busca</p>' : '';
+    lista.innerHTML = head + body + mais;
+    var sel = lista.querySelector('.etq-sel');
+    if (sel && sel.scrollIntoView) sel.scrollIntoView({ block: 'nearest' });
+  }
+  function mover(delta) {
+    var cap = Math.min(lastRows.length, 40);
+    if (!cap) return;
+    selIndex = Math.max(0, Math.min(cap - 1, selIndex + delta));
+    renderLista(lastRows, true);
+  }
+  function pegarSelecionado() {
+    var cap = Math.min(lastRows.length, 40);
+    if (!cap) return null;
+    if (selIndex < 0 || selIndex >= cap) selIndex = 0;
+    return lastRows[selIndex];
   }
   function buscar(termo) {
     var t = String(termo || '').trim();
     semEl.classList.add('hidden');
     if (t.length < 2) {
-      lista.innerHTML = '<p class="py-6 text-center text-sm font-bold text-slate-500">Digite 2 letras ou bipe o código e dê Enter.</p>';
+      aviso('<p class="py-6 text-center text-sm font-bold text-slate-500">Digite 2 letras. Setas escolhem a linha. Enter joga na sacola.</p>');
       return;
     }
     var termoN = typeof normalizarBuscaLocal === 'function' ? normalizarBuscaLocal(t) : t.toLowerCase();
@@ -157,18 +196,14 @@
     var hits = matchCodigo(codigo);
     if (hits.length === 1) {
       semEl.classList.add('hidden');
-      if (chkDireto.checked) {
-        enviar([{ id: String(hits[0].id), nome: hits[0].nome || '', qtd: 1 }]);
-      } else {
-        add(hits[0], 1);
-      }
+      add(hits[0], 1);
       busca.value = '';
-      lista.innerHTML = '<p class="py-6 text-center text-sm font-bold text-slate-500">Pode bipar o próximo.</p>';
+      aviso('<p class="py-6 text-center text-sm font-bold text-slate-500">Na sacola. Pode bipar o próximo.</p>');
       return true;
     }
     if (hits.length > 1) {
       renderLista(hits);
-      setStatus('Vários produtos — clique no certo.', true);
+      setStatus('Vários produtos. Setas e Enter escolhem.', true);
       return true;
     }
     semEl.textContent = 'Código sem cadastro: ' + codigo;
@@ -188,14 +223,14 @@
   }
   async function carregar() {
     if (base.length) return;
-    lista.innerHTML = '<p class="py-6 text-center text-sm font-bold text-slate-500">Carregando catálogo…</p>';
+    aviso('<p class="py-6 text-center text-sm font-bold text-slate-500">Carregando catálogo…</p>');
     try {
       var res = await fetch(URL_SLIM, { credentials: 'same-origin' });
       var j = await res.json();
       base = (j && j.produtos) || [];
-      lista.innerHTML = '<p class="py-6 text-center text-sm font-bold text-slate-500">Busque ou bipe.</p>';
+      aviso('<p class="py-6 text-center text-sm font-bold text-slate-500">Busque ou bipe. Setas e Enter jogam na sacola.</p>');
     } catch (e) {
-      lista.innerHTML = '<p class="py-6 text-center text-sm font-bold text-red-700">Sem catálogo.</p>';
+      aviso('<p class="py-6 text-center text-sm font-bold text-red-700">Sem catálogo.</p>');
     }
   }
 
@@ -213,13 +248,26 @@
     timer = setTimeout(function () { buscar(v); }, 160);
   });
   busca.addEventListener('keydown', function (ev) {
+    if (ev.key === 'ArrowDown' || ev.key === 'ArrowUp') {
+      ev.preventDefault();
+      ev.stopPropagation();
+      mover(ev.key === 'ArrowDown' ? 1 : -1);
+      return;
+    }
     if (ev.key !== 'Enter') return;
     ev.preventDefault();
     ev.stopPropagation();
     if (timer) clearTimeout(timer);
     var t = busca.value.trim();
     if (!t) return;
-    if (!tentarBip(t)) buscar(t);
+    if (tentarBip(t)) return;
+    if (!lastRows.length) buscar(t);
+    var pick = pegarSelecionado();
+    if (pick) {
+      add(pick, 1);
+      busca.value = '';
+      aviso('<p class="py-6 text-center text-sm font-bold text-slate-500">Na sacola. Pode buscar o próximo.</p>');
+    }
   });
   lista.addEventListener('click', function (ev) {
     var b = ev.target.closest ? ev.target.closest('[data-id]') : null;
@@ -253,10 +301,6 @@
       busca.focus();
     }
   });
-  chkDireto.addEventListener('change', function () {
-    try { localStorage.setItem(LS_DIRETO, chkDireto.checked ? '1' : '0'); } catch (e) {}
-  });
-  try { chkDireto.checked = localStorage.getItem(LS_DIRETO) === '1'; } catch (e) {}
   document.addEventListener('keydown', function (ev) {
     if (!aberto()) return;
     if (ev.key === 'Escape') {
