@@ -1695,13 +1695,14 @@ Até o build, no ar segue v27.26.53 @ `af7af8cc`. Volta: `git push origin rollba
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### NF-PRECO-PACOTE — **24/11** · em `teste` · não foi para a loja
+### CHECKLIST ÚNICO — **24/11** · 🟢 pronto para envio à produção · **v27.26.94**
 
-Entrada de nota, etapa 2. Pacote com mais de uma unidade (Un/emb) mudava sozinho ao reabrir no dia seguinte, ou ao marcar **Incluir acréscimos no custo**. O preço do pacote era tratado de novo como preço da unidade e multiplicado outra vez. Sem migrate. Não foi para a loja.
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **NF-PRECO-PACOTE** | 🟢 Pronto | **NÃO** |
+| 2 | **PDV-ETQ-PEDIDO** | 🟢 Pronto | **NÃO** |
 
-### PDV-ETQ-PEDIDO — **24/11** · em `teste` · não foi para a loja
-
-Botão **Etiquetas** na barra do PDV do computador. Abre o pedido (busca do catálogo + leitor na caixa + sacola). Grava o mesmo pacote que o celular. A tela Etiquetas do PC continua importando em Solicitações. SISTAPP não mudou. Sem migrate.
+Entrada de nota: pacote com várias unidades não multiplica de novo ao reabrir nem ao marcar acréscimos. PDV do computador: botão **Etiquetas** (mesmo pedido do celular). Loja segue **v27.26.86** @ `a7fa0150`. Sem migrate.
 
 ### CHECKLIST ÚNICO — **23/11** · ✅ enviado **v27.26.86** @ `a7fa0150` · os três juntos
 
