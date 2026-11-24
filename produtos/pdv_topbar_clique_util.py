@@ -12,6 +12,7 @@ BOTAO_KEYS = frozenset(
     {
         "mais",
         "saldo_vila",
+        "etiquetas",
         "pedir_loja",
         "pesar",
         "caixa",

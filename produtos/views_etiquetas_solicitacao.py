@@ -115,6 +115,26 @@ def api_etiquetas_solicitacao_mobile_criar(request):
 
 
 @login_required(login_url="/entrar/")
+@require_POST
+def api_etiquetas_solicitacao_pdv_criar(request):
+    """Mesma sacola do celular, pelo PDV (login da loja, sem PIN do app)."""
+    body = _payload_json(request)
+    operador = str(body.get("operador") or "").strip()[:150] or _usuario_etiquetas(request) or "PDV"
+    try:
+        pac = criar_pacote_solicitacao(
+            operador_nome=operador,
+            itens_raw=body.get("itens"),
+            observacao=str(body.get("observacao") or "PDV"),
+        )
+    except ValueError as exc:
+        return JsonResponse({"ok": False, "erro": str(exc)}, status=400)
+    except Exception:
+        logger.exception("api_etiquetas_solicitacao_pdv_criar")
+        return JsonResponse({"ok": False, "erro": "Falha ao gravar solicitação."}, status=500)
+    return JsonResponse({"ok": True, "pacote": serializar_pacote(pac)})
+
+
+@login_required(login_url="/entrar/")
 @require_GET
 def api_etiquetas_solicitacoes_lista(request):
     status = str(request.GET.get("status") or EtiquetaSolicitacaoPacoteAgro.Status.PENDENTE).strip()

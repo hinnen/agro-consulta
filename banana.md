@@ -1695,6 +1695,10 @@ Até o build, no ar segue v27.26.53 @ `af7af8cc`. Volta: `git push origin rollba
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### PDV-ETQ-PEDIDO — **24/11** · em `teste` · não foi para a loja
+
+Botão **Etiquetas** na barra do PDV do computador. Abre o pedido (busca do catálogo + leitor na caixa + sacola). Grava o mesmo pacote que o celular. A tela Etiquetas do PC continua importando em Solicitações. SISTAPP não mudou. Sem migrate.
+
 ### CHECKLIST ÚNICO — **23/11** · ✅ enviado **v27.26.86** @ `a7fa0150` · os três juntos
 
 | # | Pacote | Status | Migrate |

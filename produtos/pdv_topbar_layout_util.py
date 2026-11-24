@@ -9,6 +9,7 @@ CHAVE_DEFAULT = "default"
 
 # Ordem padrão após Fiado no quente (PDV-TOPBAR-LAYOUT).
 QUENTE_DEFAULT: list[str] = [
+    "etiquetas",
     "pedir_loja",
     "vendas",
     "uso_loja",
@@ -27,6 +28,7 @@ FRIO_DEFAULT: list[str] = [
 MOVABLE_KEYS: frozenset[str] = frozenset(QUENTE_DEFAULT + FRIO_DEFAULT)
 
 LABELS: dict[str, str] = {
+    "etiquetas": "Etiquetas",
     "pedir_loja": "Pedir loja",
     "vendas": "Vendas",
     "uso_loja": "Uso loja",
