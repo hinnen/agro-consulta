@@ -81,3 +81,26 @@ class EtiquetaSolicitacaoApiTests(TestCase):
         )
         self.assertEqual(res.status_code, 200)
         criar_mock.assert_called_once()
+
+    def test_pdv_criar_grava_pacote_sem_pin_do_sistapp(self):
+        self.client.force_login(self.user)
+        res = self.client.post(
+            "/api/produtos/etiquetas/solicitacoes/pdv/",
+            data=json.dumps({"itens": [{"id": "77", "qtd": 2, "nome": "Ração"}], "operador": "Balcão"}),
+            content_type="application/json",
+        )
+        self.assertEqual(res.status_code, 200)
+        body = res.json()
+        self.assertTrue(body.get("ok"))
+        pac = EtiquetaSolicitacaoPacoteAgro.objects.get(pk=body["pacote"]["id"])
+        self.assertEqual(pac.operador_nome, "Balcão")
+        self.assertEqual(pac.total_etiquetas, 2)
+        self.assertEqual(pac.status, EtiquetaSolicitacaoPacoteAgro.Status.PENDENTE)
+
+    def test_pdv_criar_sem_login_recusa(self):
+        res = self.client.post(
+            "/api/produtos/etiquetas/solicitacoes/pdv/",
+            data=json.dumps({"itens": [{"id": "1", "qtd": 1}]}),
+            content_type="application/json",
+        )
+        self.assertIn(res.status_code, (302, 401, 403))

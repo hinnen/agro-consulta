@@ -495,6 +495,11 @@ urlpatterns = [
         name='api_etiquetas_solicitacoes_lista',
     ),
     path(
+        'api/produtos/etiquetas/solicitacoes/pdv/',
+        views_etiquetas_solicitacao.api_etiquetas_solicitacao_pdv_criar,
+        name='api_etiquetas_solicitacao_pdv_criar',
+    ),
+    path(
         'api/produtos/etiquetas/solicitacoes/<int:pk>/',
         views_etiquetas_solicitacao.api_etiquetas_solicitacao_detalhe,
         name='api_etiquetas_solicitacao_detalhe',

@@ -1,0 +1,108 @@
+<div id="pdv-etq-pedido-overlay" class="fixed inset-0 z-[140] hidden items-center justify-center bg-slate-950/60 p-2" role="dialog" aria-modal="true" aria-labelledby="pdv-etq-pedido-titulo">
+  <div class="flex h-[min(94dvh,52rem)] w-[min(98vw,96rem)] flex-col overflow-hidden rounded-2xl border-2 border-sky-500 bg-slate-100 shadow-2xl">
+    <header class="flex shrink-0 items-center gap-3 border-b-2 border-sky-200 bg-sky-50 px-4 py-3">
+      <div class="min-w-0 flex-1">
+        <p class="text-[0.7rem] font-black uppercase tracking-[0.16em] text-sky-800">PDV · mesmo pedido do celular</p>
+        <h2 id="pdv-etq-pedido-titulo" class="text-xl font-black text-slate-900">Pedir etiquetas</h2>
+      </div>
+      <button type="button" id="pdv-etq-pedido-fechar" class="inline-flex min-h-12 min-w-12 items-center justify-center rounded-xl border-2 border-slate-300 bg-white text-2xl font-black text-slate-800" title="Fechar · Esc" aria-label="Fechar">×</button>
+    </header>
+    <div class="grid min-h-0 flex-1 grid-cols-1 gap-3 p-3 lg:grid-cols-[minmax(0,1fr)_22rem]">
+      <section class="flex min-h-0 flex-col gap-2">
+        <input id="pdv-etq-pedido-busca" type="search" class="w-full rounded-xl border-2 border-slate-300 bg-white" style="height:4.25rem;min-height:4.25rem;font-size:1.7rem;font-weight:800;padding:0.65rem 1rem;line-height:1.2" placeholder="Nome, GM ou bipe o código e Enter" autocomplete="off" spellcheck="false" aria-label="Buscar produto para etiqueta">
+        <p id="pdv-etq-pedido-sem" class="hidden rounded-xl border-2 border-amber-400 bg-amber-50 px-3 py-2 text-sm font-bold text-amber-950"></p>
+        <div id="pdv-etq-pedido-lista" class="min-h-0 flex-1 overflow-y-auto rounded-xl border-2 border-slate-200 bg-white" role="listbox" aria-label="Produtos"></div>
+      </section>
+      <aside class="flex min-h-0 flex-col rounded-xl border-2 border-slate-200 bg-white p-3">
+        <h3 class="text-sm font-black uppercase text-slate-800">Pedido · <span id="pdv-etq-pedido-total">0</span></h3>
+        <div id="pdv-etq-pedido-sacola" class="mt-2 min-h-0 flex-1 space-y-2 overflow-y-auto"></div>
+        <p id="pdv-etq-pedido-status" class="mt-2 min-h-[1.25rem] text-sm font-bold text-slate-600" role="status"></p>
+        <button type="button" id="pdv-etq-pedido-enviar" class="mt-2 min-h-12 rounded-xl bg-sky-600 text-sm font-black uppercase text-white disabled:opacity-40" disabled>Enviar para a loja</button>
+      </aside>
+    </div>
+  </div>
+</div>
+<style>
+  #pdv-etq-pedido-busca,
+  #pdv-etq-pedido-busca::placeholder {
+    font-size: 1.7rem !important;
+    font-weight: 800;
+    line-height: 1.2;
+  }
+  #pdv-etq-pedido-lista .etq-tabela {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+  }
+  #pdv-etq-pedido-lista .etq-tabela th:nth-child(1),
+  #pdv-etq-pedido-lista .etq-tabela td:nth-child(1) { width: auto; text-align: left; }
+  #pdv-etq-pedido-lista .etq-tabela th:nth-child(2),
+  #pdv-etq-pedido-lista .etq-tabela td:nth-child(2) { width: 11rem; text-align: left; }
+  #pdv-etq-pedido-lista .etq-tabela th:nth-child(3),
+  #pdv-etq-pedido-lista .etq-tabela td:nth-child(3) { width: 9.4rem; text-align: left; }
+  #pdv-etq-pedido-lista .etq-tabela th:nth-child(4),
+  #pdv-etq-pedido-lista .etq-tabela td:nth-child(4) { width: 7.6rem; text-align: right; }
+  #pdv-etq-pedido-lista .etq-head th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: #e0f2fe;
+    border-bottom: 2px solid #0284c7;
+    padding: 0.45rem 0.75rem;
+    font-size: 0.85rem;
+    font-weight: 900;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #0c4a6e;
+  }
+  #pdv-etq-pedido-lista .etq-row td {
+    padding: 0.6rem 0.7rem;
+    font-size: 1rem;
+    border-bottom: 2px solid #94a3b8;
+    vertical-align: middle;
+    background: #fff;
+    cursor: pointer;
+  }
+  #pdv-etq-pedido-lista .etq-row:hover td,
+  #pdv-etq-pedido-lista .etq-row.etq-sel td {
+    background: #bfdbfe;
+  }
+  #pdv-etq-pedido-lista .etq-row.etq-sel td:first-child {
+    box-shadow: inset 4px 0 0 #059669;
+  }
+  #pdv-etq-pedido-lista .etq-row td.etq-nome { font-size: 1.55rem; }
+  #pdv-etq-pedido-lista .etq-nome-txt {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    white-space: normal;
+    line-height: 1.25;
+    font-weight: 900;
+    color: #0f172a;
+  }
+  #pdv-etq-pedido-lista .etq-marca {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 900;
+    color: #0f172a;
+  }
+  #pdv-etq-pedido-lista .etq-marca { font-weight: 800; color: #334155; }
+  #pdv-etq-pedido-lista .etq-gm,
+  #pdv-etq-pedido-lista .etq-preco {
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    color: #334155;
+  }
+  #pdv-etq-pedido-lista .etq-preco { color: #047857; }
+  #pdv-etq-pedido-lista .etq-preco-linha {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.35rem;
+    width: 100%;
+  }
+  #pdv-etq-pedido-lista .etq-val { text-align: right; }
+</style>

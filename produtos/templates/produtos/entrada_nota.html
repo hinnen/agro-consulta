@@ -2714,6 +2714,15 @@
     const un = entradaNfeLinhaUnEmbCalculo(tr);
     if (!(un > 0)) return;
 
+    if (fromUnEmbChange && prevUn > 0 && un > 0 && prevUn !== un) {
+      const escala = prevUn / un;
+      ['nfeVunBaseNf', 'nfeVunBaseManual'].forEach((key) => {
+        const b = entradaNfeParseDecimalApi(tr.dataset[key] || '');
+        if (b == null || !Number.isFinite(b) || b < 0) return;
+        tr.dataset[key] = String(b * escala);
+      });
+    }
+
     if (fromUnEmbChange && prevUn <= 1 && un > 1) {
       const custoPacote = entradaNfeLinhaValorUnitarioCalculo(tr);
       if (custoPacote != null && Number.isFinite(custoPacote) && custoPacote >= 0) {
@@ -7020,8 +7029,36 @@
     return { tipo: '', valor: 0 };
   }
 
+  /**
+   * Base da NF nasceu com Un/emb = 1 (preço do pacote).
+   * Se a embalagem passou de 1, essa base ainda é o pacote: divide pela Un/emb.
+   * Sem isso, reabrir a nota ou marcar acréscimos multiplica o pacote de novo.
+   */
+  function entradaNfeLinhaCorrigirBasePacote(tr) {
+    if (!tr) return;
+    const un = entradaNfeLinhaUnEmbCalculo(tr);
+    if (!(un > 1)) return;
+    const qNf = Number(tr.dataset.nfeQComNf) || Number(tr.querySelector('.in-qtd')?.value) || 0;
+    const vp = Number(tr.dataset.nfeVprodNf);
+    if (!(qNf > 0) || !(Number.isFinite(vp) && vp > 0)) return;
+    const porPacote = vp / qNf;
+    if (!(porPacote > 0)) return;
+    ['nfeVunBaseNf', 'nfeVunBaseManual'].forEach((key) => {
+      const b = entradaNfeParseDecimalApi(tr.dataset[key] || '');
+      if (b == null || !Number.isFinite(b) || b <= 0) return;
+      if (Math.abs(b - porPacote) / porPacote > 0.02) return;
+      tr.dataset[key] = String(porPacote / un);
+    });
+    const vun = entradaNfeParseDecimalApi(tr.dataset.nfeVunPreciso || '');
+    if (vun != null && vun > 0 && Math.abs(vun - porPacote) / porPacote <= 0.02) {
+      tr.dataset.nfeVunPreciso = String(porPacote / un);
+      tr.dataset.nfeCustoEmbalagem = String(porPacote);
+    }
+  }
+
   function entradaNfeLinhaBaseUnit(tr) {
     if (!tr) return null;
+    entradaNfeLinhaCorrigirBasePacote(tr);
     const bNf = entradaNfeParseDecimalApi(tr.dataset.nfeVunBaseNf || '');
     if (bNf != null && Number.isFinite(bNf) && bNf >= 0) return bNf;
     const bMan = entradaNfeParseDecimalApi(tr.dataset.nfeVunBaseManual || '');
@@ -8647,7 +8684,14 @@
     } else {
       delete tr.dataset.nfeCustoEmbalagem;
     }
-    entradaNfeDefinirInputMoedaBr2(tr.querySelector('.in-vun'), Number(d.v_un_com != null ? d.v_un_com : 0));
+    entradaNfeLinhaCorrigirBasePacote(tr);
+    const vunAposCorrecao = entradaNfeParseDecimalApi(tr.dataset.nfeVunPreciso || '');
+    entradaNfeDefinirInputMoedaBr2(
+      tr.querySelector('.in-vun'),
+      vunAposCorrecao != null && Number.isFinite(vunAposCorrecao)
+        ? vunAposCorrecao
+        : Number(d.v_un_com != null ? d.v_un_com : 0)
+    );
     entradaNfeDefinirInputMoedaBr2(tr.querySelector('.in-pvenda'), Number(d.preco_venda != null ? d.preco_venda : 0));
     const mEl0 = tr.querySelector('.in-margem');
     if (mEl0) mEl0.value = '';

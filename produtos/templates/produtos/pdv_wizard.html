@@ -4531,7 +4531,7 @@
           <div class="pdv-wiz-topbar-row">
             <div class="pdv-wiz-topbar-stepper-wrap pdv-wizard-scroll">
               <span class="pdv-wiz-topbar-brand">PDV</span>
-              <span id="pdv-deposito-badge" class="inline-flex items-center self-stretch rounded-md border px-1.5 text-[9px] font-black uppercase tracking-wide shrink-0 {% if caixa_aberto %}hidden {% endif %}{% if pdv_deposito == 'vila' %}border-slate-400 bg-slate-100 text-slate-800{% else %}border-emerald-300 bg-emerald-50 text-emerald-900{% endif %}" title="Depósito que este PDV baixa no estoque. Troque na home (Loja).">{{ pdv_estoque_ativo_label|default:"Esto: Centro" }}</span>
+              <span id="pdv-deposito-badge" class="hidden" hidden aria-hidden="true">{{ pdv_estoque_ativo_label|default:"" }}</span>
               <nav class="pdv-wiz-stepper" id="pdv-stepper" aria-label="Etapas da venda">
                 <button type="button" class="pdv-step-nav pdv-step-badge-active text-left" data-step-nav="produtos" title="Ir para etapa 1 · Alt+1" aria-current="step">
                   <kbd class="pdv-wiz-stepper-num pdv-wiz-stepper-num--sky">1</kbd><span class="pdv-step-label">Produtos</span>
@@ -4546,6 +4546,7 @@
               <button type="button" id="pdv-topbar-help" class="pdv-wiz-help pdv-topbar-help shrink-0" data-pdv-help="produtos" title="Ajuda — etapa atual">?</button>
             </div>
             <div class="pdv-wiz-topbar-estoque-vila" id="pdv-topbar-quente" aria-label="Atalhos frequentes">
+              <button type="button" id="pdv-topbar-etiquetas-btn" class="pdv-action-btn pdv-wiz-topbar-btn border-2 border-sky-700 bg-sky-600 text-white" data-pdv-topbar-key="etiquetas" data-pdv-topbar-node="etiquetas" title="Pedir etiquetas de preço — o mesmo pedido do celular">Etiquetas</button>
               <button type="button" id="pdv-topbar-etiqueta-preco-btn" class="pdv-action-btn pdv-wiz-topbar-btn relative hidden border-2 border-orange-700 bg-orange-500 text-white" title="Preço mudou. Trocar a etiqueta da prateleira.">
                 Troca de preço
                 <span id="pdv-topbar-etiqueta-preco-count" class="absolute -right-1 -top-1 min-w-[1.1rem] rounded-full bg-slate-900 px-1 text-[8px] font-black leading-tight text-white tabular-nums">0</span>
@@ -4629,6 +4630,7 @@
 
 {% include "produtos/partials/pdv/entrega_wizard_overlay.html" %}
 {% include "produtos/partials/pdv/uso_loja_overlay.html" %}
+{% include "produtos/partials/pdv/etiquetas_pedido_overlay.html" %}
 {% include "produtos/partials/pdv/pedir_loja_escolha_overlay.html" %}
 {% include "produtos/partials/pdv/pedir_loja_overlay.html" %}
 {% include "produtos/partials/pdv/transf_forcada_overlay.html" %}
@@ -5540,6 +5542,8 @@ window.AGRO_ETQ_CFG = window.AGRO_ETQ_CFG || {
 <script src="{% static 'produtos/js/pdv_rapidos.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
 <script src="{% static 'produtos/js/pdv_topbar_mais.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
 <script src="{% static 'produtos/js/pdv_topbar_whatsapp.js' %}?v={{ agro_pdv_assets_v|default:'1' }}-wa2"></script>
+{% include "produtos/_js_busca_produto_inteligente.html" %}
+<script src="{% static 'produtos/js/pdv_etiquetas_pedido.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
 <script src="{% static 'produtos/js/pdv_topbar_layout.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
 <script src="{% static 'produtos/js/pdv_uso_loja.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
 <script src="{% static 'produtos/js/pdv_pedir_loja.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
