@@ -76,6 +76,9 @@
   function gmDe(p) {
     return String((p && (p.codigo_nfe || p.codigo)) || '').trim() || '—';
   }
+  function marcaDe(p) {
+    return String((p && p.marca) || '').trim() || '—';
+  }
   function precoDe(p) {
     if (!p) return 0;
     if (p.preco_venda != null && p.preco_venda !== '') return p.preco_venda;
@@ -96,10 +99,11 @@
       return;
     }
     if (!keepSel || selIndex < 0 || selIndex >= cap) selIndex = 0;
-    var head = '<thead><tr class="etq-head"><th>Produto</th><th>GM</th><th>Preço</th></tr></thead>';
+    var head = '<thead><tr class="etq-head"><th>Produto</th><th>Marca</th><th>GM</th><th>Preço</th></tr></thead>';
     var body = '<tbody>' + lastRows.slice(0, cap).map(function (p, i) {
       return '<tr role="option" class="etq-row' + (i === selIndex ? ' etq-sel' : '') + '" data-id="' + esc(p.id) + '" data-idx="' + i + '" aria-selected="' + (i === selIndex ? 'true' : 'false') + '">' +
         '<td class="etq-nome">' + esc(p.nome || 'Sem nome') + '</td>' +
+        '<td class="etq-marca">' + esc(marcaDe(p)) + '</td>' +
         '<td class="etq-gm">' + esc(gmDe(p)) + '</td>' +
         '<td class="etq-preco">' + esc(money(precoDe(p))) + '</td></tr>';
     }).join('') + '</tbody>';
