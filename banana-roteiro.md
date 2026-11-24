@@ -4,7 +4,7 @@
 
 **Renan:** anexe `@banana-roteiro` (ou só descreva a tarefa — a rule Cursor já puxa este arquivo).
 
-**Pacote armado (24/11):** **v27.26.95** · **NF-PRECO-PACOTE** + **PDV-ETQ-PEDIDO** · script pronto · **não enviado**. Sem migrate. Loja segue **v27.26.86** @ `a7fa0150`. Na pausa: `./scripts/cutover_loja_checklist_2411_preco_etq.sh --exec`. Volta: `git push origin a7fa0150:producao`.
+**Loja (24/11):** **NF-PRECO-PACOTE** + **PDV-ETQ-PEDIDO** enviados · **v27.26.95** @ `5a6d514f`. Sem migrate. Até o build, no ar segue **v27.26.86** @ `a7fa0150`. Volta: `git push origin a7fa0150:producao`.
 
 **Loja (23/11):** os três enviados · **v27.26.86** @ `a7fa0150`. Troca de preço, aba 10 e barras do cartão. Tabela nova no build. Até o build, no ar segue **v27.26.85** @ `b45d9cbc`. Volta: `git push origin b45d9cbc:producao`.
 
