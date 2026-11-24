@@ -143,8 +143,8 @@
     var head = '<thead><tr class="etq-head"><th>Produto</th><th>Marca</th><th>GM</th><th>Preço</th></tr></thead>';
     var body = '<tbody>' + lastRows.slice(0, cap).map(function (p, i) {
       var nome = String(p.nome || 'Sem nome');
-      return '<tr role="option" class="etq-row' + (i === selIndex ? ' etq-sel' : '') + '" data-id="' + esc(p.id) + '" data-idx="' + i + '" title="' + esc(nome) + '" aria-selected="' + (i === selIndex ? 'true' : 'false') + '">' +
-        '<td class="etq-nome">' + esc(nome) + '</td>' +
+      return '<tr role="option" class="etq-row' + (i === selIndex ? ' etq-sel' : '') + '" data-id="' + esc(p.id) + '" data-idx="' + i + '" aria-selected="' + (i === selIndex ? 'true' : 'false') + '">' +
+        '<td class="etq-nome"><span class="etq-nome-txt">' + esc(nome) + '</span></td>' +
         '<td class="etq-marca">' + esc(marcaDe(p)) + '</td>' +
         '<td class="etq-gm">' + esc(gmDe(p)) + '</td>' +
         '<td class="etq-preco">' + esc(money(precoDe(p))) + '</td></tr>';

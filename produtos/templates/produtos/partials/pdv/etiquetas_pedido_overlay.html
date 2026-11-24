@@ -71,7 +71,16 @@
     box-shadow: inset 4px 0 0 #059669;
   }
   #pdv-etq-pedido-lista .etq-row td.etq-nome { font-size: 1.55rem; }
-  #pdv-etq-pedido-lista .etq-nome,
+  #pdv-etq-pedido-lista .etq-nome-txt {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    white-space: normal;
+    line-height: 1.25;
+    font-weight: 900;
+    color: #0f172a;
+  }
   #pdv-etq-pedido-lista .etq-marca {
     overflow: hidden;
     text-overflow: ellipsis;
