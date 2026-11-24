@@ -15,7 +15,6 @@
   var statusEl = document.getElementById('pdv-etq-pedido-status');
   var btnEnviar = document.getElementById('pdv-etq-pedido-enviar');
   var semEl = document.getElementById('pdv-etq-pedido-sem');
-  var nomeCheioEl = document.getElementById('pdv-etq-pedido-nome-cheio');
   if (!overlay || !btn || !busca) return;
 
   var base = [];
@@ -127,22 +126,10 @@
     if (p.preco != null && p.preco !== '') return p.preco;
     return 0;
   }
-  function mostrarNomeCheio(nome) {
-    var t = String(nome || '').trim();
-    if (!nomeCheioEl) return;
-    if (!t) {
-      nomeCheioEl.textContent = '';
-      nomeCheioEl.classList.add('hidden');
-      return;
-    }
-    nomeCheioEl.textContent = t;
-    nomeCheioEl.classList.remove('hidden');
-  }
   function aviso(html) {
     lastRows = [];
     selIndex = 0;
     lista.innerHTML = html;
-    mostrarNomeCheio('');
   }
   function renderLista(rows, keepSel) {
     lastRows = rows || [];
@@ -166,8 +153,6 @@
     lista.innerHTML = '<table class="etq-tabela">' + head + body + '</table>' + mais;
     var sel = lista.querySelector('.etq-sel');
     if (sel && sel.scrollIntoView) sel.scrollIntoView({ block: 'nearest' });
-    var escolhido = lastRows[selIndex];
-    mostrarNomeCheio(escolhido && escolhido.nome);
   }
   function mover(delta) {
     var cap = Math.min(lastRows.length, 40);
@@ -332,15 +317,6 @@
       busca.value = '';
       aviso('<p class="py-6 text-center text-sm font-bold text-slate-500">Entrou no pedido. Pode buscar o próximo.</p>');
     }
-  });
-  lista.addEventListener('mouseover', function (ev) {
-    var b = ev.target.closest ? ev.target.closest('tr[data-idx]') : null;
-    if (!b) return;
-    mostrarNomeCheio(b.getAttribute('title'));
-  });
-  lista.addEventListener('mouseleave', function () {
-    var escolhido = lastRows[selIndex];
-    mostrarNomeCheio(escolhido && escolhido.nome);
   });
   lista.addEventListener('click', function (ev) {
     var b = ev.target.closest ? ev.target.closest('[data-id]') : null;
