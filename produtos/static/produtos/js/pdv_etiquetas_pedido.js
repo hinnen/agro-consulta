@@ -96,15 +96,15 @@
       return;
     }
     if (!keepSel || selIndex < 0 || selIndex >= cap) selIndex = 0;
-    var head = '<div class="etq-head" aria-hidden="true"><span>Produto</span><span>GM</span><span>Preço</span></div>';
-    var body = lastRows.slice(0, cap).map(function (p, i) {
-      return '<button type="button" role="option" class="etq-row' + (i === selIndex ? ' etq-sel' : '') + '" data-id="' + esc(p.id) + '" data-idx="' + i + '" aria-selected="' + (i === selIndex ? 'true' : 'false') + '">' +
-        '<span class="etq-nome">' + esc(p.nome || 'Sem nome') + '</span>' +
-        '<span class="etq-gm">' + esc(gmDe(p)) + '</span>' +
-        '<span class="etq-preco">' + esc(money(precoDe(p))) + '</span></button>';
-    }).join('');
+    var head = '<thead><tr class="etq-head"><th>Produto</th><th>GM</th><th>Preço</th></tr></thead>';
+    var body = '<tbody>' + lastRows.slice(0, cap).map(function (p, i) {
+      return '<tr role="option" class="etq-row' + (i === selIndex ? ' etq-sel' : '') + '" data-id="' + esc(p.id) + '" data-idx="' + i + '" aria-selected="' + (i === selIndex ? 'true' : 'false') + '">' +
+        '<td class="etq-nome">' + esc(p.nome || 'Sem nome') + '</td>' +
+        '<td class="etq-gm">' + esc(gmDe(p)) + '</td>' +
+        '<td class="etq-preco">' + esc(money(precoDe(p))) + '</td></tr>';
+    }).join('') + '</tbody>';
     var mais = rows.length > 40 ? '<p class="py-2 text-center text-xs font-black text-sky-800">Refine a busca</p>' : '';
-    lista.innerHTML = head + body + mais;
+    lista.innerHTML = '<table class="etq-tabela">' + head + body + '</table>' + mais;
     var sel = lista.querySelector('.etq-sel');
     if (sel && sel.scrollIntoView) sel.scrollIntoView({ block: 'nearest' });
   }

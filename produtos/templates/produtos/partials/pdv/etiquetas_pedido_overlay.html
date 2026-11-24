@@ -23,45 +23,45 @@
   </div>
 </div>
 <style>
-  #pdv-etq-pedido-lista .etq-head,
-  #pdv-etq-pedido-lista .etq-row {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 9.5rem 8.5rem;
-    column-gap: 0.75rem;
-    align-items: center;
-    padding: 0.55rem 0.75rem;
+  #pdv-etq-pedido-lista .etq-tabela {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
   }
-  #pdv-etq-pedido-lista .etq-head {
+  #pdv-etq-pedido-lista .etq-tabela th:nth-child(1),
+  #pdv-etq-pedido-lista .etq-tabela td:nth-child(1) { width: auto; text-align: left; }
+  #pdv-etq-pedido-lista .etq-tabela th:nth-child(2),
+  #pdv-etq-pedido-lista .etq-tabela td:nth-child(2) { width: 11rem; text-align: left; }
+  #pdv-etq-pedido-lista .etq-tabela th:nth-child(3),
+  #pdv-etq-pedido-lista .etq-tabela td:nth-child(3) { width: 8.5rem; text-align: right; }
+  #pdv-etq-pedido-lista .etq-head th {
     position: sticky;
     top: 0;
     z-index: 1;
     background: #e0f2fe;
     border-bottom: 2px solid #0284c7;
+    padding: 0.45rem 0.75rem;
     font-size: 0.72rem;
     font-weight: 900;
     letter-spacing: 0.06em;
     text-transform: uppercase;
     color: #0c4a6e;
   }
-  #pdv-etq-pedido-lista .etq-head span:nth-child(2),
-  #pdv-etq-pedido-lista .etq-head span:nth-child(3),
-  #pdv-etq-pedido-lista .etq-gm,
-  #pdv-etq-pedido-lista .etq-preco { text-align: right; }
-  #pdv-etq-pedido-lista .etq-row {
-    width: 100%;
-    border: 0;
+  #pdv-etq-pedido-lista .etq-row td {
+    padding: 0.55rem 0.75rem;
     border-bottom: 1px solid #e2e8f0;
+    vertical-align: middle;
     background: #fff;
-    text-align: left;
     cursor: pointer;
   }
-  #pdv-etq-pedido-lista .etq-row:hover,
-  #pdv-etq-pedido-lista .etq-row.etq-sel {
+  #pdv-etq-pedido-lista .etq-row:hover td,
+  #pdv-etq-pedido-lista .etq-row.etq-sel td {
     background: #bfdbfe;
+  }
+  #pdv-etq-pedido-lista .etq-row.etq-sel td:first-child {
     box-shadow: inset 4px 0 0 #059669;
   }
   #pdv-etq-pedido-lista .etq-nome {
-    min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
