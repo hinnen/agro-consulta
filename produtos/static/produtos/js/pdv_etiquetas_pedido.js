@@ -109,10 +109,10 @@
     renderSacola();
     setStatus('No pedido: ' + (prod.nome || id));
   }
-  function money(v) {
+  function moneyNum(v) {
     var n = Number(v);
     if (!isFinite(n)) n = 0;
-    return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    return n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
   function gmDe(p) {
     return String((p && (p.codigo_nfe || p.codigo)) || '').trim() || '—';
@@ -147,7 +147,7 @@
         '<td class="etq-nome"><span class="etq-nome-txt">' + esc(nome) + '</span></td>' +
         '<td class="etq-marca">' + esc(marcaDe(p)) + '</td>' +
         '<td class="etq-gm">' + esc(gmDe(p)) + '</td>' +
-        '<td class="etq-preco">' + esc(money(precoDe(p))) + '</td></tr>';
+        '<td class="etq-preco"><span class="etq-preco-linha"><span class="etq-rs">R$</span><span class="etq-val">' + esc(moneyNum(precoDe(p))) + '</span></span></td></tr>';
     }).join('') + '</tbody>';
     var mais = rows.length > 40 ? '<p class="py-2 text-center text-xs font-black text-sky-800">Refine a busca</p>' : '';
     lista.innerHTML = '<table class="etq-tabela">' + head + body + '</table>' + mais;
