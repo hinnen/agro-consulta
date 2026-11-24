@@ -1695,6 +1695,14 @@ Até o build, no ar segue v27.26.53 @ `af7af8cc`. Volta: `git push origin rollba
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### CHECKLIST ÚNICO — **24/11b** · 🟢 pronto para envio à produção · **v27.26.96**
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **PDV-ETQ-CENTRO** | 🟢 Pronto | **NÃO** |
+
+Na impressão, o mesmo botão **Solicitações** separa **Loja do Centro** e **Demais**. Pedido do PDV do Centro entra em cima. Celular e Vila ficam embaixo. Não sobe sem frase + senha.
+
 ### CHECKLIST ÚNICO — **24/11** · ✅ enviado · **v27.26.95** @ `5a6d514f`
 
 | # | Pacote | Status | Migrate |
