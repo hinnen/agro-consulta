@@ -626,7 +626,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - PrÃ©-visualizaÃ§Ã£o XML: modal drag-and-drop, nÃ£o fecha ao clicar fora; Â«Confirmar na gradeÂ» aplica de fato.
 - **Busca produtos etapa 2 (16/07 Â· loja v8.69):** BCA `/api/buscar/` igual cadastro/PDV â€” famÃ­lia GM completa (complemento Mongo); nÃ£o desligar Mongo no `entrada_nfe=1`.
 - **Barras secundárias (24/08 · teste v17.85):** «Mudar»/busca casa `index_codigos` / opcionais — não só o EAN principal.
-- **AcrÃ©scimos no custo (14/07 Â· loja v8.43):** checkbox Â«Incluir no custo os acrÃ©scimos da notaÂ» (etapa 2) â€” rateia frete+ST+seguro+outras+IPIâˆ’desconto no custo unitÃ¡rio proporcional ao `vProd`; mark/desmarca recalcula sem reupload. Nota sem esses totais = noop.
+- **Acréscimos no custo (14/07 · loja v8.43 · correção 24/11 `NF-PRECO-PACOTE`):** checkbox rateia frete+ST no custo. Un/emb maior que 1 guarda o preço do pacote; reabrir a nota ou marcar o checkbox não multiplica de novo.
 - **Mudar produto (21/07):** trocar vÃ­nculo no Â«MudarÂ» **nÃ£o** troca o V. unit da NF (nem o rateio); sÃ³ cadastro/P.venda. Linha manual sem base NF ainda puxa custo do cadastro.
 - **Nova nota (21/07):** botÃ£o Â«NovaÂ» zera XML/cabeÃ§alho/financeiro/rateio â€” nÃ£o herda a nota anterior (autosave tambÃ©m).
 - **HistÃ³rico C1â€“C3 + NF (18/07):** C1â€“C3 = sÃ³ compras **anteriores**; a NF aberta **nÃ£o** entra (evitava parecer 2 notas: data entrada vs emissÃ£o).
@@ -1694,6 +1694,10 @@ Até o build, no ar segue v27.26.53 @ `af7af8cc`. Volta: `git push origin rollba
 | 1 | **AJUSTE-QTD-BIP** | 🟢 Pronto | **NÃO** | alterar **6→5** depois soma **7** · −10/+10 só no item da vez |
 
 ## CHECKPOINT DE ATUALIZAÇÃO
+
+### NF-PRECO-PACOTE — **24/11** · em `teste` · não foi para a loja
+
+Entrada de nota, etapa 2. Pacote com mais de uma unidade (Un/emb) mudava sozinho ao reabrir no dia seguinte, ou ao marcar **Incluir acréscimos no custo**. O preço do pacote era tratado de novo como preço da unidade e multiplicado outra vez. Sem migrate. Não foi para a loja.
 
 ### PDV-ETQ-PEDIDO — **24/11** · em `teste` · não foi para a loja
 
