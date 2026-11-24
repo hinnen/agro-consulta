@@ -1695,7 +1695,7 @@ Até o build, no ar segue v27.26.53 @ `af7af8cc`. Volta: `git push origin rollba
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### CHECKLIST ÚNICO — **24/11b** · 🟢 pronto para envio à produção · **v27.26.96**
+### CHECKLIST ÚNICO — **24/11b** · 🟢 pronto para envio à produção · **v27.26.97**
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |

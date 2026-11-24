@@ -206,8 +206,12 @@
   }
   function lojaPdv() {
     try {
-      if (typeof depositoPdvAtivo === 'function' && depositoPdvAtivo() === 'vila') return 'vila';
+      if (String(localStorage.getItem('agro_pdv_loja_id') || '') === '2') return 'vila';
     } catch (e) {}
+    try {
+      var m = document.cookie.match(/(?:^|; )agro_pdv_deposito=([^;]*)/);
+      if (m && decodeURIComponent(m[1]).toLowerCase() === 'vila') return 'vila';
+    } catch (e2) {}
     return 'centro';
   }
   async function enviar(itens) {

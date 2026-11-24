@@ -4,7 +4,7 @@
 
 **Renan:** anexe `@banana-roteiro` (ou só descreva a tarefa — a rule Cursor já puxa este arquivo).
 
-**Pacote pronto (24/11b):** **v27.26.96** · **PDV-ETQ-CENTRO** · pronto para envio · sem migrate. Separa Centro e demais na janela Solicitações. Loja enviada segue **v27.26.95** @ `5a6d514f` até o build; antes disso no ar segue **v27.26.86**.
+**Pacote pronto (24/11b):** **v27.26.97** · **PDV-ETQ-CENTRO** · pronto para envio · sem migrate. Separa Centro e demais. Pedido da Vila não entra no Centro.
 
 **Loja (24/11):** **NF-PRECO-PACOTE** + **PDV-ETQ-PEDIDO** enviados · **v27.26.95** @ `5a6d514f`. Sem migrate. Até o build, no ar segue **v27.26.86** @ `a7fa0150`. Volta: `git push origin a7fa0150:producao`.
 
