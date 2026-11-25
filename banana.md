@@ -1695,6 +1695,10 @@ Até o build, no ar segue v27.26.53 @ `af7af8cc`. Volta: `git push origin rollba
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### CHECKLIST — **CAD-COD-FORN-MANUAL** · 25/11 · no `teste` · sem migrate
+
+Aba Fiscal do cadastro: o campo da nota continua. Entrou **Cód. fornecedor (manual)** — a nota não mexe nele. Excel ↓/↑ dos produtos cadastrados: coluna **Cód. fornecedor manual** (célula vazia não apaga; «-» apaga). Próximo «Ler XML» também acha por esse código. **Não** foi para a loja.
+
 ### CHECKLIST ÚNICO — **24/11b** · 🟢 pronto para envio à produção · **v27.26.97**
 
 | # | Pacote | Status | Migrate |

@@ -3314,6 +3314,10 @@ def _api_produtos_gestao_overlay_salvar_core(request):
             if al_cp:
                 c_prod_nf_payload = al_cp
                 overlay_cadastro_extras_adicionar_c_prod_nf(ex, raw_cp)
+    if "codigo_fornecedor_manual" in payload:
+        from produtos.mongo_index_codigos import definir_codigo_fornecedor_manual_em_extras
+
+        definir_codigo_fornecedor_manual_em_extras(ex, payload.get("codigo_fornecedor_manual"))
     from produtos.medicamento_vet_taxonomia import (
         aplicar_palavras_e_classes_em_extras,
         sincronizar_busca_agro_no_mongo,

@@ -57,6 +57,7 @@ _CAMPOS_EXTRAS: list[tuple[str, str]] = [
     ("especies_vet", "Espécies"),
     ("ean_embalagem_nf", "EAN embalagem NF"),
     ("c_prods_nf", "Cód. produto na NF"),
+    ("codigo_fornecedor_manual", "Cód. fornecedor (manual)"),
     ("c_prod_nf", "Cód. produto na NF"),
     ("codigos_barras_opcionais", "Barras opcionais"),
     ("custo_familia", "Custo do saco (família)"),
@@ -151,8 +152,14 @@ def snapshot_overlay(ov) -> dict[str, Any]:
     out["classes_vet"] = ex.get("classes_vet") if isinstance(ex.get("classes_vet"), list) else None
     out["especies_vet"] = ex.get("especies_vet") if isinstance(ex.get("especies_vet"), list) else None
     out["ean_embalagem_nf"] = ex.get("entrada_nfe_ean_embalagem") or ""
-    from produtos.mongo_index_codigos import _c_prods_nf_de_cadastro_extras
+    from produtos.mongo_index_codigos import (
+        _c_prods_nf_de_cadastro_extras,
+        texto_codigos_fornecedor_manual,
+    )
 
+    out["codigo_fornecedor_manual"] = texto_codigos_fornecedor_manual(
+        ex.get("codigo_fornecedor_manual")
+    )
     out["c_prod_nf"] = ", ".join(_c_prods_nf_de_cadastro_extras(ex))
     _cps = ex.get("entrada_nfe_c_prods")
     if isinstance(_cps, list) and _cps:
