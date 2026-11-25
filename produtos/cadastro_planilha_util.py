@@ -33,6 +33,7 @@ COL_SUBCATEGORIA_2 = "subcategoria_2"
 COL_SUBCATEGORIA_3 = "subcategoria_3"
 COL_SUBCATEGORIA_4 = "subcategoria_4"
 COL_CODIGO_BARRAS = "codigo_barras"
+COL_COD_FORN_MANUAL = "codigo_fornecedor_manual"
 COL_PRECO_CUSTO = "preco_custo"
 COL_PRECO_VENDA = "preco_venda"
 
@@ -103,6 +104,7 @@ EXPORT_HEADERS: list[tuple[str, str]] = [
     ("Modelo", COL_MODELO),
     ("Peso", COL_PESO),
     ("Código barras", COL_CODIGO_BARRAS),
+    ("Cód. fornecedor manual", COL_COD_FORN_MANUAL),
     ("Preço custo", COL_PRECO_CUSTO),
     ("Preço venda", COL_PRECO_VENDA),
     ("Med palavras-chave", COL_MED_PALAVRAS),
@@ -131,6 +133,7 @@ _COLS_TEXTO_EXCEL = frozenset(
         COL_ID,
         COL_CODIGO_GM,
         COL_CODIGO_BARRAS,
+        COL_COD_FORN_MANUAL,
         COL_UNIDADE,
         COL_MODELO,
         COL_PESO,
@@ -164,6 +167,7 @@ _MAX_TXT_IMPORT = {
     COL_NOME: 300,
     COL_CODIGO_GM: 64,
     COL_CODIGO_BARRAS: 80,
+    COL_COD_FORN_MANUAL: 240,
     COL_CATEGORIA: 200,
     COL_SUBCATEGORIA: 200,
     COL_SUBCATEGORIA_2: 200,
@@ -496,6 +500,7 @@ IMPORT_KEYS = {
     COL_SUBCATEGORIA_3,
     COL_SUBCATEGORIA_4,
     COL_CODIGO_BARRAS,
+    COL_COD_FORN_MANUAL,
     COL_PRECO_CUSTO,
     COL_PRECO_VENDA,
     *DELIVERY_IMPORT_KEYS,
@@ -515,6 +520,7 @@ OVERLAY_IMPORT_KEYS = (
     COL_SUBCATEGORIA_3,
     COL_SUBCATEGORIA_4,
     COL_CODIGO_BARRAS,
+    COL_COD_FORN_MANUAL,
     COL_PRECO_VENDA,
     *DELIVERY_IMPORT_KEYS,
 )
@@ -544,6 +550,10 @@ def _ler_overlay_import_campo(ov: ProdutoGestaoOverlayAgro | None, key: str):
         return str(val) if val is not None else None
     if key == COL_MODELO:
         return str(_extras_dict(ov).get("modelo") or "")
+    if key == COL_COD_FORN_MANUAL:
+        from produtos.mongo_index_codigos import texto_codigos_fornecedor_manual
+
+        return texto_codigos_fornecedor_manual(_extras_dict(ov).get(COL_COD_FORN_MANUAL))
     if key in DELIVERY_IMPORT_KEYS:
         return _delivery_planilha_de_ov(ov).get(key, "")
     return str(getattr(ov, _overlay_model_field(key), "") or "")
@@ -563,6 +573,13 @@ def _gravar_overlay_import_campo(ov: ProdutoGestaoOverlayAgro, key: str, val) ->
             ex["modelo"] = s
         else:
             ex.pop("modelo", None)
+        ov.cadastro_extras = ex
+        return
+    if key == COL_COD_FORN_MANUAL:
+        from produtos.mongo_index_codigos import definir_codigo_fornecedor_manual_em_extras
+
+        ex = _extras_dict(ov)
+        definir_codigo_fornecedor_manual_em_extras(ex, val)
         ov.cadastro_extras = ex
         return
     if key in DELIVERY_IMPORT_KEYS:
@@ -836,6 +853,16 @@ def _enriquecer_row_med_planilha(
     row["especies_vet"] = [
         s.strip() for s in fields[COL_MED_ESPECIES].split(",") if s.strip()
     ]
+
+
+def _enriquecer_rows_cod_forn_manual(rows: list[dict], ovs: dict) -> None:
+    from produtos.mongo_index_codigos import texto_codigos_fornecedor_manual
+
+    for r in rows:
+        pid = str(r.get("id") or "")
+        ov = ovs.get(pid)
+        ex = _extras_dict(ov)
+        r[COL_COD_FORN_MANUAL] = texto_codigos_fornecedor_manual(ex.get(COL_COD_FORN_MANUAL))
 
 
 def _enriquecer_rows_med_batch(rows: list[dict], ovs: dict) -> None:
@@ -1147,6 +1174,10 @@ def _valor_atual_campo_import(atual: dict, key: str):
         return str(atual.get(key) or "").strip()
     if key == COL_MED_PALAVRAS:
         return str(atual.get("palavras_chave") or atual.get(key) or "").strip()
+    if key == COL_COD_FORN_MANUAL:
+        from produtos.mongo_index_codigos import texto_codigos_fornecedor_manual
+
+        return texto_codigos_fornecedor_manual(atual.get(key))
     return str(atual.get(key) or "").strip()
 
 
@@ -1174,6 +1205,13 @@ def _map_headers(headers: list[str]) -> dict[str, str | None]:
         COL_MODELO: ("modelo",),
         COL_PESO: ("peso", "peso etiqueta", "peso gondola"),
         COL_CODIGO_BARRAS: ("codigo barras", "codigo de barras", "ean", "barras", "cb"),
+        COL_COD_FORN_MANUAL: (
+            "cod. fornecedor manual",
+            "cod fornecedor manual",
+            "codigo fornecedor manual",
+            "código fornecedor manual",
+            "codigo_fornecedor_manual",
+        ),
         COL_PRECO_CUSTO: ("preco custo", "preço custo", "custo", "custo unitario", "custo unitário"),
         COL_PRECO_VENDA: ("preco venda", "preço venda", "venda", "preco de venda", "preço de venda"),
         COL_DEL_ATIVO: ("delivery ativo", "catalogo ativo", "catálogo ativo", "ativo delivery"),
@@ -1454,6 +1492,7 @@ def coletar_linhas_export_cadastro(
                 rows.append(r)
             _enriquecer_rows_delivery_batch(chunk, ovs)
             _enriquecer_rows_med_batch(chunk, ovs)
+            _enriquecer_rows_cod_forn_manual(chunk, ovs)
             if not has_more:
                 break
             pagina += 1
@@ -1481,6 +1520,7 @@ def coletar_linhas_export_cadastro(
         _aplicar_produto_gestao_overlay_em_dict(r, ovs.get(str(r.get("id") or "")))
     _enriquecer_rows_delivery_batch(rows, ovs)
     _enriquecer_rows_med_batch(rows, ovs)
+    _enriquecer_rows_cod_forn_manual(rows, ovs)
     rows = _filtrar_rows_categorias(rows, categorias or [])
     return rows, truncado
 
@@ -1538,6 +1578,7 @@ def linha_export_planilha(row: dict) -> dict[str, Any]:
         COL_MODELO: str(row.get("modelo") or ""),
         COL_PESO: str(row.get("peso_etiqueta") or ""),
         COL_CODIGO_BARRAS: str(row.get("codigo_barras") or ""),
+        COL_COD_FORN_MANUAL: str(row.get(COL_COD_FORN_MANUAL) or ""),
         COL_PRECO_CUSTO: float(row.get("preco_custo") or 0),
         COL_PRECO_VENDA: float(row.get("preco_venda") or 0),
     }
@@ -1749,6 +1790,7 @@ def _mapa_estado_atual_produtos(
         out[pid] = row
     _enriquecer_rows_delivery_batch(list(out.values()), ovs)
     _enriquecer_rows_med_batch(list(out.values()), ovs)
+    _enriquecer_rows_cod_forn_manual(list(out.values()), ovs)
     return out
 
 
@@ -1788,6 +1830,7 @@ def _patch_da_linha(raw: dict, colmap: dict[str, str | None]) -> dict[str, Any]:
     txt(COL_SUBCATEGORIA_3, 200)
     txt(COL_SUBCATEGORIA_4, 200)
     txt(COL_CODIGO_BARRAS, 80)
+    txt(COL_COD_FORN_MANUAL, 240)
     dec(COL_PRECO_CUSTO)
     dec(COL_PRECO_VENDA)
     txt(COL_MED_PALAVRAS, _max_txt_import(COL_MED_PALAVRAS))
@@ -1888,6 +1931,11 @@ def _tem_alteracao(atual: dict, patch: dict) -> bool:
                 return True
         elif k == COL_MED_PALAVRAS:
             if _valor_atual_campo_import(atual, k) != str(patch[k] or "").strip():
+                return True
+        elif k == COL_COD_FORN_MANUAL:
+            if _valor_atual_campo_import(atual, k) != _valor_atual_campo_import(
+                {k: patch[k]}, k
+            ):
                 return True
         elif _valor_atual_campo_import(atual, k) != str(patch[k] or "").strip():
             return True
