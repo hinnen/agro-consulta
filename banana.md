@@ -1705,6 +1705,14 @@ Enviado em cima da **v27.26.98**. Sem tabela nova. Não mexe em PDV, caixa nem v
 
 Na planilha de produtos, célula igual ao cadastro não conta como alteração. Vale para qualquer arquivo. Maiúscula diferente também não.
 
+### CHECKLIST ÚNICO — **25/11d** · 🟢 pronto para envio · **BUSCA-CADASTRO**
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **BUSCA-CADASTRO** | 🟢 Pronto | **NÃO** |
+
+Na tela de gestão de produtos, código do fornecedor com 4 dígitos ou mais passa a buscar. Antes a tela esperava 8 dígitos e nem consultava. PDV e entrada de nota já acham. Sem tabela nova. Não sobe sem frase + senha.
+
 ### CHECKLIST ÚNICO — **25/11c** · ✅ enviado · **v27.26.100** @ `fe7ff673`
 
 | # | Pacote | Status | Migrate |
@@ -1713,7 +1721,7 @@ Na planilha de produtos, célula igual ao cadastro não conta como alteração. 
 
 No ar, em cima da **v27.26.99**. Sem tabela nova. Não muda preço, venda, caixa nem estoque. O Git chegou e o painel não construiu; o build foi disparado e ficou **Live**. **Volta:** `git push origin 3143bbb8:producao`.
 
-O código do fornecedor (o da nota e o digitado) acha o produto na busca do cadastro e da entrada de nota. Frase com espaço não entra.
+O código do fornecedor (o da nota e o digitado) acha o produto no PDV e na entrada de nota. A tela de gestão de produtos ainda esperava 8 dígitos.
 
 ### CHECKLIST ÚNICO — **25/11** · ✅ enviado · **v27.26.98** @ `d6b22afb`
 
