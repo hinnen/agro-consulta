@@ -1695,15 +1695,15 @@ Até o build, no ar segue v27.26.53 @ `af7af8cc`. Volta: `git push origin rollba
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### CHECKLIST ÚNICO — **25/11b** · 🟢 corte armado · **v27.26.99**
+### CHECKLIST ÚNICO — **25/11b** · ✅ enviado · **v27.26.99** @ `3143bbb8`
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **PLANILHA-IGUAL** | 🟢 Pronto · corte armado | **NÃO** |
+| 1 | **PLANILHA-IGUAL** | ✅ enviado | **NÃO** |
 
-Na planilha de produtos, célula igual ao cadastro não conta como alteração. Vale para qualquer arquivo. Maiúscula diferente também não. Não mexe em PDV, caixa nem venda. Em cima da loja **v27.26.98** @ `d6b22afb`.
+Enviado em cima da **v27.26.98**. Sem tabela nova. Não mexe em PDV, caixa nem venda. Até o build terminar, a loja segue o que já estava no ar. **Volta:** `git push origin d6b22afb:producao`.
 
-**Na senha, vendas pausadas:** `./scripts/cutover_loja_checklist_2511b.sh --exec`. **Volta:** `git push origin d6b22afb:producao`.
+Na planilha de produtos, célula igual ao cadastro não conta como alteração. Vale para qualquer arquivo. Maiúscula diferente também não.
 
 ### CHECKLIST ÚNICO — **25/11** · ✅ enviado · **v27.26.98** @ `d6b22afb`
 
