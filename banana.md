@@ -1705,13 +1705,15 @@ Enviado em cima da **v27.26.98**. Sem tabela nova. Não mexe em PDV, caixa nem v
 
 Na planilha de produtos, célula igual ao cadastro não conta como alteração. Vale para qualquer arquivo. Maiúscula diferente também não.
 
-### CHECKLIST ÚNICO — **25/11c** · 🟢 pronto para envio · **BUSCA-COD-FORN**
+### CHECKLIST ÚNICO — **25/11c** · 🟢 corte armado · **v27.26.100**
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **BUSCA-COD-FORN** | 🟢 Pronto | **NÃO** |
+| 1 | **BUSCA-COD-FORN** | 🟢 Pronto · corte armado | **NÃO** |
 
-O código do fornecedor (o da nota e o digitado) acha o produto na busca do cadastro e da entrada de nota. Sem tabela nova. Não sobe sem frase + senha.
+O código do fornecedor (o da nota e o digitado) acha o produto na busca do cadastro e da entrada de nota. Frase com espaço não entra. Não muda preço, venda, caixa nem estoque. Em cima da loja **v27.26.99** @ `3143bbb8`.
+
+**Na senha, vendas pausadas:** `./scripts/cutover_loja_checklist_2511c.sh --exec`. **Volta:** `git push origin 3143bbb8:producao`.
 
 ### CHECKLIST ÚNICO — **25/11** · ✅ enviado · **v27.26.98** @ `d6b22afb`
 

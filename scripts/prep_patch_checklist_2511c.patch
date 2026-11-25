@@ -1,0 +1,148 @@
+diff --git a/produtos/cadastro_busca_codigo_util.py b/produtos/cadastro_busca_codigo_util.py
+index ff8c82d3..20f98fb9 100644
+--- a/produtos/cadastro_busca_codigo_util.py
++++ b/produtos/cadastro_busca_codigo_util.py
+@@ -688,6 +688,63 @@ def q_overlay_json_barras_opcionais(digits: str) -> Q | None:
+     return q
+ 
+ 
++def overlay_pids_por_codigo_fornecedor(termo: str, *, limit: int = 80) -> list[str]:
++    """Acha o produto pelo código do fornecedor (digitado ou o que a nota gravou)."""
++    from produtos.models import ProdutoGestaoOverlayAgro
++    from produtos.mongo_index_codigos import normalizar_c_prod_nf_entrada
++
++    termo = (termo or "").strip()
++    if not termo or " " in termo:
++        return []
++    al = normalizar_c_prod_nf_entrada(termo)
++    if not al:
++        return []
++    lim = max(1, min(int(limit or 80), 160))
++    q = Q(cadastro_extras__codigo_fornecedor_manual__contains=[al]) | Q(
++        cadastro_extras__entrada_nfe_c_prods__contains=[al]
++    )
++    out: list[str] = []
++    seen: set[str] = set()
++    try:
++        for pid in (
++            ProdutoGestaoOverlayAgro.objects.filter(q)
++            .order_by("pk")
++            .values_list("produto_externo_id", flat=True)[:lim]
++        ):
++            s = str(pid or "").strip()
++            if s and s not in seen:
++                seen.add(s)
++                out.append(s)
++    except Exception:
++        out.clear()
++        seen.clear()
++    if out:
++        return out
++    try:
++        from produtos.mongo_index_codigos import (
++            codigos_fornecedor_manual_de_cadastro_extras,
++            _c_prods_nf_de_cadastro_extras,
++        )
++
++        qs = ProdutoGestaoOverlayAgro.objects.filter(
++            Q(cadastro_extras__has_key="codigo_fornecedor_manual")
++            | Q(cadastro_extras__has_key="entrada_nfe_c_prods")
++        ).only("produto_externo_id", "cadastro_extras")[:400]
++        for ov in qs:
++            ce = getattr(ov, "cadastro_extras", None)
++            if al not in codigos_fornecedor_manual_de_cadastro_extras(ce) and al not in _c_prods_nf_de_cadastro_extras(ce):
++                continue
++            s = str(ov.produto_externo_id or "").strip()
++            if s and s not in seen:
++                seen.add(s)
++                out.append(s)
++            if len(out) >= lim:
++                break
++    except Exception:
++        return out
++    return out
++
++
+ def overlay_pids_por_codigo(termo: str, *, limit: int = 80) -> list[str]:
+     from produtos.models import ProdutoGestaoOverlayAgro
+     from produtos.mongo_index_codigos import (
+diff --git a/produtos/catalogo_agro.py b/produtos/catalogo_agro.py
+index 0564f778..c6eea6a2 100644
+--- a/produtos/catalogo_agro.py
++++ b/produtos/catalogo_agro.py
+@@ -387,6 +387,17 @@ def buscar(q: str, *, limit: int = 80, inativos: bool = False) -> list[dict]:
+     _dig_plu = re.sub(r"\D", "", termo)
+     # Só PLU 4 dígitos (etiqueta balança) — não reabrir path código p/ qualquer 5 dígitos.
+     _plu_balanca_curto = _dig_plu.isdigit() and len(_dig_plu) == 4
++    if " " not in termo:
++        from produtos.cadastro_busca_codigo_util import overlay_pids_por_codigo_fornecedor
++
++        pids_forn = overlay_pids_por_codigo_fornecedor(termo, limit=lim)
++        if pids_forn:
++            _cadastro_pg_append_unicos(
++                found,
++                seen_pk,
++                qs_produtos_catalogo_por_ids_externos(qs, pids_forn).order_by("nome", "pk")[:lim],
++                lim,
++            )
+     if parece_codigo_cadastro(termo) or _plu_balanca_curto:
+         pids = overlay_pids_por_codigo(termo, limit=lim)
+         if pids:
+diff --git a/produtos/tests_cadastro_planilha_cols.py b/produtos/tests_cadastro_planilha_cols.py
+index d15ef083..3d228928 100644
+--- a/produtos/tests_cadastro_planilha_cols.py
++++ b/produtos/tests_cadastro_planilha_cols.py
+@@ -467,3 +467,53 @@ class UltimosFornecedoresPathTests(SimpleTestCase):
+             return_value=[],
+         ):
+             self.assertEqual(ultimos_fornecedores_por_produto_ids(["999"]), {})
++
++
++class BuscaCodigoFornecedorTests(SimpleTestCase):
++    def test_frase_nao_busca_codigo(self):
++        from produtos.cadastro_busca_codigo_util import overlay_pids_por_codigo_fornecedor
++
++        self.assertEqual(overlay_pids_por_codigo_fornecedor("racao 25kg"), [])
++
++    def test_codigo_curto_e_misto_acham_o_produto(self):
++        from produtos.cadastro_busca_codigo_util import overlay_pids_por_codigo_fornecedor
++
++        chain = MagicMock()
++        chain.order_by.return_value.values_list.return_value.__getitem__.return_value = [
++            "pid-torneira"
++        ]
++        with patch(
++            "produtos.models.ProdutoGestaoOverlayAgro.objects.filter",
++            return_value=chain,
++        ) as chamado:
++            self.assertEqual(overlay_pids_por_codigo_fornecedor("6071"), ["pid-torneira"])
++        q = str(chamado.call_args[0][0])
++        self.assertIn("codigo_fornecedor_manual", q)
++        self.assertIn("entrada_nfe_c_prods", q)
++
++    def test_filtro_da_busca_nao_joga_fora(self):
++        from produtos.busca_filtro_pdv_util import filtrar_documentos_estilo_pdv
++        from produtos.cadastro_busca_codigo_util import index_codigos_de_campos
++
++        ix = index_codigos_de_campos(
++            codigo="GM4592",
++            cadastro_extras={
++                "codigo_fornecedor_manual": ["6071"],
++                "entrada_nfe_c_prods": ["R0151"],
++            },
++        )
++        doc = {
++            "Nome": "torneira plastica",
++            "Codigo": "GM4592",
++            "CodigoNFe": "GM4592",
++            "index_codigos": ix,
++        }
++        for termo in ("6071", "123456", "R0151"):
++            doc_t = dict(doc)
++            if termo == "123456":
++                doc_t["index_codigos"] = index_codigos_de_campos(
++                    codigo="GM4592",
++                    cadastro_extras={"codigo_fornecedor_manual": ["123456"]},
++                )
++            achou = filtrar_documentos_estilo_pdv([doc_t], termo)
++            self.assertEqual(len(achou), 1, termo)
