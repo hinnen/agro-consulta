@@ -1705,6 +1705,14 @@ Enviado em cima da **v27.26.98**. Sem tabela nova. Não mexe em PDV, caixa nem v
 
 Na planilha de produtos, célula igual ao cadastro não conta como alteração. Vale para qualquer arquivo. Maiúscula diferente também não.
 
+### CHECKLIST ÚNICO — **25/11c** · 🟢 pronto para envio · **BUSCA-COD-FORN**
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **BUSCA-COD-FORN** | 🟢 Pronto | **NÃO** |
+
+O código do fornecedor (o da nota e o digitado) acha o produto na busca do cadastro e da entrada de nota. Sem tabela nova. Não sobe sem frase + senha.
+
 ### CHECKLIST ÚNICO — **25/11** · ✅ enviado · **v27.26.98** @ `d6b22afb`
 
 | # | Pacote | Status | Migrate |

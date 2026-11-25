@@ -387,6 +387,17 @@ def buscar(q: str, *, limit: int = 80, inativos: bool = False) -> list[dict]:
     _dig_plu = re.sub(r"\D", "", termo)
     # Só PLU 4 dígitos (etiqueta balança) — não reabrir path código p/ qualquer 5 dígitos.
     _plu_balanca_curto = _dig_plu.isdigit() and len(_dig_plu) == 4
+    if " " not in termo:
+        from produtos.cadastro_busca_codigo_util import overlay_pids_por_codigo_fornecedor
+
+        pids_forn = overlay_pids_por_codigo_fornecedor(termo, limit=lim)
+        if pids_forn:
+            _cadastro_pg_append_unicos(
+                found,
+                seen_pk,
+                qs_produtos_catalogo_por_ids_externos(qs, pids_forn).order_by("nome", "pk")[:lim],
+                lim,
+            )
     if parece_codigo_cadastro(termo) or _plu_balanca_curto:
         pids = overlay_pids_por_codigo(termo, limit=lim)
         if pids:
