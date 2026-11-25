@@ -1695,13 +1695,14 @@ Até o build, no ar segue v27.26.53 @ `af7af8cc`. Volta: `git push origin rollba
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### CHECKLIST ÚNICO — **24/11b** · 🟢 pronto para envio à produção · **v27.26.97**
+### CHECKLIST ÚNICO — **25/11** · 🟢 pronto para envio à produção
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **PDV-ETQ-CENTRO** | 🟢 Pronto | **NÃO** |
+| 1 | **CAD-COD-FORN-MANUAL** | 🟢 Pronto · **v27.26.98** @ `3db34c66` | **NÃO** |
+| 2 | **PDV-ETQ-CENTRO** | 🟢 Pronto · **v27.26.97** | **NÃO** |
 
-Na impressão, o mesmo botão **Solicitações** separa **Loja do Centro** e **Demais**. Pedido do PDV do Centro entra em cima. Celular e Vila ficam embaixo. Não sobe sem frase + senha.
+Código do fornecedor digitado à mão, na aba Fiscal e na planilha dos produtos. O campo da nota não muda. Célula vazia não apaga. Hífen apaga. Etiquetas: Centro separado das demais. Nenhum dos dois está na loja. Não sobe sem frase + senha.
 
 ### CHECKLIST ÚNICO — **24/11** · ✅ enviado · **v27.26.95** @ `5a6d514f`
 
