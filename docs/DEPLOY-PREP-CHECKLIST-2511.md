@@ -9,8 +9,6 @@
 
 Não é merge do `teste`. Venda, caixa e fiado ficam como estão.
 
-**Na senha, com as vendas pausadas:** `./scripts/cutover_loja_checklist_2511.sh --exec`
-
 **Depois do build:** Ctrl+F5. Badge **v27.26.98**.
 
 **Volta:** `git push origin 5a6d514f:producao`

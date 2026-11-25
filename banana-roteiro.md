@@ -4,7 +4,7 @@
 
 **Renan:** anexe `@banana-roteiro` (ou só descreva a tarefa — a rule Cursor já puxa este arquivo).
 
-**Pacote pronto (25/11b):** **PLANILHA-IGUAL** · pronto para envio · sem migrate. Na planilha de produtos, célula igual ao cadastro não vira alteração.
+**Pacote pronto (25/11b):** **PLANILHA-IGUAL** · **v27.26.99** · corte armado · sem migrate. Não enviado. Loja no Git: **v27.26.98** @ `d6b22afb`. Na senha: `./scripts/cutover_loja_checklist_2511b.sh --exec`. Volta: `git push origin d6b22afb:producao`.
 
 **Loja (25/11):** **PDV-ETQ-CENTRO** + **CAD-COD-FORN-MANUAL** enviados · **v27.26.98** @ `d6b22afb`. Sem migrate. Até o build, no ar segue **v27.26.95** @ `5a6d514f`. Volta: `git push origin 5a6d514f:producao`.
 
