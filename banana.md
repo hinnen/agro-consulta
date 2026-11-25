@@ -1711,7 +1711,7 @@ Na planilha de produtos, célula igual ao cadastro não conta como alteração. 
 | - | ------ | ------ | ------- |
 | 1 | **BUSCA-COD-FORN** | ✅ enviado | **NÃO** |
 
-Enviado em cima da **v27.26.99**. Sem tabela nova. Não muda preço, venda, caixa nem estoque. Até o build terminar, a loja segue o que já estava no ar. **Volta:** `git push origin 3143bbb8:producao`.
+No ar, em cima da **v27.26.99**. Sem tabela nova. Não muda preço, venda, caixa nem estoque. O Git chegou e o painel não construiu; o build foi disparado e ficou **Live**. **Volta:** `git push origin 3143bbb8:producao`.
 
 O código do fornecedor (o da nota e o digitado) acha o produto na busca do cadastro e da entrada de nota. Frase com espaço não entra.
 

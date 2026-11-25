@@ -4,7 +4,7 @@
 
 **Renan:** anexe `@banana-roteiro` (ou só descreva a tarefa — a rule Cursor já puxa este arquivo).
 
-**Loja (25/11c):** **BUSCA-COD-FORN** enviada · **v27.26.100** @ `fe7ff673`. Sem migrate. Até o build, no ar segue o que já estava. Volta: `git push origin 3143bbb8:producao`.
+**Loja (25/11c):** **BUSCA-COD-FORN** no ar · **v27.26.100** @ `fe7ff673`. Sem migrate. O Git chegou antes; o build da loja começou depois e ficou **Live**. Volta: `git push origin 3143bbb8:producao`.
 
 **Loja (25/11b):** **PLANILHA-IGUAL** enviada · **v27.26.99** @ `3143bbb8`. Sem migrate. Até o build, no ar segue o que já estava. Volta: `git push origin d6b22afb:producao`.
 
