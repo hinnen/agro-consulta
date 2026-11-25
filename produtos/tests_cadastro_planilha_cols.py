@@ -8,6 +8,7 @@ from django.test import SimpleTestCase
 
 from produtos.cadastro_planilha_util import (
     COL_COD_FORN_MANUAL,
+    COL_MARCA,
     COL_FORN_COMPRA_1,
     COL_FORN_COMPRA_2,
     COL_FORN_COMPRA_3,
@@ -28,6 +29,7 @@ from produtos.cadastro_planilha_util import (
     _map_headers,
     _patch_da_linha,
     _restaurar_produto_pg,
+    _so_celulas_diferentes,
     _tem_alteracao,
     enriquecer_rows_ultimos_fornecedores,
     headers_export,
@@ -164,6 +166,19 @@ class CadastroPlanilhaNovasColunasTests(SimpleTestCase):
         self.assertNotIn(COL_UNIDADE, patch)
         self.assertNotIn(COL_MODELO, patch)
         self.assertEqual(patch[COL_PESO], "15 kg")
+
+    def test_celula_igual_nao_entra_mesmo_com_maiuscula(self):
+        atual = {"unidade": "Un", "marca": "GRAP", "subcategoria_2": "Fechaduras e ferragens"}
+        patch = {
+            COL_UNIDADE: "UN",
+            COL_MARCA: "grap",
+            COL_SUBCATEGORIA_2: "Fechaduras e ferragens",
+        }
+        limpo = _so_celulas_diferentes(atual, patch, dict(patch))
+        self.assertEqual(limpo, {})
+        patch[COL_MARCA] = "OUTRA"
+        limpo = _so_celulas_diferentes(atual, patch, dict(patch))
+        self.assertEqual(limpo, {COL_MARCA: "OUTRA"})
 
     def test_tem_alteracao_iguais_e_diferentes(self):
         atual = {

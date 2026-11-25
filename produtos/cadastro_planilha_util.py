@@ -1917,6 +1917,38 @@ def _validar_merged(row: dict, patch: dict | None = None) -> str | None:
     return None
 
 
+def _celula_ja_igual(atual: dict, key: str, valor_planilha) -> bool:
+    """Célula igual ao que já está salvo não é alteração, mesmo com outra maiúscula."""
+    if key in (COL_PRECO_CUSTO, COL_PRECO_VENDA):
+        try:
+            return round(float(atual.get(key) or 0), 2) == round(float(valor_planilha), 2)
+        except (TypeError, ValueError):
+            return False
+    if key in (COL_MED_CLASSES, COL_MED_ESPECIES):
+        atual_fmt = _valor_atual_campo_import(atual, key)
+        if isinstance(valor_planilha, list):
+            para_fmt = _format_lista_slugs_planilha(valor_planilha)
+        else:
+            para_fmt = str(valor_planilha or "").strip()
+        return _norm_faceta_chave(atual_fmt) == _norm_faceta_chave(para_fmt)
+    return _norm_faceta_chave(_valor_atual_campo_import(atual, key)) == _norm_faceta_chave(
+        valor_planilha
+    )
+
+
+def _so_celulas_diferentes(atual: dict, patch: dict, patch_res: dict) -> dict:
+    """Tira do pacote o que a célula já repetia. Sugestão de nome parecido não regrava."""
+    out: dict[str, Any] = {}
+    for key, valor in patch_res.items():
+        if str(key).startswith("__") or key not in IMPORT_KEYS:
+            continue
+        bruto = patch[key] if key in patch else valor
+        if _celula_ja_igual(atual, key, bruto):
+            continue
+        out[key] = valor
+    return out
+
+
 def _tem_alteracao(atual: dict, patch: dict) -> bool:
     for k in IMPORT_KEYS:
         if k not in patch:
@@ -2020,8 +2052,9 @@ def preview_importacao_cadastro(
             erros.append({"linha": i, "id": pid, "erro": "Produto não encontrado no catálogo."})
             continue
 
+        patch_dif = _so_celulas_diferentes(atual, patch, patch)
         patch_res, evs, _errs_fac = _resolver_facetas_no_patch(
-            patch, facetas, canonicos, permitir_novos=True, linha=i
+            patch_dif, facetas, canonicos, permitir_novos=True, linha=i
         )
         eventos_faceta.extend(evs)
 
@@ -2598,8 +2631,9 @@ def aplicar_importacao_cadastro(
         atual = mapa.get(pid)
         if not atual:
             continue
+        patch_dif = _so_celulas_diferentes(atual, patch, patch)
         patch_res, _evs, errs_fac = _resolver_facetas_no_patch(
-            patch, facetas, canonicos, permitir_novos=permitir_novos, linha=i
+            patch_dif, facetas, canonicos, permitir_novos=permitir_novos, linha=i
         )
         if errs_fac:
             bloqueados_novo += 1

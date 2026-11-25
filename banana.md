@@ -1695,6 +1695,14 @@ Até o build, no ar segue v27.26.53 @ `af7af8cc`. Volta: `git push origin rollba
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### CHECKLIST ÚNICO — **25/11b** · 🟢 pronto para envio à produção
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **PLANILHA-IGUAL** | 🟢 Pronto | **NÃO** |
+
+Na planilha de produtos, célula igual ao cadastro não conta como alteração. Vale para qualquer arquivo. Maiúscula diferente também não. Não sobe sem frase + senha.
+
 ### CHECKLIST ÚNICO — **25/11** · ✅ enviado · **v27.26.98** @ `d6b22afb`
 
 | # | Pacote | Status | Migrate |
