@@ -1695,18 +1695,16 @@ Até o build, no ar segue v27.26.53 @ `af7af8cc`. Volta: `git push origin rollba
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### CHECKLIST ÚNICO — **25/11** · 🟢 pronto para envio à produção
+### CHECKLIST ÚNICO — **25/11** · ✅ enviado · **v27.26.98** @ `d6b22afb`
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **PDV-ETQ-CENTRO** | 🟢 Pronto · corte armado | **NÃO** |
-| 2 | **CAD-COD-FORN-MANUAL** | 🟢 Pronto · corte armado · **v27.26.98** | **NÃO** |
+| 1 | **PDV-ETQ-CENTRO** | ✅ enviado | **NÃO** |
+| 2 | **CAD-COD-FORN-MANUAL** | ✅ enviado | **NÃO** |
 
-Os dois sobem juntos, em cima da loja **v27.26.95** @ `5a6d514f`. Sem tabela nova. Não é merge do `teste`.
+Enviado. Não foi merge do `teste`. Sem tabela nova. Até o build terminar, no ar segue **v27.26.95** @ `5a6d514f`. **Volta:** `git push origin 5a6d514f:producao`.
 
-Etiquetas: **Solicitações** separa Centro e demais. Pedido da Vila não cai no Centro. Cadastro: campo manual na aba Fiscal e na planilha. Célula vazia não apaga. Hífen apaga. O campo da nota não muda. A busca e o próximo Ler XML também acham esse código.
-
-**Na senha, vendas pausadas:** `./scripts/cutover_loja_checklist_2511.sh --exec`. **Volta:** `git push origin 5a6d514f:producao`. Doc: `docs/DEPLOY-PREP-CHECKLIST-2511.md`.
+Etiquetas: **Solicitações** separam Centro e demais. Pedido da Vila não cai no Centro. Cadastro: campo manual na aba Fiscal e na planilha. Célula vazia não apaga. Hífen apaga. O campo da nota não muda. A busca e o próximo Ler XML também acham esse código.
 
 ### CHECKLIST ÚNICO — **24/11** · ✅ enviado · **v27.26.95** @ `5a6d514f`
 

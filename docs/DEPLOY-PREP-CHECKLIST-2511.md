@@ -1,6 +1,6 @@
 # Corte 25/11 — etiquetas do Centro + código do fornecedor manual
 
-**Ainda não enviado.** Loja segue **v27.26.95** @ `5a6d514f`.
+**Enviado** `d6b22afb` (**v27.26.98**). Até o build terminar, no ar segue **v27.26.95** @ `5a6d514f`.
 
 | # | Pacote | O que muda | Tabela nova |
 | - | ------ | ---------- | ----------- |
