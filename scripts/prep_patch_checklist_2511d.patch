@@ -1,0 +1,53 @@
+diff --git a/produtos/static/produtos/js/cadastro_erp_panel.js b/produtos/static/produtos/js/cadastro_erp_panel.js
+index 126c5bcb..2ebfee58 100644
+--- a/produtos/static/produtos/js/cadastro_erp_panel.js
++++ b/produtos/static/produtos/js/cadastro_erp_panel.js
+@@ -1762,7 +1762,7 @@
+     if (pareceEtiquetaGm(q)) return true;
+     var lim = q.replace(/\W/g, '');
+     if (!lim) return false;
+-    if (/^\d+$/.test(lim)) return lim.length >= 8;
++    if (/^\d+$/.test(lim)) return lim.length >= 4;
+     if (/^gm/i.test(lim)) return lim.length >= 5;
+     var temL = /[a-z]/i.test(lim);
+     var temN = /\d/.test(lim);
+@@ -1775,7 +1775,7 @@
+     if (pareceEtiquetaGm(q)) return q.replace(/\W/g, '').length >= 4;
+     var lim = q.replace(/\W/g, '');
+     if (/^gm/i.test(lim) && lim.length < 5) return false;
+-    if (/^\d+$/.test(lim) && lim.length < 8) return false;
++    if (/^\d+$/.test(lim) && lim.length < 4) return false;
+     if (pareceCodigoBusca(q)) return true;
+     return q.length >= 2;
+   }
+@@ -1961,7 +1961,7 @@
+     var qBusca = (buscaEl && buscaEl.value) ? buscaEl.value.trim() : '';
+ 
+     if (qBusca && !buscaProntaParaCatalogo(qBusca)) {
+-      if (metaEl) metaEl.textContent = 'Mín. 2 letras, GM com 5+ caracteres ou barras 8+ dígitos.';
++      if (metaEl) metaEl.textContent = 'Mín. 2 letras, código do fornecedor com 4+ dígitos, GM com 5+ ou barras 8+.';
+       if (listaEl) {
+         listaEl.innerHTML = '<tr><td colspan="' + CADASTRO_LISTA_COLSPAN + '" class="p-6 text-center text-slate-500 font-semibold">Continue digitando para buscar no catálogo.</td></tr>';
+       }
+@@ -2007,7 +2007,7 @@
+       carregarGen++;
+       setLoading(false);
+       mostrarErro('');
+-      if (metaEl) metaEl.textContent = 'Mín. 2 letras, GM com 5+ caracteres ou barras 8+ dígitos.';
++      if (metaEl) metaEl.textContent = 'Mín. 2 letras, código do fornecedor com 4+ dígitos, GM com 5+ ou barras 8+.';
+       if (listaEl) {
+         listaEl.innerHTML = '<tr><td colspan="' + CADASTRO_LISTA_COLSPAN + '" class="p-6 text-center text-slate-500 font-semibold">Continue digitando para buscar no catálogo.</td></tr>';
+       }
+diff --git a/produtos/templates/produtos/produtos_cadastro_erp.html b/produtos/templates/produtos/produtos_cadastro_erp.html
+index c2ac7977..ca9e609b 100644
+--- a/produtos/templates/produtos/produtos_cadastro_erp.html
++++ b/produtos/templates/produtos/produtos_cadastro_erp.html
+@@ -757,7 +757,7 @@
+   <script src="{% static 'produtos/js/agro_print_bridge.js' %}?v=2"></script>
+   <script src="{% static 'produtos/js/produtos_etiquetas_core.js' %}?v=35"></script>
+   <script src="{% static 'produtos/js/agro_busca_catalogo.js' %}?v=2"></script>
+-  <script src="{% static 'produtos/js/cadastro_erp_panel.js' %}?v=31"></script>
++  <script src="{% static 'produtos/js/cadastro_erp_panel.js' %}?v=32"></script>
+   <script src="{% static 'produtos/js/cadastro_erp_grupos.js' %}?v=4"></script>
+ {% include "produtos/_screensaver_pin.html" with sspin_idle_min=5 sspin_gestao=1 %}
+ </body>

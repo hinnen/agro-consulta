@@ -1705,13 +1705,15 @@ Enviado em cima da **v27.26.98**. Sem tabela nova. Não mexe em PDV, caixa nem v
 
 Na planilha de produtos, célula igual ao cadastro não conta como alteração. Vale para qualquer arquivo. Maiúscula diferente também não.
 
-### CHECKLIST ÚNICO — **25/11d** · 🟢 pronto para envio · **BUSCA-CADASTRO**
+### CHECKLIST ÚNICO — **25/11d** · 🟢 corte armado · **v27.26.102**
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **BUSCA-CADASTRO** | 🟢 Pronto | **NÃO** |
+| 1 | **BUSCA-CADASTRO** | 🟢 Pronto · corte armado | **NÃO** |
 
-Na tela de gestão de produtos, código do fornecedor com 4 dígitos ou mais passa a buscar. Antes a tela esperava 8 dígitos e nem consultava. O arquivo da tela muda de versão para o navegador pegar o novo. PDV e entrada de nota já acham. Sem tabela nova. Pacote **v27.26.102**. Não sobe sem frase + senha.
+Na tela de gestão de produtos, código com 4 dígitos ou mais passa a buscar. Antes a tela esperava 8 dígitos e nem consultava. O arquivo da tela muda de versão para o navegador pegar o novo. PDV e entrada de nota já acham. Sem tabela nova. Em cima da loja **v27.26.100** @ `fe7ff673`.
+
+**Na senha, vendas pausadas:** `./scripts/cutover_loja_checklist_2511d.sh --exec`. Se o painel não começar o build, disparar. **Volta:** `git push origin fe7ff673:producao`.
 
 ### CHECKLIST ÚNICO — **25/11c** · ✅ enviado · **v27.26.100** @ `fe7ff673`
 

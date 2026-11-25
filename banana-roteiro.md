@@ -4,7 +4,7 @@
 
 **Renan:** anexe `@banana-roteiro` (ou só descreva a tarefa — a rule Cursor já puxa este arquivo).
 
-**Pacote pronto (25/11d):** **BUSCA-CADASTRO** · pronto para envio · **v27.26.102** · sem migrate. Na gestão de produtos, código do fornecedor com 4+ dígitos passa a buscar.
+**Pacote pronto (25/11d):** **BUSCA-CADASTRO** · **v27.26.102** · corte armado · sem migrate. Não enviado. Loja no ar: **v27.26.100** @ `fe7ff673`. Na senha: `./scripts/cutover_loja_checklist_2511d.sh --exec`. Se o painel não construir, disparar. Volta: `git push origin fe7ff673:producao`.
 
 **Loja (25/11c):** **BUSCA-COD-FORN** no ar · **v27.26.100** @ `fe7ff673`. Sem migrate. PDV e entrada de nota ok. A tela de gestão ainda esperava 8 dígitos. Volta: `git push origin 3143bbb8:producao`.
 
