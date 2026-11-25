@@ -688,6 +688,63 @@ def q_overlay_json_barras_opcionais(digits: str) -> Q | None:
     return q
 
 
+def overlay_pids_por_codigo_fornecedor(termo: str, *, limit: int = 80) -> list[str]:
+    """Acha o produto pelo código do fornecedor (digitado ou o que a nota gravou)."""
+    from produtos.models import ProdutoGestaoOverlayAgro
+    from produtos.mongo_index_codigos import normalizar_c_prod_nf_entrada
+
+    termo = (termo or "").strip()
+    if not termo or " " in termo:
+        return []
+    al = normalizar_c_prod_nf_entrada(termo)
+    if not al:
+        return []
+    lim = max(1, min(int(limit or 80), 160))
+    q = Q(cadastro_extras__codigo_fornecedor_manual__contains=[al]) | Q(
+        cadastro_extras__entrada_nfe_c_prods__contains=[al]
+    )
+    out: list[str] = []
+    seen: set[str] = set()
+    try:
+        for pid in (
+            ProdutoGestaoOverlayAgro.objects.filter(q)
+            .order_by("pk")
+            .values_list("produto_externo_id", flat=True)[:lim]
+        ):
+            s = str(pid or "").strip()
+            if s and s not in seen:
+                seen.add(s)
+                out.append(s)
+    except Exception:
+        out.clear()
+        seen.clear()
+    if out:
+        return out
+    try:
+        from produtos.mongo_index_codigos import (
+            codigos_fornecedor_manual_de_cadastro_extras,
+            _c_prods_nf_de_cadastro_extras,
+        )
+
+        qs = ProdutoGestaoOverlayAgro.objects.filter(
+            Q(cadastro_extras__has_key="codigo_fornecedor_manual")
+            | Q(cadastro_extras__has_key="entrada_nfe_c_prods")
+        ).only("produto_externo_id", "cadastro_extras")[:400]
+        for ov in qs:
+            ce = getattr(ov, "cadastro_extras", None)
+            if al not in codigos_fornecedor_manual_de_cadastro_extras(ce) and al not in _c_prods_nf_de_cadastro_extras(ce):
+                continue
+            s = str(ov.produto_externo_id or "").strip()
+            if s and s not in seen:
+                seen.add(s)
+                out.append(s)
+            if len(out) >= lim:
+                break
+    except Exception:
+        return out
+    return out
+
+
 def overlay_pids_por_codigo(termo: str, *, limit: int = 80) -> list[str]:
     from produtos.models import ProdutoGestaoOverlayAgro
     from produtos.mongo_index_codigos import (
