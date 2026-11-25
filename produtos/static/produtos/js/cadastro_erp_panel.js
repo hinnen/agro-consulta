@@ -1762,7 +1762,7 @@
     if (pareceEtiquetaGm(q)) return true;
     var lim = q.replace(/\W/g, '');
     if (!lim) return false;
-    if (/^\d+$/.test(lim)) return lim.length >= 8;
+    if (/^\d+$/.test(lim)) return lim.length >= 4;
     if (/^gm/i.test(lim)) return lim.length >= 5;
     var temL = /[a-z]/i.test(lim);
     var temN = /\d/.test(lim);
@@ -1775,7 +1775,7 @@
     if (pareceEtiquetaGm(q)) return q.replace(/\W/g, '').length >= 4;
     var lim = q.replace(/\W/g, '');
     if (/^gm/i.test(lim) && lim.length < 5) return false;
-    if (/^\d+$/.test(lim) && lim.length < 8) return false;
+    if (/^\d+$/.test(lim) && lim.length < 4) return false;
     if (pareceCodigoBusca(q)) return true;
     return q.length >= 2;
   }
@@ -1961,7 +1961,7 @@
     var qBusca = (buscaEl && buscaEl.value) ? buscaEl.value.trim() : '';
 
     if (qBusca && !buscaProntaParaCatalogo(qBusca)) {
-      if (metaEl) metaEl.textContent = 'Mín. 2 letras, GM com 5+ caracteres ou barras 8+ dígitos.';
+      if (metaEl) metaEl.textContent = 'Mín. 2 letras, código do fornecedor com 4+ dígitos, GM com 5+ ou barras 8+.';
       if (listaEl) {
         listaEl.innerHTML = '<tr><td colspan="' + CADASTRO_LISTA_COLSPAN + '" class="p-6 text-center text-slate-500 font-semibold">Continue digitando para buscar no catálogo.</td></tr>';
       }
@@ -2007,7 +2007,7 @@
       carregarGen++;
       setLoading(false);
       mostrarErro('');
-      if (metaEl) metaEl.textContent = 'Mín. 2 letras, GM com 5+ caracteres ou barras 8+ dígitos.';
+      if (metaEl) metaEl.textContent = 'Mín. 2 letras, código do fornecedor com 4+ dígitos, GM com 5+ ou barras 8+.';
       if (listaEl) {
         listaEl.innerHTML = '<tr><td colspan="' + CADASTRO_LISTA_COLSPAN + '" class="p-6 text-center text-slate-500 font-semibold">Continue digitando para buscar no catálogo.</td></tr>';
       }
