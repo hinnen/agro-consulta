@@ -1699,10 +1699,14 @@ Até o build, no ar segue v27.26.53 @ `af7af8cc`. Volta: `git push origin rollba
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **CAD-COD-FORN-MANUAL** | 🟢 Pronto · **v27.26.98** @ `3db34c66` | **NÃO** |
-| 2 | **PDV-ETQ-CENTRO** | 🟢 Pronto · **v27.26.97** | **NÃO** |
+| 1 | **PDV-ETQ-CENTRO** | 🟢 Pronto · corte armado | **NÃO** |
+| 2 | **CAD-COD-FORN-MANUAL** | 🟢 Pronto · corte armado · **v27.26.98** | **NÃO** |
 
-Código do fornecedor digitado à mão, na aba Fiscal e na planilha dos produtos. O campo da nota não muda. Célula vazia não apaga. Hífen apaga. Etiquetas: Centro separado das demais. Nenhum dos dois está na loja. Não sobe sem frase + senha.
+Os dois sobem juntos, em cima da loja **v27.26.95** @ `5a6d514f`. Sem tabela nova. Não é merge do `teste`.
+
+Etiquetas: **Solicitações** separa Centro e demais. Pedido da Vila não cai no Centro. Cadastro: campo manual na aba Fiscal e na planilha. Célula vazia não apaga. Hífen apaga. O campo da nota não muda. A busca e o próximo Ler XML também acham esse código.
+
+**Na senha, vendas pausadas:** `./scripts/cutover_loja_checklist_2511.sh --exec`. **Volta:** `git push origin 5a6d514f:producao`. Doc: `docs/DEPLOY-PREP-CHECKLIST-2511.md`.
 
 ### CHECKLIST ÚNICO — **24/11** · ✅ enviado · **v27.26.95** @ `5a6d514f`
 

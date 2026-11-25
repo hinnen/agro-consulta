@@ -1,0 +1,599 @@
+diff --git a/produtos/cadastro_alteracao_historico_util.py b/produtos/cadastro_alteracao_historico_util.py
+index 95adb3fc..211cf509 100644
+--- a/produtos/cadastro_alteracao_historico_util.py
++++ b/produtos/cadastro_alteracao_historico_util.py
+@@ -57,6 +57,7 @@ _CAMPOS_EXTRAS: list[tuple[str, str]] = [
+     ("especies_vet", "Espécies"),
+     ("ean_embalagem_nf", "EAN embalagem NF"),
+     ("c_prods_nf", "Cód. produto na NF"),
++    ("codigo_fornecedor_manual", "Cód. fornecedor (manual)"),
+     ("c_prod_nf", "Cód. produto na NF"),
+     ("codigos_barras_opcionais", "Barras opcionais"),
+     ("custo_familia", "Custo do saco (família)"),
+@@ -151,8 +152,14 @@ def snapshot_overlay(ov) -> dict[str, Any]:
+     out["classes_vet"] = ex.get("classes_vet") if isinstance(ex.get("classes_vet"), list) else None
+     out["especies_vet"] = ex.get("especies_vet") if isinstance(ex.get("especies_vet"), list) else None
+     out["ean_embalagem_nf"] = ex.get("entrada_nfe_ean_embalagem") or ""
+-    from produtos.mongo_index_codigos import _c_prods_nf_de_cadastro_extras
++    from produtos.mongo_index_codigos import (
++        _c_prods_nf_de_cadastro_extras,
++        texto_codigos_fornecedor_manual,
++    )
+ 
++    out["codigo_fornecedor_manual"] = texto_codigos_fornecedor_manual(
++        ex.get("codigo_fornecedor_manual")
++    )
+     out["c_prod_nf"] = ", ".join(_c_prods_nf_de_cadastro_extras(ex))
+     _cps = ex.get("entrada_nfe_c_prods")
+     if isinstance(_cps, list) and _cps:
+diff --git a/produtos/cadastro_busca_codigo_util.py b/produtos/cadastro_busca_codigo_util.py
+index 67208b6c..ff8c82d3 100644
+--- a/produtos/cadastro_busca_codigo_util.py
++++ b/produtos/cadastro_busca_codigo_util.py
+@@ -834,6 +834,7 @@ def index_codigos_de_campos(
+         _c_prods_nf_de_cadastro_extras,
+         _eans_embalagem_nf_de_cadastro_extras,
+         codigos_barras_opcionais_de_cadastro_extras,
++        codigos_fornecedor_manual_de_cadastro_extras,
+         extrair_index_codigos_de_documento_mongo,
+         somente_alnum,
+     )
+@@ -851,6 +852,7 @@ def index_codigos_de_campos(
+     if isinstance(cadastro_extras, dict):
+         extras_list.extend(_eans_embalagem_nf_de_cadastro_extras(cadastro_extras))
+         extras_list.extend(_c_prods_nf_de_cadastro_extras(cadastro_extras))
++        extras_list.extend(codigos_fornecedor_manual_de_cadastro_extras(cadastro_extras))
+         extras_list.extend(codigos_barras_opcionais_de_cadastro_extras(cadastro_extras))
+     for raw in extras_list:
+         s = str(raw or "").strip()
+diff --git a/produtos/cadastro_planilha_util.py b/produtos/cadastro_planilha_util.py
+index 9a2fa9bf..c74bff50 100644
+--- a/produtos/cadastro_planilha_util.py
++++ b/produtos/cadastro_planilha_util.py
+@@ -33,6 +33,7 @@ COL_SUBCATEGORIA_2 = "subcategoria_2"
+ COL_SUBCATEGORIA_3 = "subcategoria_3"
+ COL_SUBCATEGORIA_4 = "subcategoria_4"
+ COL_CODIGO_BARRAS = "codigo_barras"
++COL_COD_FORN_MANUAL = "codigo_fornecedor_manual"
+ COL_PRECO_CUSTO = "preco_custo"
+ COL_PRECO_VENDA = "preco_venda"
+ 
+@@ -103,6 +104,7 @@ EXPORT_HEADERS: list[tuple[str, str]] = [
+     ("Modelo", COL_MODELO),
+     ("Peso", COL_PESO),
+     ("Código barras", COL_CODIGO_BARRAS),
++    ("Cód. fornecedor manual", COL_COD_FORN_MANUAL),
+     ("Preço custo", COL_PRECO_CUSTO),
+     ("Preço venda", COL_PRECO_VENDA),
+     ("Med palavras-chave", COL_MED_PALAVRAS),
+@@ -131,6 +133,7 @@ _COLS_TEXTO_EXCEL = frozenset(
+         COL_ID,
+         COL_CODIGO_GM,
+         COL_CODIGO_BARRAS,
++        COL_COD_FORN_MANUAL,
+         COL_UNIDADE,
+         COL_MODELO,
+         COL_PESO,
+@@ -164,6 +167,7 @@ _MAX_TXT_IMPORT = {
+     COL_NOME: 300,
+     COL_CODIGO_GM: 64,
+     COL_CODIGO_BARRAS: 80,
++    COL_COD_FORN_MANUAL: 240,
+     COL_CATEGORIA: 200,
+     COL_SUBCATEGORIA: 200,
+     COL_SUBCATEGORIA_2: 200,
+@@ -496,6 +500,7 @@ IMPORT_KEYS = {
+     COL_SUBCATEGORIA_3,
+     COL_SUBCATEGORIA_4,
+     COL_CODIGO_BARRAS,
++    COL_COD_FORN_MANUAL,
+     COL_PRECO_CUSTO,
+     COL_PRECO_VENDA,
+     *DELIVERY_IMPORT_KEYS,
+@@ -515,6 +520,7 @@ OVERLAY_IMPORT_KEYS = (
+     COL_SUBCATEGORIA_3,
+     COL_SUBCATEGORIA_4,
+     COL_CODIGO_BARRAS,
++    COL_COD_FORN_MANUAL,
+     COL_PRECO_VENDA,
+     *DELIVERY_IMPORT_KEYS,
+ )
+@@ -544,6 +550,10 @@ def _ler_overlay_import_campo(ov: ProdutoGestaoOverlayAgro | None, key: str):
+         return str(val) if val is not None else None
+     if key == COL_MODELO:
+         return str(_extras_dict(ov).get("modelo") or "")
++    if key == COL_COD_FORN_MANUAL:
++        from produtos.mongo_index_codigos import texto_codigos_fornecedor_manual
++
++        return texto_codigos_fornecedor_manual(_extras_dict(ov).get(COL_COD_FORN_MANUAL))
+     if key in DELIVERY_IMPORT_KEYS:
+         return _delivery_planilha_de_ov(ov).get(key, "")
+     return str(getattr(ov, _overlay_model_field(key), "") or "")
+@@ -565,6 +575,13 @@ def _gravar_overlay_import_campo(ov: ProdutoGestaoOverlayAgro, key: str, val) ->
+             ex.pop("modelo", None)
+         ov.cadastro_extras = ex
+         return
++    if key == COL_COD_FORN_MANUAL:
++        from produtos.mongo_index_codigos import definir_codigo_fornecedor_manual_em_extras
++
++        ex = _extras_dict(ov)
++        definir_codigo_fornecedor_manual_em_extras(ex, val)
++        ov.cadastro_extras = ex
++        return
+     if key in DELIVERY_IMPORT_KEYS:
+         # Gravação em lote via _aplicar_patch_delivery (evita reescrever N vezes).
+         return
+@@ -838,6 +855,16 @@ def _enriquecer_row_med_planilha(
+     ]
+ 
+ 
++def _enriquecer_rows_cod_forn_manual(rows: list[dict], ovs: dict) -> None:
++    from produtos.mongo_index_codigos import texto_codigos_fornecedor_manual
++
++    for r in rows:
++        pid = str(r.get("id") or "")
++        ov = ovs.get(pid)
++        ex = _extras_dict(ov)
++        r[COL_COD_FORN_MANUAL] = texto_codigos_fornecedor_manual(ex.get(COL_COD_FORN_MANUAL))
++
++
+ def _enriquecer_rows_med_batch(rows: list[dict], ovs: dict) -> None:
+     for r in rows:
+         pid = str(r.get("id") or "")
+@@ -1147,6 +1174,10 @@ def _valor_atual_campo_import(atual: dict, key: str):
+         return str(atual.get(key) or "").strip()
+     if key == COL_MED_PALAVRAS:
+         return str(atual.get("palavras_chave") or atual.get(key) or "").strip()
++    if key == COL_COD_FORN_MANUAL:
++        from produtos.mongo_index_codigos import texto_codigos_fornecedor_manual
++
++        return texto_codigos_fornecedor_manual(atual.get(key))
+     return str(atual.get(key) or "").strip()
+ 
+ 
+@@ -1174,6 +1205,13 @@ def _map_headers(headers: list[str]) -> dict[str, str | None]:
+         COL_MODELO: ("modelo",),
+         COL_PESO: ("peso", "peso etiqueta", "peso gondola"),
+         COL_CODIGO_BARRAS: ("codigo barras", "codigo de barras", "ean", "barras", "cb"),
++        COL_COD_FORN_MANUAL: (
++            "cod. fornecedor manual",
++            "cod fornecedor manual",
++            "codigo fornecedor manual",
++            "código fornecedor manual",
++            "codigo_fornecedor_manual",
++        ),
+         COL_PRECO_CUSTO: ("preco custo", "preço custo", "custo", "custo unitario", "custo unitário"),
+         COL_PRECO_VENDA: ("preco venda", "preço venda", "venda", "preco de venda", "preço de venda"),
+         COL_DEL_ATIVO: ("delivery ativo", "catalogo ativo", "catálogo ativo", "ativo delivery"),
+@@ -1454,6 +1492,7 @@ def coletar_linhas_export_cadastro(
+                 rows.append(r)
+             _enriquecer_rows_delivery_batch(chunk, ovs)
+             _enriquecer_rows_med_batch(chunk, ovs)
++            _enriquecer_rows_cod_forn_manual(chunk, ovs)
+             if not has_more:
+                 break
+             pagina += 1
+@@ -1481,6 +1520,7 @@ def coletar_linhas_export_cadastro(
+         _aplicar_produto_gestao_overlay_em_dict(r, ovs.get(str(r.get("id") or "")))
+     _enriquecer_rows_delivery_batch(rows, ovs)
+     _enriquecer_rows_med_batch(rows, ovs)
++    _enriquecer_rows_cod_forn_manual(rows, ovs)
+     rows = _filtrar_rows_categorias(rows, categorias or [])
+     return rows, truncado
+ 
+@@ -1538,6 +1578,7 @@ def linha_export_planilha(row: dict) -> dict[str, Any]:
+         COL_MODELO: str(row.get("modelo") or ""),
+         COL_PESO: str(row.get("peso_etiqueta") or ""),
+         COL_CODIGO_BARRAS: str(row.get("codigo_barras") or ""),
++        COL_COD_FORN_MANUAL: str(row.get(COL_COD_FORN_MANUAL) or ""),
+         COL_PRECO_CUSTO: float(row.get("preco_custo") or 0),
+         COL_PRECO_VENDA: float(row.get("preco_venda") or 0),
+     }
+@@ -1749,6 +1790,7 @@ def _mapa_estado_atual_produtos(
+         out[pid] = row
+     _enriquecer_rows_delivery_batch(list(out.values()), ovs)
+     _enriquecer_rows_med_batch(list(out.values()), ovs)
++    _enriquecer_rows_cod_forn_manual(list(out.values()), ovs)
+     return out
+ 
+ 
+@@ -1788,6 +1830,7 @@ def _patch_da_linha(raw: dict, colmap: dict[str, str | None]) -> dict[str, Any]:
+     txt(COL_SUBCATEGORIA_3, 200)
+     txt(COL_SUBCATEGORIA_4, 200)
+     txt(COL_CODIGO_BARRAS, 80)
++    txt(COL_COD_FORN_MANUAL, 240)
+     dec(COL_PRECO_CUSTO)
+     dec(COL_PRECO_VENDA)
+     txt(COL_MED_PALAVRAS, _max_txt_import(COL_MED_PALAVRAS))
+@@ -1889,6 +1932,11 @@ def _tem_alteracao(atual: dict, patch: dict) -> bool:
+         elif k == COL_MED_PALAVRAS:
+             if _valor_atual_campo_import(atual, k) != str(patch[k] or "").strip():
+                 return True
++        elif k == COL_COD_FORN_MANUAL:
++            if _valor_atual_campo_import(atual, k) != _valor_atual_campo_import(
++                {k: patch[k]}, k
++            ):
++                return True
+         elif _valor_atual_campo_import(atual, k) != str(patch[k] or "").strip():
+             return True
+     return False
+diff --git a/produtos/mongo_index_codigos.py b/produtos/mongo_index_codigos.py
+index 93e392c4..1a94b69f 100644
+--- a/produtos/mongo_index_codigos.py
++++ b/produtos/mongo_index_codigos.py
+@@ -32,6 +32,8 @@ _MAX_CB_OPCIONAIS_LIST = 20
+ 
+ # cProd do fornecedor na NF-e (ex.: R0151) — distinto do código GM no catálogo.
+ _CAD_EXTRAS_C_PROD_NF_KEYS = ("entrada_nfe_c_prods", "entrada_nfe_c_prod")
++# Código digitado no cadastro. A nota não grava aqui.
++CAD_EXTRAS_COD_FORN_MANUAL = "codigo_fornecedor_manual"
+ _MIN_C_PROD_NF_ALNUM = 2
+ _MAX_C_PROD_NF = 60
+ _MAX_C_PRODS_NF_LIST = 24
+@@ -317,6 +319,47 @@ def overlay_cadastro_extras_adicionar_c_prod_nf(ex: dict, raw: str) -> str | Non
+     return al
+ 
+ 
++def _partes_codigo_fornecedor_manual(raw: Any) -> list[str]:
++    if isinstance(raw, list):
++        return [str(x) for x in raw]
++    return re.split(r"[,;\s]+", str(raw or ""))
++
++
++def lista_codigos_fornecedor_manual(raw: Any) -> list[str]:
++    """Códigos manuais normalizados (a nota não entra nesta lista)."""
++    s = str(raw or "").strip().lower()
++    if s in ("-", ".", "limpar", "apagar", "none", "null"):
++        return []
++    out: list[str] = []
++    seen: set[str] = set()
++    for part in _partes_codigo_fornecedor_manual(raw):
++        al = normalizar_c_prod_nf_entrada(part)
++        if al and al not in seen:
++            seen.add(al)
++            out.append(al)
++    return out[:_MAX_C_PRODS_NF_LIST]
++
++
++def texto_codigos_fornecedor_manual(raw: Any) -> str:
++    return ", ".join(lista_codigos_fornecedor_manual(raw))
++
++
++def codigos_fornecedor_manual_de_cadastro_extras(cadastro_extras: dict | None) -> list[str]:
++    if not isinstance(cadastro_extras, dict):
++        return []
++    return lista_codigos_fornecedor_manual(cadastro_extras.get(CAD_EXTRAS_COD_FORN_MANUAL))
++
++
++def definir_codigo_fornecedor_manual_em_extras(ex: dict, raw: Any) -> None:
++    """Substitui a lista manual. Vazio ou «-» apaga. Não mexe no código que veio da nota."""
++    lista = lista_codigos_fornecedor_manual(raw)
++    bruto = str(raw or "").strip()
++    if not bruto or bruto.lower() in ("-", ".", "limpar", "apagar", "none", "null") or not lista:
++        ex.pop(CAD_EXTRAS_COD_FORN_MANUAL, None)
++        return
++    ex[CAD_EXTRAS_COD_FORN_MANUAL] = lista
++
++
+ def overlay_cadastro_extras_remover_c_prod_nf(ex: dict, raw: str) -> bool:
+     al = normalizar_c_prod_nf_entrada(raw)
+     if not al:
+@@ -500,6 +543,7 @@ def coletar_extras_agro_para_busca(produto_externo_id: str) -> list[str]:
+         out.extend(_eans_embalagem_nf_de_cadastro_extras(getattr(ov, "cadastro_extras", None)))
+         out.extend(codigos_barras_opcionais_de_cadastro_extras(getattr(ov, "cadastro_extras", None)))
+         out.extend(_c_prods_nf_de_cadastro_extras(getattr(ov, "cadastro_extras", None)))
++        out.extend(codigos_fornecedor_manual_de_cadastro_extras(getattr(ov, "cadastro_extras", None)))
+     for row in ProdutoMarcaVariacaoAgro.objects.filter(produto_externo_id=pid[:64]).only(
+         "codigo_barras",
+         "codigo_fornecedor",
+@@ -538,6 +582,8 @@ def mapa_extras_agro_por_produto_externo_id() -> dict[str, list[str]]:
+             out[pid].append(d)
+         for c in _c_prods_nf_de_cadastro_extras(getattr(ov, "cadastro_extras", None)):
+             out[pid].append(c)
++        for c in codigos_fornecedor_manual_de_cadastro_extras(getattr(ov, "cadastro_extras", None)):
++            out[pid].append(c)
+     for row in ProdutoMarcaVariacaoAgro.objects.all().only(
+         "produto_externo_id",
+         "codigo_barras",
+diff --git a/produtos/nfe_entrada_util.py b/produtos/nfe_entrada_util.py
+index e0a3fed8..5aa8dc7b 100644
+--- a/produtos/nfe_entrada_util.py
++++ b/produtos/nfe_entrada_util.py
+@@ -1278,6 +1278,31 @@ def _produto_pg_por_c_prod_overlay(c_prod: str):
+             p = _produto_pg_por_pid(cand.produto_externo_id)
+             if p:
+                 return p, "vinculo_c_prod_overlay"
++        from .mongo_index_codigos import codigos_fornecedor_manual_de_cadastro_extras
++
++        ov_man = (
++            ProdutoGestaoOverlayAgro.objects.filter(
++                cadastro_extras__codigo_fornecedor_manual__contains=[cp]
++            )
++            .order_by("pk")
++            .first()
++        )
++        if ov_man and (ov_man.produto_externo_id or "").strip():
++            p = _produto_pg_por_pid(ov_man.produto_externo_id)
++            if p:
++                return p, "vinculo_c_prod_overlay"
++        for cand in (
++            ProdutoGestaoOverlayAgro.objects.filter(
++                cadastro_extras__has_key="codigo_fornecedor_manual"
++            )
++            .only("produto_externo_id", "cadastro_extras")
++            .order_by("pk")[:400]
++        ):
++            if cp not in codigos_fornecedor_manual_de_cadastro_extras(cand.cadastro_extras):
++                continue
++            p = _produto_pg_por_pid(cand.produto_externo_id)
++            if p:
++                return p, "vinculo_c_prod_overlay"
+     except Exception as exc:
+         logger.warning("_produto_pg_por_c_prod_overlay: %s", exc)
+     return None, None
+diff --git a/produtos/static/produtos/js/cadastro_erp_panel.js b/produtos/static/produtos/js/cadastro_erp_panel.js
+index afc97dcb..126c5bcb 100644
+--- a/produtos/static/produtos/js/cadastro_erp_panel.js
++++ b/produtos/static/produtos/js/cadastro_erp_panel.js
+@@ -2594,6 +2594,7 @@
+         { key: 'unidade', label: 'Unidade' },
+         { key: 'peso_etiqueta', label: 'Peso' },
+         { key: 'codigo_barras', label: 'Código barras' },
++        { key: 'codigo_fornecedor_manual', label: 'Cód. fornecedor manual' },
+         { key: 'preco_custo', label: 'Preço custo' },
+         { key: 'preco_venda', label: 'Preço venda' },
+         { key: 'palavras_chave', label: 'Med palavras-chave' },
+@@ -3219,6 +3220,7 @@
+       subcategoria_3: 'Subcategoria 3',
+       subcategoria_4: 'Subcategoria 4',
+       codigo_barras: 'Código barras',
++      codigo_fornecedor_manual: 'Cód. fornecedor manual',
+       preco_custo: 'Preço custo',
+       preco_venda: 'Preço venda',
+       palavras_chave: 'Med palavras-chave',
+diff --git a/produtos/static/produtos/js/pdv_etiquetas_pedido.js b/produtos/static/produtos/js/pdv_etiquetas_pedido.js
+index 8ce5af95..be93f0b0 100644
+--- a/produtos/static/produtos/js/pdv_etiquetas_pedido.js
++++ b/produtos/static/produtos/js/pdv_etiquetas_pedido.js
+@@ -204,6 +204,16 @@
+     var t = chip && !chip.classList.contains('hidden') ? String(chip.textContent || '').trim() : '';
+     return t.slice(0, 150);
+   }
++  function lojaPdv() {
++    try {
++      if (String(localStorage.getItem('agro_pdv_loja_id') || '') === '2') return 'vila';
++    } catch (e) {}
++    try {
++      var m = document.cookie.match(/(?:^|; )agro_pdv_deposito=([^;]*)/);
++      if (m && decodeURIComponent(m[1]).toLowerCase() === 'vila') return 'vila';
++    } catch (e2) {}
++    return 'centro';
++  }
+   async function enviar(itens) {
+     if (!itens.length || enviando) return false;
+     enviando = true;
+@@ -214,7 +224,7 @@
+         method: 'POST',
+         credentials: 'same-origin',
+         headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
+-        body: JSON.stringify({ itens: itens, operador: operadorNome(), observacao: 'PDV' }),
++        body: JSON.stringify({ itens: itens, operador: operadorNome(), loja: lojaPdv() }),
+       });
+       var j = await res.json().catch(function () { return {}; });
+       enviando = false;
+diff --git a/produtos/static/produtos/js/produtos_etiquetas.js b/produtos/static/produtos/js/produtos_etiquetas.js
+index d6f8f46f..cdb42642 100644
+--- a/produtos/static/produtos/js/produtos_etiquetas.js
++++ b/produtos/static/produtos/js/produtos_etiquetas.js
+@@ -1986,35 +1986,53 @@
+       atualizarBotaoSolAddTodas(rows.length);
+     }
+     if (!box) return;
++    function card(p) {
++      return (
++        '<div class="flex flex-wrap items-center gap-2 border-b border-slate-700/80 px-3 py-2.5 hover:bg-slate-800/50">' +
++        '<div class="min-w-0 flex-1">' +
++        '<div class="truncate text-sm font-bold text-white">' +
++        Core.esc(p.resumo_nomes || '—') +
++        '</div>' +
++        '<div class="mt-0.5 text-[11px] text-slate-400">' +
++        Core.esc(p.criado_em_br || '') +
++        (p.operador_nome ? ' · ' + Core.esc(p.operador_nome) : '') +
++        ' · ' +
++        Core.esc(String(p.total_etiquetas || 0)) +
++        ' etiqueta(s)' +
++        '</div>' +
++        '</div>' +
++        '<button type="button" class="etq-sol-import shrink-0 inline-flex min-h-[40px] items-center justify-center gap-1.5 rounded-xl border-2 border-sky-600 bg-sky-700/40 px-3 text-xs font-black uppercase text-sky-100 hover:bg-sky-600/30" data-sol-id="' +
++        Core.esc(p.id) +
++        '">' +
++        '<i class="fas fa-plus" aria-hidden="true"></i>Na fila</button>' +
++        '</div>'
++      );
++    }
++    function bloco(titulo, lista) {
++      var vazio = !lista.length
++        ? '<p class="px-4 py-3 text-sm text-slate-500">Nenhuma.</p>'
++        : lista.map(card).join('');
++      return (
++        '<p class="sticky top-0 z-[1] border-b border-slate-600 bg-slate-800 px-4 py-2 text-xs font-black uppercase tracking-wide text-slate-100">' +
++        Core.esc(titulo) +
++        ' · ' +
++        lista.length +
++        '</p>' +
++        vazio
++      );
++    }
++    var centro = [];
++    var demais = [];
++    (rows || []).forEach(function (p) {
++      var o = String((p && p.observacao) || '').toLowerCase();
++      if (o.indexOf('centro') >= 0 || o === 'pdv') centro.push(p);
++      else demais.push(p);
++    });
+     if (!rows || !rows.length) {
+-      box.innerHTML =
+-        '<p class="px-4 py-6 text-center text-sm text-slate-400">Nenhuma solicitação pendente.</p>';
++      box.innerHTML = bloco('Loja do Centro', []) + bloco('Demais', []);
+       return;
+     }
+-    box.innerHTML = rows
+-      .map(function (p) {
+-        return (
+-          '<div class="flex flex-wrap items-center gap-2 border-b border-slate-700/80 px-3 py-2.5 hover:bg-slate-800/50">' +
+-          '<div class="min-w-0 flex-1">' +
+-          '<div class="truncate text-sm font-bold text-white">' +
+-          Core.esc(p.resumo_nomes || '—') +
+-          '</div>' +
+-          '<div class="mt-0.5 text-[11px] text-slate-400">' +
+-          Core.esc(p.criado_em_br || '') +
+-          (p.operador_nome ? ' · ' + Core.esc(p.operador_nome) : '') +
+-          ' · ' +
+-          Core.esc(String(p.total_etiquetas || 0)) +
+-          ' etiqueta(s)' +
+-          '</div>' +
+-          '</div>' +
+-          '<button type="button" class="etq-sol-import shrink-0 inline-flex min-h-[40px] items-center justify-center gap-1.5 rounded-xl border-2 border-sky-600 bg-sky-700/40 px-3 text-xs font-black uppercase text-sky-100 hover:bg-sky-600/30" data-sol-id="' +
+-          Core.esc(p.id) +
+-          '">' +
+-          '<i class="fas fa-plus" aria-hidden="true"></i>Na fila</button>' +
+-          '</div>'
+-        );
+-      })
+-      .join('');
++    box.innerHTML = bloco('Loja do Centro', centro) + bloco('Demais', demais);
+     box.querySelectorAll('.etq-sol-import').forEach(function (btn) {
+       btn.addEventListener('click', function () {
+         var id = btn.getAttribute('data-sol-id');
+diff --git a/produtos/templates/produtos/produtos_etiquetas.html b/produtos/templates/produtos/produtos_etiquetas.html
+index fe4828fb..794e9b0b 100644
+--- a/produtos/templates/produtos/produtos_etiquetas.html
++++ b/produtos/templates/produtos/produtos_etiquetas.html
+@@ -739,7 +739,7 @@
+   <div class="flex max-h-[min(92dvh,40rem)] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-slate-600 bg-slate-900 shadow-2xl">
+     <div class="flex shrink-0 items-center justify-between gap-2 border-b border-slate-700 px-4 py-3">
+       <div class="min-w-0">
+-        <h2 id="etq-sol-titulo" class="text-sm font-black uppercase text-white">Solicitações do celular</h2>
++        <h2 id="etq-sol-titulo" class="text-sm font-black uppercase text-white">Solicitações</h2>
+         <p id="etq-sol-meta" class="mt-0.5 text-[11px] font-semibold text-slate-400">Pacotes pendentes na loja</p>
+       </div>
+       <button type="button" id="etq-sol-fechar" class="min-h-[36px] min-w-[36px] shrink-0 rounded-lg border border-slate-600 text-slate-300 hover:text-white" aria-label="Fechar">✕</button>
+diff --git a/produtos/tests_cadastro_planilha_cols.py b/produtos/tests_cadastro_planilha_cols.py
+index 6de71cb9..ccb04b8c 100644
+--- a/produtos/tests_cadastro_planilha_cols.py
++++ b/produtos/tests_cadastro_planilha_cols.py
+@@ -7,6 +7,7 @@ from unittest.mock import MagicMock, patch
+ from django.test import SimpleTestCase
+ 
+ from produtos.cadastro_planilha_util import (
++    COL_COD_FORN_MANUAL,
+     COL_FORN_COMPRA_1,
+     COL_FORN_COMPRA_2,
+     COL_FORN_COMPRA_3,
+@@ -37,6 +38,31 @@ from produtos.cadastro_planilha_util import (
+ 
+ 
+ class CadastroPlanilhaNovasColunasTests(SimpleTestCase):
++    def test_cod_fornecedor_manual_planilha(self):
++        from produtos.mongo_index_codigos import (
++            definir_codigo_fornecedor_manual_em_extras,
++            texto_codigos_fornecedor_manual,
++        )
++
++        self.assertIn(COL_COD_FORN_MANUAL, EXPORT_COL_KEYS)
++        self.assertIn(COL_COD_FORN_MANUAL, IMPORT_KEYS)
++        m = _map_headers(["Cód. fornecedor manual"])
++        self.assertEqual(m[COL_COD_FORN_MANUAL], "Cód. fornecedor manual")
++        colmap = _map_headers(["ID", "Cód. fornecedor manual"])
++        vazio = _patch_da_linha({"ID": "x", "Cód. fornecedor manual": ""}, colmap)
++        self.assertNotIn(COL_COD_FORN_MANUAL, vazio)
++        patch = _patch_da_linha({"ID": "x", "Cód. fornecedor manual": "R0151, ABC"}, colmap)
++        self.assertEqual(patch[COL_COD_FORN_MANUAL], "R0151, ABC")
++        self.assertFalse(_tem_alteracao({COL_COD_FORN_MANUAL: "r0151, abc"}, patch))
++        self.assertTrue(_tem_alteracao({COL_COD_FORN_MANUAL: ""}, patch))
++        ex = {"entrada_nfe_c_prods": ["999"]}
++        definir_codigo_fornecedor_manual_em_extras(ex, "R0151")
++        self.assertEqual(ex["entrada_nfe_c_prods"], ["999"])
++        self.assertEqual(texto_codigos_fornecedor_manual(ex.get(COL_COD_FORN_MANUAL)), "r0151")
++        definir_codigo_fornecedor_manual_em_extras(ex, "-")
++        self.assertNotIn(COL_COD_FORN_MANUAL, ex)
++        self.assertEqual(ex["entrada_nfe_c_prods"], ["999"])
++
+     def test_headers_incluem_novas_colunas(self):
+         for k in (
+             COL_SUBCATEGORIA_2,
+diff --git a/produtos/views_etiquetas_solicitacao.py b/produtos/views_etiquetas_solicitacao.py
+index 44a1a521..95d4e64b 100644
+--- a/produtos/views_etiquetas_solicitacao.py
++++ b/produtos/views_etiquetas_solicitacao.py
+@@ -120,11 +120,16 @@ def api_etiquetas_solicitacao_pdv_criar(request):
+     """Mesma sacola do celular, pelo PDV (login da loja, sem PIN do app)."""
+     body = _payload_json(request)
+     operador = str(body.get("operador") or "").strip()[:150] or _usuario_etiquetas(request) or "PDV"
++    loja = str(body.get("loja") or "").strip().lower()
++    if loja == "vila":
++        obs = "PDV Vila"
++    else:
++        obs = "PDV Centro"
+     try:
+         pac = criar_pacote_solicitacao(
+             operador_nome=operador,
+             itens_raw=body.get("itens"),
+-            observacao=str(body.get("observacao") or "PDV"),
++            observacao=obs,
+         )
+     except ValueError as exc:
+         return JsonResponse({"ok": False, "erro": str(exc)}, status=400)
+diff --git a/produtos/templates/produtos/_modal_editar_produto_cadastro_erp.inc.html b/produtos/templates/produtos/_modal_editar_produto_cadastro_erp.inc.html
+index 7ee8f212..03695210 100644
+--- a/produtos/templates/produtos/_modal_editar_produto_cadastro_erp.inc.html
++++ b/produtos/templates/produtos/_modal_editar_produto_cadastro_erp.inc.html
+@@ -577,6 +577,10 @@
+           <span class="text-base font-black uppercase text-slate-600 mb-1 block">Cód. produto na NF (fornecedor)</span>
+           <input type="text" id="edit-c-prod-nf" maxlength="60" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-mono font-bold bg-white focus:border-emerald-500 outline-none" placeholder="Ex.: R0151 — código do item no XML do fornecedor" title="cProd da nota (ex.: R0151). Vários códigos: separe por vírgula. Ajuda o próximo «Ler XML» e a busca." autocomplete="off" />
+         </label>
++        <label class="block sm:col-span-2">
++          <span class="text-base font-black uppercase text-slate-600 mb-1 block">Cód. fornecedor (manual)</span>
++          <input type="text" id="edit-cod-forn-manual" maxlength="240" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-mono font-bold bg-white focus:border-emerald-500 outline-none" placeholder="Você digita. A nota não altera este campo." title="Código do fornecedor digitado à mão. A entrada de nota não muda este campo. Vários: separe por vírgula. Também entra na planilha Excel." autocomplete="off" />
++        </label>
+         <label class="block">
+           <span class="text-base font-black text-slate-600 mb-1 block tracking-tight">Código Interno ( gm )</span>
+           <input type="text" id="edit-cod-nfe" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-mono font-bold bg-white focus:border-emerald-500 outline-none" />
+@@ -3416,6 +3420,14 @@
+       }
+       setVal('edit-c-prod-nf', cps.join(', '));
+     })();
++    setVal(
++      'edit-cod-forn-manual',
++      ce && ce.codigo_fornecedor_manual != null
++        ? (Array.isArray(ce.codigo_fornecedor_manual)
++          ? ce.codigo_fornecedor_manual.map(function (x) { return String(x || '').trim(); }).filter(Boolean).join(', ')
++          : String(ce.codigo_fornecedor_manual).trim())
++        : ''
++    );
+     setCbOpcionaisFromProduto(produto, ce);
+     setVal('edit-cod-nfe', produto.codigo_nfe || '');
+     (function () {
+@@ -3786,6 +3798,7 @@
+       codigo_barras: gv('edit-cb'),
+       ean_embalagem_nf: gv('edit-ean-embalagem-nf'),
+       c_prods_nf: gv('edit-c-prod-nf'),
++      codigo_fornecedor_manual: gv('edit-cod-forn-manual'),
+       codigos_barras_opcionais: Array.isArray(modalEdit._cbOpcionais) ? modalEdit._cbOpcionais.slice() : [],
+       codigo_nfe: gv('edit-cod-nfe'),
+       subcategoria: gv('edit-subcategoria'),
+
+diff --git a/produtos/views.py b/produtos/views.py
+--- a/produtos/views.py
++++ b/produtos/views.py
+@@ -3314,6 +3314,10 @@ def _api_produtos_gestao_overlay_salvar_core(request):
+             if al_cp:
+                 c_prod_nf_payload = al_cp
+                 overlay_cadastro_extras_adicionar_c_prod_nf(ex, raw_cp)
++    if "codigo_fornecedor_manual" in payload:
++        from produtos.mongo_index_codigos import definir_codigo_fornecedor_manual_em_extras
++
++        definir_codigo_fornecedor_manual_em_extras(ex, payload.get("codigo_fornecedor_manual"))
+     from produtos.medicamento_vet_taxonomia import (
+         aplicar_palavras_e_classes_em_extras,
+         sincronizar_busca_agro_no_mongo,
