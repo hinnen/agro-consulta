@@ -1564,6 +1564,7 @@ async function ligar() {
   });
   sock.ev.on("messages.upsert", async ({ messages, type }) => {
     console.log("chegou", type, (messages && messages.length) || 0);
+    if (type === "notify") recebeuAoVivoEm = Date.now();
     if (type !== "notify" && type !== "append") return;
     const emQuarentena = connOpenAt && (Date.now() - connOpenAt < CONN_QUARANTINE_MS);
     for (const m of messages || []) {
@@ -2286,6 +2287,36 @@ process.on("uncaughtException", (e) => {
 process.on("unhandledRejection", (e) => {
   console.error("ponte rejeicao:", (e && e.message) || e);
 });
+let badMacRecente = [];
+let recebeuAoVivoEm = 0;
+let trocandoChave = false;
+const _consoleError = console.error;
+console.error = (...args) => {
+  try {
+    const texto = args.map((a) => (a && a.stack) || (a && a.message) || String(a)).join(" ");
+    if (texto.includes("Bad MAC")) {
+      const agora = Date.now();
+      badMacRecente.push(agora);
+      badMacRecente = badMacRecente.filter((t) => agora - t < 60000);
+      const aoVivo = recebeuAoVivoEm && agora - recebeuAoVivoEm < 3 * 60 * 1000;
+      if (!trocandoChave && !aoVivo && badMacRecente.length >= 25) {
+        trocandoChave = true;
+        _consoleError("Chave estragada. Vou abrir o QR.");
+        const copia = path.join("C:\\AgroWhatsApp\\Dados", "auth-antes-qr-" + new Date().toISOString().replace(/[:.]/g, "-"));
+        try { fs.cpSync(AUTH, copia, { recursive: true }); } catch { /* ignore */ }
+        waAberto = false;
+        try { fecharSockAntigo(); } catch { /* ignore */ }
+        try { fs.rmSync(AUTH, { recursive: true, force: true }); } catch { /* ignore */ }
+        estado({
+          status: "qr",
+          aviso: "Não está recebendo. Leia o QR nesta tela.",
+        }).catch(() => {});
+        pedirReligar(1500, "chave");
+      }
+    }
+  } catch { /* ignore */ }
+  _consoleError.apply(console, args);
+};
 ligar().catch((e) => {
   console.error(e);
   pedirReligar(8000, "inicio");

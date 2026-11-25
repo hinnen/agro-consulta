@@ -64,6 +64,8 @@ Atualizado **14/11/2026**.
 
 23/11: o Zap do celular, sem login, abre uma página só de entrar em `/atendimento-whatsapp/celular/login/`. Usuário e senha da loja, depois o PIN. A tela verde embolada saiu. O Zap do computador não mudou.
 
+25/11: se a chave estragar e parar de receber, a tela deixa de ficar verde e mostra o QR. Uma ponte só.
+
 19/11, autorizado: a página do Zap no celular ficou mais leve e a foto baixa uma vez, com atualização semanal devagar. Para voltar: tag `zap-antes-pagina-leve-2026-11-19`.
 - Ditado de voz sai torto às vezes. Se não bater, perguntar de novo.
 - O foco é o desktop. O que ele pede também vale no celular, cabendo na tela do telefone.

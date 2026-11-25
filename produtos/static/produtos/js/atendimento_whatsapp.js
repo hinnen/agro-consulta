@@ -396,11 +396,13 @@
       var btnTrocar = $('wa-trocar');
       showTrocar = !!p.conectada;
       if (btnTrocar) btnTrocar.classList.toggle('hidden', !showTrocar);
-      if (p.conectada) {
+      if (p.conectada && !(p.aviso && String(p.aviso).indexOf('Não está recebendo') >= 0)) {
         pill('ok', p.numero ? p.numero : 'Online');
         if (qrBox) qrBox.classList.add('hidden');
       } else {
         if (qrBox) qrBox.classList.remove('hidden');
+        var titQr = $('wa-qr-titulo');
+        if (titQr && p.aviso) titQr.textContent = p.aviso;
         var codeEl = $('wa-pair-code');
         if (codeEl) {
           if (p.pairing_code) {
