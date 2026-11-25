@@ -577,6 +577,10 @@
           <span class="text-base font-black uppercase text-slate-600 mb-1 block">Cód. produto na NF (fornecedor)</span>
           <input type="text" id="edit-c-prod-nf" maxlength="60" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-mono font-bold bg-white focus:border-emerald-500 outline-none" placeholder="Ex.: R0151 — código do item no XML do fornecedor" title="cProd da nota (ex.: R0151). Vários códigos: separe por vírgula. Ajuda o próximo «Ler XML» e a busca." autocomplete="off" />
         </label>
+        <label class="block sm:col-span-2">
+          <span class="text-base font-black uppercase text-slate-600 mb-1 block">Cód. fornecedor (manual)</span>
+          <input type="text" id="edit-cod-forn-manual" maxlength="240" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-mono font-bold bg-white focus:border-emerald-500 outline-none" placeholder="Você digita. A nota não altera este campo." title="Código do fornecedor digitado à mão. A entrada de nota não muda este campo. Vários: separe por vírgula. Também entra na planilha Excel." autocomplete="off" />
+        </label>
         <label class="block">
           <span class="text-base font-black text-slate-600 mb-1 block tracking-tight">Código Interno ( gm )</span>
           <input type="text" id="edit-cod-nfe" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-mono font-bold bg-white focus:border-emerald-500 outline-none" />
@@ -3416,6 +3420,14 @@
       }
       setVal('edit-c-prod-nf', cps.join(', '));
     })();
+    setVal(
+      'edit-cod-forn-manual',
+      ce && ce.codigo_fornecedor_manual != null
+        ? (Array.isArray(ce.codigo_fornecedor_manual)
+          ? ce.codigo_fornecedor_manual.map(function (x) { return String(x || '').trim(); }).filter(Boolean).join(', ')
+          : String(ce.codigo_fornecedor_manual).trim())
+        : ''
+    );
     setCbOpcionaisFromProduto(produto, ce);
     setVal('edit-cod-nfe', produto.codigo_nfe || '');
     (function () {
@@ -3786,6 +3798,7 @@
       codigo_barras: gv('edit-cb'),
       ean_embalagem_nf: gv('edit-ean-embalagem-nf'),
       c_prods_nf: gv('edit-c-prod-nf'),
+      codigo_fornecedor_manual: gv('edit-cod-forn-manual'),
       codigos_barras_opcionais: Array.isArray(modalEdit._cbOpcionais) ? modalEdit._cbOpcionais.slice() : [],
       codigo_nfe: gv('edit-cod-nfe'),
       subcategoria: gv('edit-subcategoria'),

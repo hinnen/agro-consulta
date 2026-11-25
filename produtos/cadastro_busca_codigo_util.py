@@ -834,6 +834,7 @@ def index_codigos_de_campos(
         _c_prods_nf_de_cadastro_extras,
         _eans_embalagem_nf_de_cadastro_extras,
         codigos_barras_opcionais_de_cadastro_extras,
+        codigos_fornecedor_manual_de_cadastro_extras,
         extrair_index_codigos_de_documento_mongo,
         somente_alnum,
     )
@@ -851,6 +852,7 @@ def index_codigos_de_campos(
     if isinstance(cadastro_extras, dict):
         extras_list.extend(_eans_embalagem_nf_de_cadastro_extras(cadastro_extras))
         extras_list.extend(_c_prods_nf_de_cadastro_extras(cadastro_extras))
+        extras_list.extend(codigos_fornecedor_manual_de_cadastro_extras(cadastro_extras))
         extras_list.extend(codigos_barras_opcionais_de_cadastro_extras(cadastro_extras))
     for raw in extras_list:
         s = str(raw or "").strip()
