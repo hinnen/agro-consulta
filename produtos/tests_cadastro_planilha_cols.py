@@ -467,3 +467,53 @@ class UltimosFornecedoresPathTests(SimpleTestCase):
             return_value=[],
         ):
             self.assertEqual(ultimos_fornecedores_por_produto_ids(["999"]), {})
+
+
+class BuscaCodigoFornecedorTests(SimpleTestCase):
+    def test_frase_nao_busca_codigo(self):
+        from produtos.cadastro_busca_codigo_util import overlay_pids_por_codigo_fornecedor
+
+        self.assertEqual(overlay_pids_por_codigo_fornecedor("racao 25kg"), [])
+
+    def test_codigo_curto_e_misto_acham_o_produto(self):
+        from produtos.cadastro_busca_codigo_util import overlay_pids_por_codigo_fornecedor
+
+        chain = MagicMock()
+        chain.order_by.return_value.values_list.return_value.__getitem__.return_value = [
+            "pid-torneira"
+        ]
+        with patch(
+            "produtos.models.ProdutoGestaoOverlayAgro.objects.filter",
+            return_value=chain,
+        ) as chamado:
+            self.assertEqual(overlay_pids_por_codigo_fornecedor("6071"), ["pid-torneira"])
+        q = str(chamado.call_args[0][0])
+        self.assertIn("codigo_fornecedor_manual", q)
+        self.assertIn("entrada_nfe_c_prods", q)
+
+    def test_filtro_da_busca_nao_joga_fora(self):
+        from produtos.busca_filtro_pdv_util import filtrar_documentos_estilo_pdv
+        from produtos.cadastro_busca_codigo_util import index_codigos_de_campos
+
+        ix = index_codigos_de_campos(
+            codigo="GM4592",
+            cadastro_extras={
+                "codigo_fornecedor_manual": ["6071"],
+                "entrada_nfe_c_prods": ["R0151"],
+            },
+        )
+        doc = {
+            "Nome": "torneira plastica",
+            "Codigo": "GM4592",
+            "CodigoNFe": "GM4592",
+            "index_codigos": ix,
+        }
+        for termo in ("6071", "123456", "R0151"):
+            doc_t = dict(doc)
+            if termo == "123456":
+                doc_t["index_codigos"] = index_codigos_de_campos(
+                    codigo="GM4592",
+                    cadastro_extras={"codigo_fornecedor_manual": ["123456"]},
+                )
+            achou = filtrar_documentos_estilo_pdv([doc_t], termo)
+            self.assertEqual(len(achou), 1, termo)
