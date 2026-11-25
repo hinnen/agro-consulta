@@ -1711,7 +1711,7 @@ Na planilha de produtos, célula igual ao cadastro não conta como alteração. 
 | - | ------ | ------ | ------- |
 | 1 | **BUSCA-CADASTRO** | 🟢 Pronto | **NÃO** |
 
-Na tela de gestão de produtos, código do fornecedor com 4 dígitos ou mais passa a buscar. Antes a tela esperava 8 dígitos e nem consultava. PDV e entrada de nota já acham. Sem tabela nova. Não sobe sem frase + senha.
+Na tela de gestão de produtos, código do fornecedor com 4 dígitos ou mais passa a buscar. Antes a tela esperava 8 dígitos e nem consultava. O arquivo da tela muda de versão para o navegador pegar o novo. PDV e entrada de nota já acham. Sem tabela nova. Pacote **v27.26.102**. Não sobe sem frase + senha.
 
 ### CHECKLIST ÚNICO — **25/11c** · ✅ enviado · **v27.26.100** @ `fe7ff673`
 
