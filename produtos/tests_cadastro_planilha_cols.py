@@ -7,6 +7,7 @@ from unittest.mock import MagicMock, patch
 from django.test import SimpleTestCase
 
 from produtos.cadastro_planilha_util import (
+    COL_COD_FORN_MANUAL,
     COL_FORN_COMPRA_1,
     COL_FORN_COMPRA_2,
     COL_FORN_COMPRA_3,
@@ -37,6 +38,31 @@ from produtos.cadastro_planilha_util import (
 
 
 class CadastroPlanilhaNovasColunasTests(SimpleTestCase):
+    def test_cod_fornecedor_manual_planilha(self):
+        from produtos.mongo_index_codigos import (
+            definir_codigo_fornecedor_manual_em_extras,
+            texto_codigos_fornecedor_manual,
+        )
+
+        self.assertIn(COL_COD_FORN_MANUAL, EXPORT_COL_KEYS)
+        self.assertIn(COL_COD_FORN_MANUAL, IMPORT_KEYS)
+        m = _map_headers(["Cód. fornecedor manual"])
+        self.assertEqual(m[COL_COD_FORN_MANUAL], "Cód. fornecedor manual")
+        colmap = _map_headers(["ID", "Cód. fornecedor manual"])
+        vazio = _patch_da_linha({"ID": "x", "Cód. fornecedor manual": ""}, colmap)
+        self.assertNotIn(COL_COD_FORN_MANUAL, vazio)
+        patch = _patch_da_linha({"ID": "x", "Cód. fornecedor manual": "R0151, ABC"}, colmap)
+        self.assertEqual(patch[COL_COD_FORN_MANUAL], "R0151, ABC")
+        self.assertFalse(_tem_alteracao({COL_COD_FORN_MANUAL: "r0151, abc"}, patch))
+        self.assertTrue(_tem_alteracao({COL_COD_FORN_MANUAL: ""}, patch))
+        ex = {"entrada_nfe_c_prods": ["999"]}
+        definir_codigo_fornecedor_manual_em_extras(ex, "R0151")
+        self.assertEqual(ex["entrada_nfe_c_prods"], ["999"])
+        self.assertEqual(texto_codigos_fornecedor_manual(ex.get(COL_COD_FORN_MANUAL)), "r0151")
+        definir_codigo_fornecedor_manual_em_extras(ex, "-")
+        self.assertNotIn(COL_COD_FORN_MANUAL, ex)
+        self.assertEqual(ex["entrada_nfe_c_prods"], ["999"])
+
     def test_headers_incluem_novas_colunas(self):
         for k in (
             COL_SUBCATEGORIA_2,

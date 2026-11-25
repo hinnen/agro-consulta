@@ -32,6 +32,8 @@ _MAX_CB_OPCIONAIS_LIST = 20
 
 # cProd do fornecedor na NF-e (ex.: R0151) — distinto do código GM no catálogo.
 _CAD_EXTRAS_C_PROD_NF_KEYS = ("entrada_nfe_c_prods", "entrada_nfe_c_prod")
+# Código digitado no cadastro. A nota não grava aqui.
+CAD_EXTRAS_COD_FORN_MANUAL = "codigo_fornecedor_manual"
 _MIN_C_PROD_NF_ALNUM = 2
 _MAX_C_PROD_NF = 60
 _MAX_C_PRODS_NF_LIST = 24
@@ -317,6 +319,47 @@ def overlay_cadastro_extras_adicionar_c_prod_nf(ex: dict, raw: str) -> str | Non
     return al
 
 
+def _partes_codigo_fornecedor_manual(raw: Any) -> list[str]:
+    if isinstance(raw, list):
+        return [str(x) for x in raw]
+    return re.split(r"[,;\s]+", str(raw or ""))
+
+
+def lista_codigos_fornecedor_manual(raw: Any) -> list[str]:
+    """Códigos manuais normalizados (a nota não entra nesta lista)."""
+    s = str(raw or "").strip().lower()
+    if s in ("-", ".", "limpar", "apagar", "none", "null"):
+        return []
+    out: list[str] = []
+    seen: set[str] = set()
+    for part in _partes_codigo_fornecedor_manual(raw):
+        al = normalizar_c_prod_nf_entrada(part)
+        if al and al not in seen:
+            seen.add(al)
+            out.append(al)
+    return out[:_MAX_C_PRODS_NF_LIST]
+
+
+def texto_codigos_fornecedor_manual(raw: Any) -> str:
+    return ", ".join(lista_codigos_fornecedor_manual(raw))
+
+
+def codigos_fornecedor_manual_de_cadastro_extras(cadastro_extras: dict | None) -> list[str]:
+    if not isinstance(cadastro_extras, dict):
+        return []
+    return lista_codigos_fornecedor_manual(cadastro_extras.get(CAD_EXTRAS_COD_FORN_MANUAL))
+
+
+def definir_codigo_fornecedor_manual_em_extras(ex: dict, raw: Any) -> None:
+    """Substitui a lista manual. Vazio ou «-» apaga. Não mexe no código que veio da nota."""
+    lista = lista_codigos_fornecedor_manual(raw)
+    bruto = str(raw or "").strip()
+    if not bruto or bruto.lower() in ("-", ".", "limpar", "apagar", "none", "null") or not lista:
+        ex.pop(CAD_EXTRAS_COD_FORN_MANUAL, None)
+        return
+    ex[CAD_EXTRAS_COD_FORN_MANUAL] = lista
+
+
 def overlay_cadastro_extras_remover_c_prod_nf(ex: dict, raw: str) -> bool:
     al = normalizar_c_prod_nf_entrada(raw)
     if not al:
@@ -500,6 +543,7 @@ def coletar_extras_agro_para_busca(produto_externo_id: str) -> list[str]:
         out.extend(_eans_embalagem_nf_de_cadastro_extras(getattr(ov, "cadastro_extras", None)))
         out.extend(codigos_barras_opcionais_de_cadastro_extras(getattr(ov, "cadastro_extras", None)))
         out.extend(_c_prods_nf_de_cadastro_extras(getattr(ov, "cadastro_extras", None)))
+        out.extend(codigos_fornecedor_manual_de_cadastro_extras(getattr(ov, "cadastro_extras", None)))
     for row in ProdutoMarcaVariacaoAgro.objects.filter(produto_externo_id=pid[:64]).only(
         "codigo_barras",
         "codigo_fornecedor",
@@ -537,6 +581,8 @@ def mapa_extras_agro_por_produto_externo_id() -> dict[str, list[str]]:
         for d in codigos_barras_opcionais_de_cadastro_extras(getattr(ov, "cadastro_extras", None)):
             out[pid].append(d)
         for c in _c_prods_nf_de_cadastro_extras(getattr(ov, "cadastro_extras", None)):
+            out[pid].append(c)
+        for c in codigos_fornecedor_manual_de_cadastro_extras(getattr(ov, "cadastro_extras", None)):
             out[pid].append(c)
     for row in ProdutoMarcaVariacaoAgro.objects.all().only(
         "produto_externo_id",

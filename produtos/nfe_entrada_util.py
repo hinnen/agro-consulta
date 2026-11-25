@@ -1278,6 +1278,31 @@ def _produto_pg_por_c_prod_overlay(c_prod: str):
             p = _produto_pg_por_pid(cand.produto_externo_id)
             if p:
                 return p, "vinculo_c_prod_overlay"
+        from .mongo_index_codigos import codigos_fornecedor_manual_de_cadastro_extras
+
+        ov_man = (
+            ProdutoGestaoOverlayAgro.objects.filter(
+                cadastro_extras__codigo_fornecedor_manual__contains=[cp]
+            )
+            .order_by("pk")
+            .first()
+        )
+        if ov_man and (ov_man.produto_externo_id or "").strip():
+            p = _produto_pg_por_pid(ov_man.produto_externo_id)
+            if p:
+                return p, "vinculo_c_prod_overlay"
+        for cand in (
+            ProdutoGestaoOverlayAgro.objects.filter(
+                cadastro_extras__has_key="codigo_fornecedor_manual"
+            )
+            .only("produto_externo_id", "cadastro_extras")
+            .order_by("pk")[:400]
+        ):
+            if cp not in codigos_fornecedor_manual_de_cadastro_extras(cand.cadastro_extras):
+                continue
+            p = _produto_pg_por_pid(cand.produto_externo_id)
+            if p:
+                return p, "vinculo_c_prod_overlay"
     except Exception as exc:
         logger.warning("_produto_pg_por_c_prod_overlay: %s", exc)
     return None, None

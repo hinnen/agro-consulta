@@ -120,11 +120,16 @@ def api_etiquetas_solicitacao_pdv_criar(request):
     """Mesma sacola do celular, pelo PDV (login da loja, sem PIN do app)."""
     body = _payload_json(request)
     operador = str(body.get("operador") or "").strip()[:150] or _usuario_etiquetas(request) or "PDV"
+    loja = str(body.get("loja") or "").strip().lower()
+    if loja == "vila":
+        obs = "PDV Vila"
+    else:
+        obs = "PDV Centro"
     try:
         pac = criar_pacote_solicitacao(
             operador_nome=operador,
             itens_raw=body.get("itens"),
-            observacao=str(body.get("observacao") or "PDV"),
+            observacao=obs,
         )
     except ValueError as exc:
         return JsonResponse({"ok": False, "erro": str(exc)}, status=400)

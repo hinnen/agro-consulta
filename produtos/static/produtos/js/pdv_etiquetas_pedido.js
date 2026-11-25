@@ -204,6 +204,16 @@
     var t = chip && !chip.classList.contains('hidden') ? String(chip.textContent || '').trim() : '';
     return t.slice(0, 150);
   }
+  function lojaPdv() {
+    try {
+      if (String(localStorage.getItem('agro_pdv_loja_id') || '') === '2') return 'vila';
+    } catch (e) {}
+    try {
+      var m = document.cookie.match(/(?:^|; )agro_pdv_deposito=([^;]*)/);
+      if (m && decodeURIComponent(m[1]).toLowerCase() === 'vila') return 'vila';
+    } catch (e2) {}
+    return 'centro';
+  }
   async function enviar(itens) {
     if (!itens.length || enviando) return false;
     enviando = true;
@@ -214,7 +224,7 @@
         method: 'POST',
         credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
-        body: JSON.stringify({ itens: itens, operador: operadorNome(), observacao: 'PDV' }),
+        body: JSON.stringify({ itens: itens, operador: operadorNome(), loja: lojaPdv() }),
       });
       var j = await res.json().catch(function () { return {}; });
       enviando = false;

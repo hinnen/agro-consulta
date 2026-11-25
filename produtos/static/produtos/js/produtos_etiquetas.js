@@ -1986,35 +1986,53 @@
       atualizarBotaoSolAddTodas(rows.length);
     }
     if (!box) return;
+    function card(p) {
+      return (
+        '<div class="flex flex-wrap items-center gap-2 border-b border-slate-700/80 px-3 py-2.5 hover:bg-slate-800/50">' +
+        '<div class="min-w-0 flex-1">' +
+        '<div class="truncate text-sm font-bold text-white">' +
+        Core.esc(p.resumo_nomes || '—') +
+        '</div>' +
+        '<div class="mt-0.5 text-[11px] text-slate-400">' +
+        Core.esc(p.criado_em_br || '') +
+        (p.operador_nome ? ' · ' + Core.esc(p.operador_nome) : '') +
+        ' · ' +
+        Core.esc(String(p.total_etiquetas || 0)) +
+        ' etiqueta(s)' +
+        '</div>' +
+        '</div>' +
+        '<button type="button" class="etq-sol-import shrink-0 inline-flex min-h-[40px] items-center justify-center gap-1.5 rounded-xl border-2 border-sky-600 bg-sky-700/40 px-3 text-xs font-black uppercase text-sky-100 hover:bg-sky-600/30" data-sol-id="' +
+        Core.esc(p.id) +
+        '">' +
+        '<i class="fas fa-plus" aria-hidden="true"></i>Na fila</button>' +
+        '</div>'
+      );
+    }
+    function bloco(titulo, lista) {
+      var vazio = !lista.length
+        ? '<p class="px-4 py-3 text-sm text-slate-500">Nenhuma.</p>'
+        : lista.map(card).join('');
+      return (
+        '<p class="sticky top-0 z-[1] border-b border-slate-600 bg-slate-800 px-4 py-2 text-xs font-black uppercase tracking-wide text-slate-100">' +
+        Core.esc(titulo) +
+        ' · ' +
+        lista.length +
+        '</p>' +
+        vazio
+      );
+    }
+    var centro = [];
+    var demais = [];
+    (rows || []).forEach(function (p) {
+      var o = String((p && p.observacao) || '').toLowerCase();
+      if (o.indexOf('centro') >= 0 || o === 'pdv') centro.push(p);
+      else demais.push(p);
+    });
     if (!rows || !rows.length) {
-      box.innerHTML =
-        '<p class="px-4 py-6 text-center text-sm text-slate-400">Nenhuma solicitação pendente.</p>';
+      box.innerHTML = bloco('Loja do Centro', []) + bloco('Demais', []);
       return;
     }
-    box.innerHTML = rows
-      .map(function (p) {
-        return (
-          '<div class="flex flex-wrap items-center gap-2 border-b border-slate-700/80 px-3 py-2.5 hover:bg-slate-800/50">' +
-          '<div class="min-w-0 flex-1">' +
-          '<div class="truncate text-sm font-bold text-white">' +
-          Core.esc(p.resumo_nomes || '—') +
-          '</div>' +
-          '<div class="mt-0.5 text-[11px] text-slate-400">' +
-          Core.esc(p.criado_em_br || '') +
-          (p.operador_nome ? ' · ' + Core.esc(p.operador_nome) : '') +
-          ' · ' +
-          Core.esc(String(p.total_etiquetas || 0)) +
-          ' etiqueta(s)' +
-          '</div>' +
-          '</div>' +
-          '<button type="button" class="etq-sol-import shrink-0 inline-flex min-h-[40px] items-center justify-center gap-1.5 rounded-xl border-2 border-sky-600 bg-sky-700/40 px-3 text-xs font-black uppercase text-sky-100 hover:bg-sky-600/30" data-sol-id="' +
-          Core.esc(p.id) +
-          '">' +
-          '<i class="fas fa-plus" aria-hidden="true"></i>Na fila</button>' +
-          '</div>'
-        );
-      })
-      .join('');
+    box.innerHTML = bloco('Loja do Centro', centro) + bloco('Demais', demais);
     box.querySelectorAll('.etq-sol-import').forEach(function (btn) {
       btn.addEventListener('click', function () {
         var id = btn.getAttribute('data-sol-id');
