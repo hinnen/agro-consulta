@@ -12032,6 +12032,13 @@ def api_vendas_lojas_extras(request):
         vendas_lojas_nota_ate_agora,
     )
 
+    leitura_hora = f"{agora.strftime('%H')}h{agora.strftime('%M')}"
+    if data_fim < hoje:
+        leitura_fmt = f"{data_fim.strftime('%d/%m')} às {leitura_hora}"
+        leitura_com_data = True
+    else:
+        leitura_fmt = leitura_hora
+        leitura_com_data = False
     media = {
         "centro": _vendas_lojas_media_bloco(centro, dia_c, agora_c),
         "vila": _vendas_lojas_media_bloco(vila, dia_v, agora_v),
@@ -12069,6 +12076,9 @@ def api_vendas_lojas_extras(request):
     return JsonResponse(
         {
             "ok": True,
+            "leitura_fmt": leitura_fmt,
+            "leitura_com_data": leitura_com_data,
+            "leitura_em": agora.isoformat(),
             "media": media,
             "fiado": {
                 "sem_fiado_fmt": _format_moeda_br(sem_fiado),
