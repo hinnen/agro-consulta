@@ -38,27 +38,44 @@ def _fmt_br(val: Decimal) -> str:
 
 
 def _resolver_nome_codigo(pid: str, nome: str = "", codigo: str = "") -> tuple[str, str]:
-    """Nome da prateleira. Não deixa o código interno no lugar do nome."""
+    """Nome da prateleira. Não deixa o id do Mongo no lugar do nome."""
+    from produtos.catalogo_nome_util import nome_parece_objectid_corrupto
+
     nome = str(nome or "").strip()
     codigo = str(codigo or "").strip()
-    if nome == pid:
+    if nome_parece_objectid_corrupto(nome, pid):
         nome = ""
+    if nome_parece_objectid_corrupto(codigo, pid):
+        codigo = ""
     if not nome or not codigo:
         _preco, nome_ov, cod_ov = _dados_overlay(pid)
-        nome = nome or nome_ov
-        codigo = codigo or cod_ov
+        if not nome and not nome_parece_objectid_corrupto(nome_ov, pid):
+            nome = nome_ov
+        if not codigo and not nome_parece_objectid_corrupto(cod_ov, pid):
+            codigo = cod_ov
     if not nome or not codigo:
         try:
             from produtos.catalogo_agro import obter_produto_model
+            from produtos.catalogo_nome_util import resolver_campos_catalogo_produto
 
             p = obter_produto_model(pid)
         except Exception:
             p = None
         if p is not None:
-            nome = nome or str(getattr(p, "nome", "") or "")
-            codigo = codigo or str(
-                getattr(p, "codigo_interno", "") or getattr(p, "codigo_barras", "") or ""
+            ov = (
+                ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=pid)
+                .first()
             )
+            campos = resolver_campos_catalogo_produto(
+                p, ov, permitir_inferencia_preco=False
+            )
+            cand = str(campos.get("nome") or "").strip()
+            if not nome_parece_objectid_corrupto(cand, pid) and not cand.startswith("[NOME QUEBRADO]"):
+                nome = nome or cand
+            if not codigo:
+                codigo = str(campos.get("codigo_nfe") or campos.get("codigo_interno") or "").strip()
+            if nome_parece_objectid_corrupto(codigo, pid):
+                codigo = ""
     return nome.strip()[:300], codigo.strip()[:80]
 
 
