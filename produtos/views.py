@@ -12079,6 +12079,14 @@ def api_vendas_lojas_extras(request):
             "leitura_fmt": leitura_fmt,
             "leitura_com_data": leitura_com_data,
             "leitura_em": agora.isoformat(),
+            "totais": {
+                "total_fmt": _format_moeda_br(total),
+                "total_int": _format_moeda_inteiro(total),
+                "centro_fmt": _format_moeda_br(centro),
+                "centro_int": _format_moeda_inteiro(centro),
+                "vila_fmt": _format_moeda_br(vila),
+                "vila_int": _format_moeda_inteiro(vila),
+            },
             "media": media,
             "fiado": {
                 "sem_fiado_fmt": _format_moeda_br(sem_fiado),

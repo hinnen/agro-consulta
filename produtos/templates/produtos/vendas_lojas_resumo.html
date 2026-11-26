@@ -330,6 +330,12 @@
       font-variant-numeric: tabular-nums;
       line-height: 1.05;
     }
+    .fit-money {
+      display: block;
+      width: 100%;
+      max-width: 100%;
+      overflow: hidden;
+    }
     .vl-money .vl-rs {
       display: inline;
       font-size: 0.59em;
@@ -1494,6 +1500,17 @@
           var modos = document.getElementById("vl-media-modos");
           if (modos) modos.hidden = !media.mostra_toggle;
           if (media.nota_ate_agora) vlMediaNotaAgora = media.nota_ate_agora;
+          var totais = data.totais || {};
+          function pintarCartao(loja, inteiro, fmt) {
+            var btn = document.querySelector('[data-media][data-loja="' + loja + '"]');
+            if (!btn || !inteiro) return;
+            btn.setAttribute("data-vendido", fmt || inteiro);
+            var money = btn.querySelector(".vl-money");
+            if (money) money.innerHTML = '<span class="vl-rs">R$</span> ' + inteiro;
+          }
+          pintarCartao("total", totais.total_int, totais.total_fmt);
+          pintarCartao("centro", totais.centro_int, totais.centro_fmt);
+          pintarCartao("vila", totais.vila_int, totais.vila_fmt);
           var fiado = data.fiado || {};
           var elSem = document.getElementById("vl-fiado-sem");
           var elQuit = document.getElementById("vl-fiado-quit");
@@ -1535,9 +1552,11 @@
           if (a1) a1.hidden = !aviso;
           if (a2) a2.hidden = !aviso;
           if (mediaBtn && sheetMedia.classList.contains("aberto")) {
-            var modos = document.getElementById("vl-media-modos");
-            var modo = modos && !modos.hidden ? modoSalvo() : "agora";
-            aplicarMedia(mediaBtn, modo);
+            var modosAb = document.getElementById("vl-media-modos");
+            var modoAb = modosAb && !modosAb.hidden ? modoSalvo() : "agora";
+            document.getElementById("vl-media-vendido").textContent =
+              mediaBtn.getAttribute("data-vendido") || "0,00";
+            aplicarMedia(mediaBtn, modoAb);
           }
           pintarLeitura(true, guardarLeitura(data));
           fitNumeros();

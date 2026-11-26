@@ -1695,9 +1695,13 @@ Até o build, no ar segue v27.26.53 @ `af7af8cc`. Volta: `git push origin rollba
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### VENDAS-GAVETA-HORA — **26/11** · no `teste` · aguarda conferência do Renan
+### CHECKLIST ÚNICO — **26/11b** · 🟢 pronto para envio à produção
 
-Gaveta de Total, Centro e Vila: frase da diferença, Estipulado e Esperado. Cartão azul com mais espaço no celular. Horário da última leitura que deu certo; se falhar, fica o horário anterior. Sem tabela nova. Não foi para a loja.
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **VENDAS-GAVETA-HORA** | 🟢 Pronto | **NÃO** |
+
+Gaveta de Total, Centro e Vila: frase da diferença, Estipulado e Esperado. Total cabe no celular. Horário da última leitura boa; se falhar, fica o anterior. Atualizar renova os números sem apagar a tela. Sem tabela nova. Não mexe em PDV, caixa nem venda. **Não** foi para a loja.
 
 ### CHECKLIST ÚNICO — **26/11** · ✅ no ar · **v27.26.105** @ `c3526a16`
 

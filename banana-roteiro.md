@@ -4,6 +4,8 @@
 
 **Renan:** anexe `@banana-roteiro` (ou só descreva a tarefa — a rule Cursor já puxa este arquivo).
 
+**Pronto (26/11b):** **VENDAS-GAVETA-HORA** no `teste`. Sem migrate. Aguarda frase + senha. Não mexe em PDV, caixa nem venda.
+
 **Loja (26/11):** **PDV-ETQ-NOME** no ar · **v27.26.105** @ `c3526a16`. Sem migrate. Aviso mostra o nome e produto novo não entra. Volta: `git push origin 21fd9bb3:producao`.
 
 **Loja (25/11d):** **BUSCA-CADASTRO** no ar · **v27.26.102** @ `21fd9bb3`. Sem migrate. Gestão busca código com 4 dígitos ou mais. Volta: `git push origin fe7ff673:producao`.
