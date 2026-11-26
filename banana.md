@@ -1695,13 +1695,15 @@ Até o build, no ar segue v27.26.53 @ `af7af8cc`. Volta: `git push origin rollba
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### CHECKLIST ÚNICO — **26/11b** · 🟢 pronto para envio à produção
+### CHECKLIST ÚNICO — **26/11b** · 🟢 corte armado · **v27.26.107**
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **VENDAS-GAVETA-HORA** | 🟢 Pronto | **NÃO** |
+| 1 | **VENDAS-GAVETA-HORA** | 🟢 Pronto · corte armado | **NÃO** |
 
-Gaveta de Total, Centro e Vila: frase da diferença, Estipulado e Esperado. Total cabe no celular. Horário da última leitura boa; se falhar, fica o anterior. Atualizar renova os números sem apagar a tela. Sem tabela nova. Não mexe em PDV, caixa nem venda. **Não** foi para a loja.
+Gaveta de Total, Centro e Vila: frase da diferença, Estipulado e Esperado. Total cabe no celular. Horário da última leitura boa; se falhar, fica o anterior. Atualizar renova os números sem apagar a tela. Sem tabela nova. Não mexe em PDV, caixa nem venda. Em cima da loja **v27.26.105** @ `c3526a16`.
+
+**Na senha, vendas pausadas:** `./scripts/cutover_loja_checklist_2611b.sh --exec`. Se o painel não começar o build, disparar. **Volta:** `git push origin c3526a16:producao`.
 
 ### CHECKLIST ÚNICO — **26/11** · ✅ no ar · **v27.26.105** @ `c3526a16`
 
