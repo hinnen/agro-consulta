@@ -4,6 +4,8 @@
 
 **Renan:** anexe `@banana-roteiro` (ou só descreva a tarefa — a rule Cursor já puxa este arquivo).
 
+**Checklist único (26/11):** **PDV-ETQ-NOME** — 🟢 pronto para envio · alvo **v27.26.105**. Nome no lugar do id. Produto novo não entra. Sem migrate. Não mexe em venda nem caixa. Loja hoje **v27.26.102** @ `21fd9bb3`.
+
 **Loja (25/11d):** **BUSCA-CADASTRO** no ar · **v27.26.102** @ `21fd9bb3`. Sem migrate. Gestão busca código com 4 dígitos ou mais. Volta: `git push origin fe7ff673:producao`.
 
 **Loja (25/11c):** **BUSCA-COD-FORN** no ar · **v27.26.100** @ `fe7ff673`. Sem migrate. PDV e entrada de nota ok. A tela de gestão ainda esperava 8 dígitos. Volta: `git push origin 3143bbb8:producao`.

@@ -64,6 +64,27 @@ class EtiquetaPrecoPdvTests(TestCase):
         self.assertEqual(item["nome"], "Coleira de couro")
         self.assertEqual(item["codigo"], "GM90")
 
+    def test_id_mongo_no_lugar_do_nome_vira_o_cadastro(self):
+        from produtos.models import ProdutoGestaoOverlayAgro
+
+        oid = "699382cb4f504f3b9b79438f"
+        ProdutoGestaoOverlayAgro.objects.create(
+            produto_externo_id=oid,
+            nome="Uniao Emenda 3/4",
+            codigo_nfe="GM4388",
+            preco_venda="2.00",
+        )
+        avisar_mudanca_preco_venda(
+            produto_id=oid,
+            antes="1,50",
+            depois="2,00",
+            nome=oid,
+        )
+        item = listar_pendentes("centro")[0]
+        self.assertEqual(item["nome"], "Uniao Emenda 3/4")
+        self.assertEqual(item["codigo"], "GM4388")
+        self.assertNotIn(oid, item["nome"])
+
     def test_mesmo_preco_nao_avisa(self):
         n = avisar_mudanca_preco_venda(produto_id="gm3", antes="4,00", depois="4,00", nome="B")
         self.assertEqual(n, 0)

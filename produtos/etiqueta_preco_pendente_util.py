@@ -318,10 +318,11 @@ def listar_trocadas(deposito: str) -> list[dict[str, Any]]:
     )
     for row in qs:
         quando = timezone.localtime(row.ok_em).strftime("%d/%m %H:%M") if row.ok_em else ""
+        nome, codigo = _resolver_nome_codigo(row.produto_externo_id, row.nome, row.codigo)
         out.append(
             {
                 "id": row.pk,
-                "nome": row.nome or row.produto_externo_id,
+                "nome": nome or row.nome or "Produto",
                 "codigo": row.codigo,
                 "preco": _fmt_br(row.preco_ok),
                 "quando": quando,
