@@ -1695,9 +1695,9 @@ Até o build, no ar segue v27.26.53 @ `af7af8cc`. Volta: `git push origin rollba
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### PDV — etiqueta de preço · **26/11** · no `teste` · não foi para a loja
+### PDV — etiqueta de preço · **26/11** · no `teste` **v27.26.104** · corte **não** armado
 
-O aviso mostra o nome do cadastro. Produto novo, cujo primeiro preço sai de zero, não entra na lista. Mudança de preço de produto que já existia continua avisando.
+Nome do cadastro no lugar do id. Produto novo (preço saindo de zero) não entra na lista. Ainda **não** visto no PC. Lojas abertas: **não** armar envio até o Renan ver a lista. Sem tabela nova. Não mexe em venda nem caixa.
 
 ### CHECKLIST ÚNICO — **25/11b** · ✅ enviado · **v27.26.99** @ `3143bbb8`
 
