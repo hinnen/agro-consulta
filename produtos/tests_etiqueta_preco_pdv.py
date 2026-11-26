@@ -35,6 +35,35 @@ class EtiquetaPrecoPdvTests(TestCase):
         self.assertEqual(item["preco_de"], "5,00")
         self.assertEqual(item["preco_para"], "7,00")
 
+    def test_cadastro_novo_nao_avisa(self):
+        n = avisar_mudanca_preco_venda(
+            produto_id="gm-novo",
+            antes="0",
+            depois="15,90",
+            nome="Shampoo novo",
+        )
+        self.assertEqual(n, 0)
+        self.assertEqual(listar_pendentes("centro"), [])
+
+    def test_aviso_sem_nome_usa_o_do_cadastro(self):
+        from produtos.models import ProdutoGestaoOverlayAgro
+
+        ProdutoGestaoOverlayAgro.objects.create(
+            produto_externo_id="gm-sem-nome",
+            nome="Coleira de couro",
+            codigo_nfe="GM90",
+            preco_venda="8.00",
+        )
+        avisar_mudanca_preco_venda(
+            produto_id="gm-sem-nome",
+            antes="8",
+            depois="9",
+            nome="",
+        )
+        item = listar_pendentes("centro")[0]
+        self.assertEqual(item["nome"], "Coleira de couro")
+        self.assertEqual(item["codigo"], "GM90")
+
     def test_mesmo_preco_nao_avisa(self):
         n = avisar_mudanca_preco_venda(produto_id="gm3", antes="4,00", depois="4,00", nome="B")
         self.assertEqual(n, 0)

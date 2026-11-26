@@ -4,6 +4,7 @@ from __future__ import annotations
 from decimal import Decimal, InvalidOperation
 from typing import Any
 
+from django.db.models import F
 from django.utils import timezone
 
 from produtos.models import (
@@ -36,6 +37,31 @@ def _fmt_br(val: Decimal) -> str:
     return f"{val:.2f}".replace(".", ",")
 
 
+def _resolver_nome_codigo(pid: str, nome: str = "", codigo: str = "") -> tuple[str, str]:
+    """Nome da prateleira. Não deixa o código interno no lugar do nome."""
+    nome = str(nome or "").strip()
+    codigo = str(codigo or "").strip()
+    if nome == pid:
+        nome = ""
+    if not nome or not codigo:
+        _preco, nome_ov, cod_ov = _dados_overlay(pid)
+        nome = nome or nome_ov
+        codigo = codigo or cod_ov
+    if not nome or not codigo:
+        try:
+            from produtos.catalogo_agro import obter_produto_model
+
+            p = obter_produto_model(pid)
+        except Exception:
+            p = None
+        if p is not None:
+            nome = nome or str(getattr(p, "nome", "") or "")
+            codigo = codigo or str(
+                getattr(p, "codigo_interno", "") or getattr(p, "codigo_barras", "") or ""
+            )
+    return nome.strip()[:300], codigo.strip()[:80]
+
+
 def _dados_overlay(pid: str) -> tuple[Decimal | None, str, str]:
     ov = (
         ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=pid)
@@ -64,6 +90,36 @@ def avisar_mudanca_preco_venda(
     a = _dinheiro(antes)
     b = _dinheiro(depois)
     if not pid or a is None or b is None or a == b:
+        return 0
+    nome, codigo = _resolver_nome_codigo(pid, nome, codigo)
+    if a <= 0:
+        # Primeiro preço do cadastro novo. Não havia etiqueta antiga para trocar.
+        agora = timezone.now()
+        for dep in DEPOSITOS:
+            row, created = EtiquetaPrecoGondolaAgro.objects.get_or_create(
+                produto_externo_id=pid,
+                deposito=dep,
+                defaults={
+                    "nome": nome,
+                    "codigo": codigo,
+                    "preco_ok": b,
+                    "preco_atual": b,
+                    "pendente": False,
+                    "ok_em": agora,
+                },
+            )
+            if created:
+                continue
+            if row.preco_ok <= 0 and row.pendente:
+                row.preco_ok = b
+                row.preco_atual = b
+                row.pendente = False
+                row.ok_em = agora
+                if nome:
+                    row.nome = nome
+                if codigo:
+                    row.codigo = codigo
+                row.save()
         return 0
     n = 0
     for dep in DEPOSITOS:
@@ -209,15 +265,25 @@ def listar_pendentes(deposito: str) -> list[dict[str, Any]]:
         sincronizar_promocoes(dep)
     except Exception:
         pass
+    EtiquetaPrecoGondolaAgro.objects.filter(deposito=dep, pendente=True, preco_ok__lte=0).update(
+        pendente=False,
+        preco_ok=F("preco_atual"),
+        ok_em=timezone.now(),
+    )
     out = []
     qs = EtiquetaPrecoGondolaAgro.objects.filter(deposito=dep, pendente=True).order_by("-atualizado_em", "nome")[:80]
     for row in qs:
+        nome, codigo = _resolver_nome_codigo(row.produto_externo_id, row.nome, row.codigo)
+        if nome and (nome != row.nome or codigo != row.codigo):
+            row.nome = nome
+            row.codigo = codigo or row.codigo
+            row.save(update_fields=["nome", "codigo", "atualizado_em"])
         out.append(
             {
                 "id": row.pk,
                 "produto_id": row.produto_externo_id,
-                "nome": row.nome or row.produto_externo_id,
-                "codigo": row.codigo,
+                "nome": nome or row.nome or "Produto",
+                "codigo": codigo or row.codigo,
                 "preco_de": _fmt_br(row.preco_ok),
                 "preco_para": _fmt_br(row.preco_atual),
                 "preco_para_num": float(row.preco_atual),
@@ -265,10 +331,11 @@ def itens_etiqueta(deposito: str) -> list[dict]:
     dep = normalizar_deposito(deposito)
     itens = []
     for row in EtiquetaPrecoGondolaAgro.objects.filter(deposito=dep, pendente=True).order_by("nome")[:80]:
+        nome, codigo = _resolver_nome_codigo(row.produto_externo_id, row.nome, row.codigo)
         itens.append(
             {
                 "id": row.produto_externo_id,
-                "nome": row.nome or row.produto_externo_id,
+                "nome": nome or row.nome or "Produto",
                 "codigo_gm": row.codigo,
                 "codigo_barras": row.codigo if str(row.codigo).isdigit() else "",
                 "preco_venda": float(row.preco_atual),
