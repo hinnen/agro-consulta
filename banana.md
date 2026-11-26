@@ -1695,13 +1695,15 @@ Até o build, no ar segue v27.26.53 @ `af7af8cc`. Volta: `git push origin rollba
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### CHECKLIST ÚNICO — **26/11** · 🟢 pronto para envio · alvo **v27.26.105**
+### CHECKLIST ÚNICO — **26/11** · 🟢 corte armado · **v27.26.105**
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **PDV-ETQ-NOME** | 🟢 Pronto | **NÃO** |
+| 1 | **PDV-ETQ-NOME** | 🟢 Pronto · corte armado | **NÃO** |
 
-Nome no lugar do id. Produto novo (preço saindo de zero) não entra. Sem tabela nova. Não mexe em venda nem caixa. Loja hoje **v27.26.102** @ `21fd9bb3`. Prova neste PC: 8 checagens ok. Ainda não visto na loja.
+Nome no lugar do id. Produto novo (preço saindo de zero) não entra. Sem tabela nova. Não mexe em venda nem caixa. Em cima da loja **v27.26.102** @ `21fd9bb3`. Prova no PC do Renan: 8 checagens ok. Neste ambiente a prova de banco não rodou.
+
+**Na senha, vendas pausadas:** `./scripts/cutover_loja_checklist_2611.sh --exec`. Se o painel não começar o build, disparar. **Volta:** `git push origin 21fd9bb3:producao`.
 
 ### CHECKLIST ÚNICO — **25/11b** · ✅ enviado · **v27.26.99** @ `3143bbb8`
 

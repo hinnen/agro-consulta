@@ -4,7 +4,7 @@
 
 **Renan:** anexe `@banana-roteiro` (ou só descreva a tarefa — a rule Cursor já puxa este arquivo).
 
-**Checklist único (26/11):** **PDV-ETQ-NOME** — 🟢 pronto para envio · alvo **v27.26.105**. Nome no lugar do id. Produto novo não entra. Sem migrate. Não mexe em venda nem caixa. Loja hoje **v27.26.102** @ `21fd9bb3`.
+**Pacote pronto (26/11):** **PDV-ETQ-NOME** · **v27.26.105** · corte armado · sem migrate. Não enviado. Loja no ar: **v27.26.102** @ `21fd9bb3`. Na senha: `./scripts/cutover_loja_checklist_2611.sh --exec`. Se o painel não construir, disparar. Volta: `git push origin 21fd9bb3:producao`.
 
 **Loja (25/11d):** **BUSCA-CADASTRO** no ar · **v27.26.102** @ `21fd9bb3`. Sem migrate. Gestão busca código com 4 dígitos ou mais. Volta: `git push origin fe7ff673:producao`.
 
