@@ -1016,7 +1016,11 @@ def listar_conversas(*, loja: str, limit: int = 80) -> list[dict]:
         qs = WhatsAppConversaAgro.objects.filter(arquivada=True).order_by("-arquivada_em", "-ultima_em", "-id")
     else:
         qs = WhatsAppConversaAgro.objects.filter(arquivada=False)
-        if loja_n in (
+        if loja_n in ("espera", "esperando"):
+            qs = qs.filter(
+                Q(aguardando_loja=True) | Q(loja=WhatsAppConversaAgro.LOJA_PENDENTE)
+            )
+        elif loja_n in (
             WhatsAppConversaAgro.LOJA_PENDENTE,
             WhatsAppConversaAgro.LOJA_CENTRO,
             WhatsAppConversaAgro.LOJA_VILA,
@@ -1320,12 +1324,13 @@ def _enfileirar_saida(
         conversa.ultima_preview = _preview(prev_txt)
         conversa.ultima_em = agora
         campos = ["ultima_preview", "ultima_em"]
-        if direcao in (
-            WhatsAppMensagemAgro.DIRECAO_OUT,
-            WhatsAppMensagemAgro.DIRECAO_BOT,
-        ):
+        if direcao == WhatsAppMensagemAgro.DIRECAO_OUT:
             conversa.aguardando_loja = False
             campos.append("aguardando_loja")
+            campos.extend(
+                _marcar_ultima_saida(conversa, direcao=direcao, ack=0, zerar_nao_lidas=True)
+            )
+        elif direcao == WhatsAppMensagemAgro.DIRECAO_BOT:
             campos.extend(
                 _marcar_ultima_saida(conversa, direcao=direcao, ack=0, zerar_nao_lidas=True)
             )

@@ -103,7 +103,7 @@
   <div id="wa-status" class="wa-pill">…</div>
   <div class="wa-tabs shrink-0">
     <button type="button" data-loja="todas" class="wa-tab is-on"><span class="wa-tab-nome">Ativas</span><span data-badge="todas" class="wa-badge is-zero">0</span></button>
-    <button type="button" data-loja="pendente" class="wa-tab hidden"><span class="wa-tab-nome">Fila</span><span data-badge="pendente" class="wa-badge is-zero">0</span></button>
+    <button type="button" data-loja="espera" class="wa-tab hidden"><span class="wa-tab-nome">Esperando</span><span data-badge="espera" class="wa-badge is-zero">0</span></button>
     <button type="button" data-loja="centro" class="wa-tab hidden"><span class="wa-tab-nome">Centro</span><span data-badge="centro" class="wa-badge is-zero">0</span></button>
     <button type="button" data-loja="vila" class="wa-tab hidden"><span class="wa-tab-nome">Vila</span><span data-badge="vila" class="wa-badge is-zero">0</span></button>
     <button type="button" data-loja="arquivadas" class="wa-tab"><span class="wa-tab-nome">Resolvidas</span><span data-badge="arquivadas" class="wa-badge is-zero">0</span></button>
@@ -176,7 +176,7 @@
 {% include "produtos/_wa_status.html" %}
 {% include "produtos/_wa_ficha.html" %}
 {% include "produtos/_wa_dlg.html" %}
-<script src="{% static 'produtos/js/atendimento_whatsapp.js' %}?v={{ agro_asset_v|default:agro_build.version|default:'1' }}-aviso-qr1"></script>
+<script src="{% static 'produtos/js/atendimento_whatsapp.js' %}?v={{ agro_asset_v|default:agro_build.version|default:'1' }}-espera1"></script>
 <script>
 (function () {
   var DICA_KEY = "agro_wa_pc_pwa_dica_v1";

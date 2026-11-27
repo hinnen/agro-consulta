@@ -328,7 +328,8 @@
       (parseInt(n.centro || 0, 10) || 0) +
       (parseInt(n.vila || 0, 10) || 0);
     n.todas = somaAtivas;
-    ['pendente', 'centro', 'vila', 'arquivadas', 'todas'].forEach(function (k) {
+    n.espera = somaAtivas;
+    ['espera', 'pendente', 'centro', 'vila', 'arquivadas', 'todas'].forEach(function (k) {
       var el = document.querySelector('[data-badge="' + k + '"]');
       if (!el) return;
       var v = parseInt(n[k] || 0, 10) || 0;
@@ -634,8 +635,8 @@
       var dica =
         loja === 'arquivadas'
           ? 'Nenhuma conversa resolvida. O ✓ no chat arquiva para cá.'
-          : loja === 'pendente'
-            ? 'Fila vazia. Quem já escolheu loja está em Centro ou Vila. Religar o Zap não apaga conversa.'
+          : loja === 'espera'
+            ? 'Ninguém esperando. Conversa já respondida fica em Centro ou Vila.'
             : 'Nenhuma conversa nesta aba.';
       el.innerHTML = '<p class="p-4 text-sm font-semibold text-slate-400">' + dica + '</p>';
       selMap = {};
@@ -684,7 +685,14 @@
       var nEl = btn.querySelector('.wa-n');
       var tEl = btn.querySelector('.wa-t');
       var pEl = btn.querySelector('.wa-p');
-      if (nEl) nEl.textContent = titulo;
+      if (nEl) {
+        var marcaLoja = '';
+        if (loja === 'espera') {
+          var lj = String(c.loja || '');
+          marcaLoja = lj === 'vila' ? ' · Vila' : lj === 'centro' ? ' · Centro' : ' · sem loja';
+        }
+        nEl.textContent = titulo + marcaLoja;
+      }
       if (tEl) tEl.textContent = c.hora || '';
       if (pEl) pEl.innerHTML = htmlPreviewLista(preview, c);
       var row2 = btn.querySelector('.wa-row2');
@@ -976,7 +984,7 @@
         b.classList.remove('hidden');
         return;
       }
-      if (l === 'todas') {
+      if (l === 'todas' || l === 'pendente') {
         b.classList.toggle('hidden', separarLojas);
         return;
       }
@@ -989,8 +997,8 @@
       } catch (e) {}
       var mv = $('wa-move');
       if (mv && !convId) mv.classList.add('hidden');
-    } else if (loja === 'todas') {
-      loja = 'pendente';
+    } else if (loja === 'todas' || loja === 'pendente') {
+      loja = 'espera';
     }
     setTab();
   }
@@ -1326,7 +1334,7 @@
   function pedirListaOutra() {
     if (listaOutraPedida) return;
     listaOutraPedida = true;
-    var outra = chaveLista() === 'arquivadas' ? (separarLojas ? 'pendente' : 'todas') : 'arquivadas';
+    var outra = chaveLista() === 'arquivadas' ? (separarLojas ? 'espera' : 'todas') : 'arquivadas';
     fetchJson('/api/atendimento-whatsapp/conversas/?loja=' + encodeURIComponent(outra)).then(function (j) {
       if (!j || !j.ok) return;
       cacheListas[outra] = j.conversas || [];
@@ -1745,7 +1753,7 @@
 
   document.querySelectorAll('.wa-tab').forEach(function (b) {
     b.addEventListener('click', function () {
-      loja = b.getAttribute('data-loja') || 'pendente';
+      loja = b.getAttribute('data-loja') || 'espera';
       try {
         localStorage.setItem(TAB_KEY, loja);
       } catch (e) {}
