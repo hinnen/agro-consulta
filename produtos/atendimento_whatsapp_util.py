@@ -2836,6 +2836,28 @@ def transferir_conversa(
     return conv, ""
 
 
+@transaction.atomic
+def resetar_escolha_loja(conversa_id: int, *, autor: str = "") -> tuple[WhatsAppConversaAgro | None, str]:
+    """Tira a loja e manda o menu de novo para o cliente escolher."""
+    try:
+        conv = WhatsAppConversaAgro.objects.select_for_update().get(pk=int(conversa_id))
+    except (WhatsAppConversaAgro.DoesNotExist, TypeError, ValueError):
+        return None, "Conversa não encontrada."
+    from produtos.atendimento_whatsapp_bot_config import carregar_bot
+
+    cfg = carregar_bot()
+    conv.loja = WhatsAppConversaAgro.LOJA_PENDENTE
+    conv.menu_enviado = False
+    conv.aguardando_loja = True
+    conv.save(update_fields=["loja", "menu_enviado", "aguardando_loja"])
+    menu = str(cfg.get("msg_menu") or "").strip()
+    if menu:
+        _enviar_lote_bot(conv, [menu], cfg)
+        conv.menu_enviado = True
+        conv.save(update_fields=["menu_enviado"])
+    return conv, ""
+
+
 def toque_heartbeat() -> WhatsAppPonteEstadoAgro | None:
     """Marca ponte viva. No máximo 1 gravação a cada ~25s (poll curto não engasga o PDV)."""
     import time

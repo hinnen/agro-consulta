@@ -482,9 +482,15 @@ def api_atendimento_whatsapp_transferir(request):
         cid = int(data.get("conversa_id") or 0)
     except (TypeError, ValueError):
         cid = 0
-    conv, err = transferir_conversa(
-        cid, data.get("loja") or "", autor=autor, nota=str(data.get("nota") or "")
-    )
+    from produtos.atendimento_whatsapp_util import resetar_escolha_loja
+
+    destino = (data.get("loja") or "").strip().lower()
+    if destino in ("reset", "pendente", "escolher"):
+        conv, err = resetar_escolha_loja(cid, autor=autor)
+    else:
+        conv, err = transferir_conversa(
+            cid, destino, autor=autor, nota=str(data.get("nota") or "")
+        )
     if err or conv is None:
         return JsonResponse({"ok": False, "erro": err or "Não passou."}, status=400)
     return JsonResponse({"ok": True, "conversa": serializar_conversa(conv)})

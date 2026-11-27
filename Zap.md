@@ -75,7 +75,7 @@ Atualizado **14/11/2026**.
 Já está no ar. O Renan viu e fechou o assunto por agora. Depois mexe de novo.
 
 - Filtros na barra: Ativas, ou Esperando, Centro e Vila, e Resolvidas. Números alinhados.
-- 27/11: com a separação ligada, a primeira aba é Esperando. Junta Centro, Vila e quem ainda não escolheu, só enquanto uma pessoa da loja não respondeu. O menu automático não tira da lista. Conversa já respondida fica em Centro ou Vila. Na lista aparece · Vila, · Centro ou · sem loja.
+- 27/11: com a separação ligada, a primeira aba é Esperando. Junta Centro, Vila e quem ainda não escolheu, só enquanto uma pessoa da loja não respondeu. O menu automático não tira da lista. Conversa já respondida fica em Centro ou Vila. A lista tem a tag da loja no cantinho. No topo da conversa a tag abre Centro, Vila ou Escolher de novo. A conversa aberta fica com fundo verde e faixa verde na esquerda. Linha mais escura entre as conversas.
 - Ajustes embaixo. Trocar Zap fica dentro de Ajustes.
 - Selecionar no clique direito.
 - Reação fora do texto.
