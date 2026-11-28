@@ -117,7 +117,7 @@ Depois de copiar: F5 no computador. Fechar e abrir o aplicativo e o Zap de dentr
 - Arquivar entre aparelhos: encerrado. Não tentar de novo com a loja no ar.
 - Painel CRM dos atendimentos: `/atendimento-whatsapp/painel/` (no teste deste PC: `http://127.0.0.1:8011/atendimento-whatsapp/painel/`).
 - 28/11, só no teste do disco E: responder cita a mensagem. Seta ao lado ou botão direito → Responder.
-- 28/11, só no teste do disco E: figurinhas no botão ao lado do emoji. A que o cliente manda entra na gaveta. Um toque envia de novo.
+- 28/11, só no teste: figurinhas no botão ao lado do emoji. Não entram sozinhas. A setinha só aparece na figurinha, em cima, com o mouse em cima, e abre o menu (Responder, Salvar). O botão direito continua. Um toque na gaveta envia de novo.
 - Loja (`producao` / `teste`) é outro sistema.
 
 ## 1. Todo chat de Zap

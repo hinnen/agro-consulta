@@ -685,11 +685,12 @@ def guardar_figurinha(raw: bytes, mime: str = "") -> None:
         return
 
 
-def guardar_figurinha_da_mensagem(msg: WhatsAppMensagemAgro) -> None:
-    if (msg.tipo_midia or "") != "sticker" or msg.direcao != WhatsAppMensagemAgro.DIRECAO_IN:
-        return
+def guardar_figurinha_da_mensagem(msg: WhatsAppMensagemAgro) -> str:
+    """Copia a figurinha da conversa para a gaveta. Só quando a pessoa pede."""
+    if (msg.tipo_midia or "") != "sticker":
+        return "nao"
     if not getattr(msg.arquivo, "name", ""):
-        return
+        return "sem_arquivo"
     try:
         fh = msg.arquivo.open("rb")
         try:
@@ -697,8 +698,32 @@ def guardar_figurinha_da_mensagem(msg: WhatsAppMensagemAgro) -> None:
         finally:
             fh.close()
     except Exception:
-        return
+        return "sem_arquivo"
+    if not raw:
+        return "sem_arquivo"
+    chave = hashlib.sha256(raw).hexdigest()
+    if WhatsAppFigurinhaAgro.objects.filter(chave=chave).exists():
+        return "ja"
     guardar_figurinha(raw, "image/webp")
+    if WhatsAppFigurinhaAgro.objects.filter(chave=chave).exists():
+        return "salva"
+    return "sem_arquivo"
+
+
+def favoritar_figurinha(mensagem_id: int) -> tuple[bool, str]:
+    try:
+        mid = int(mensagem_id or 0)
+    except (TypeError, ValueError):
+        mid = 0
+    msg = WhatsAppMensagemAgro.objects.filter(pk=mid).first() if mid else None
+    if not msg or (msg.tipo_midia or "") != "sticker" or msg.apagada:
+        return False, "Escolha uma figurinha da conversa."
+    estado = guardar_figurinha_da_mensagem(msg)
+    if estado == "salva":
+        return True, "Figurinha salva. Ela fica na gaveta para usar de novo."
+    if estado == "ja":
+        return True, "Essa figurinha já está na gaveta."
+    return False, "Não deu para salvar essa figurinha."
 
 
 def listar_figurinhas(limit: int = 60) -> list[dict]:
@@ -1872,8 +1897,6 @@ def processar_entrada(
         msg.save()
     except IntegrityError:
         return None, "duplicada"
-    if not de_mim and tipo_n == "sticker":
-        guardar_figurinha_da_mensagem(msg)
     conv.ultima_preview = _preview(t)
     if not historico:
         conv.ultima_em = timezone.now()

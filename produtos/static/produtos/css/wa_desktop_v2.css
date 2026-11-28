@@ -809,4 +809,20 @@
     background: transparent; color: var(--wa2-text); border: 0;
   }
   html[data-wa-skin="v2"] .wa-skin .wa-ctx-btn:hover { background: var(--wa2-bg-selected); }
+  html[data-wa-skin="v2"] .wa-skin .wa-sticker {
+    position: relative; display: inline-block; order: -1; flex: 0 0 auto; max-width: 180px; margin: 0 0 4px;
+  }
+  html[data-wa-skin="v2"] .wa-skin .wa-sticker .wa-pic {
+    display: block; width: 160px; height: auto; margin: 0; flex: none; background: transparent;
+  }
+  html[data-wa-skin="v2"] .wa-skin .wa-chevron {
+    display: none; position: absolute; top: 0; right: 0; z-index: 2;
+    width: 26px; height: 26px; padding: 0; border: 0; border-radius: 50%;
+    background: rgba(255, 255, 255, .92); color: #3b4a54;
+    box-shadow: 0 1px 2px rgba(11, 20, 26, .18); cursor: pointer;
+  }
+  html[data-wa-skin="v2"] .wa-skin .wa-chevron svg { display: block; width: 18px; height: 18px; margin: 4px auto 0; }
+  html[data-wa-skin="v2"] .wa-skin .wa-b:hover .wa-chevron,
+  html[data-wa-skin="v2"] .wa-skin .wa-b:focus-within .wa-chevron { display: block; }
+  html[data-wa-skin="v2"] .wa-skin .wa-chevron:hover { background: #fff; color: #111b21; }
 }

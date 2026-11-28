@@ -4,6 +4,7 @@
 (function () {
   'use strict';
 
+  var pintarFigsSalvas = function () {};
   var TAB_KEY = 'agro_wa_loja_tab';
   var loja = 'todas';
   var separarLojas = false;
@@ -863,10 +864,25 @@
           metaHtml = '<div class="wa-meta is-hora-so">' + escapeHtml(m.hora) + '</div>';
         }
         var corpoTxt = m.texto || '';
-        if (!m.apagada && (corpoTxt === '[imagem]' || corpoTxt === '[áudio]')) corpoTxt = '';
+        if (!m.apagada && (corpoTxt === '[imagem]' || corpoTxt === '[áudio]' || corpoTxt === '[figurinha]')) corpoTxt = '';
         var corpo = escapeHtml(corpoTxt);
+        var idOk =
+          !m.apagada &&
+          String(m.id || '').indexOf('tmp-') !== 0 &&
+          String(m.id || '').indexOf('previa-') !== 0;
         var midia = '';
-        if (!m.apagada && m.midia_url && (m.tipo_midia === 'image' || m.tipo_midia === 'sticker')) {
+        if (!m.apagada && m.midia_url && m.tipo_midia === 'sticker' && idOk) {
+          midia =
+            '<span class="wa-sticker">' +
+            '<img class="wa-pic" alt="" src="' +
+            escapeHtml(m.midia_url) +
+            '" data-wa-pic-full="' +
+            escapeHtml(m.midia_url) +
+            '" />' +
+            '<button type="button" class="wa-chevron" data-wa-act="menu" data-msg-id="' +
+            escapeHtml(String(m.id)) +
+            '" title="Menu" aria-label="Menu da figurinha"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5.5 7.5 L10 12.2 L14.5 7.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button></span>';
+        } else if (!m.apagada && m.midia_url && (m.tipo_midia === 'image' || m.tipo_midia === 'sticker')) {
           midia =
             '<img class="wa-pic" alt="" src="' +
             escapeHtml(m.midia_url) +
@@ -885,10 +901,6 @@
           midia = '<span class="text-xs text-slate-500">Áudio (ainda baixando)</span>';
         }
         var acts = '';
-        var idOk =
-          !m.apagada &&
-          String(m.id || '').indexOf('tmp-') !== 0 &&
-          String(m.id || '').indexOf('previa-') !== 0;
         if (idOk) {
           acts =
             '<div class="wa-msg-acts">' +
@@ -918,6 +930,8 @@
           escapeHtml(diaKey) +
           '" data-wa-id="' +
           escapeHtml(String(m.wa_id || '')) +
+          '" data-tipo="' +
+          escapeHtml(String(m.tipo_midia || '')) +
           '">' +
           quote +
           metaHtml +
@@ -2036,6 +2050,7 @@
       var bubble = mid ? document.querySelector('#wa-msgs .wa-b[data-msg-id="' + mid + '"]') : null;
       fecharCtx();
       if (acao === 'responder' && mid) setReplyBar(mid, textoBolha(bubble));
+      if (acao === 'salvar-fig' && mid) salvarFigurinha(mid);
       return;
     }
     var id = menuCtx.getAttribute('data-cid');
@@ -2111,6 +2126,22 @@
   function avisarEnvio(msg) {
     if (typeof waToast === 'function') waToast(msg, false);
     else window.alert(msg);
+  }
+
+  function salvarFigurinha(mid) {
+    return fetchJson('/api/atendimento-whatsapp/figurinhas/salvar/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
+      body: JSON.stringify({ mensagem_id: Number(mid) || 0 }),
+    }).then(function (j) {
+      if (!j || !j.ok) {
+        avisarEnvio((j && j.erro) || 'Não salvou a figurinha.');
+        return j;
+      }
+      pintarFigsSalvas(j.figurinhas || []);
+      avisarEnvio((j && j.aviso) || 'Figurinha salva.');
+      return j;
+    });
   }
 
   function enviarPayload(payload, textoVolta) {
@@ -3178,9 +3209,19 @@
     box.className = 'wa-pic-lite';
     box.setAttribute('role', 'dialog');
     box.setAttribute('aria-label', 'Foto em tela cheia');
-    box.innerHTML = '<img alt="" />';
+    box.innerHTML = '<img alt="" /><button type="button" class="wa-pic-fav" hidden>Adicionar às favoritas</button>';
     document.body.appendChild(box);
     box.addEventListener('click', function (ev) {
+      var fav = ev.target.closest && ev.target.closest('.wa-pic-fav');
+      if (fav) {
+        ev.preventDefault();
+        ev.stopPropagation();
+        var mid = fav.getAttribute('data-msg-id') || '';
+        salvarFigurinha(mid).then(function (j) {
+          if (j && j.ok) fav.textContent = 'Adicionada às favoritas';
+        });
+        return;
+      }
       if (ev.target === box || (ev.target && ev.target.tagName === 'IMG')) {
         box.classList.remove('is-on');
         box.querySelector('img').removeAttribute('src');
@@ -3189,12 +3230,23 @@
     return box;
   }
 
-  function abrirPicLite(url) {
+  function abrirPicLite(url, msgId) {
     var src = String(url || '').trim();
     if (!src) return;
     var box = garantirPicLite();
     var img = box.querySelector('img');
     if (img) img.src = src;
+    var fav = box.querySelector('.wa-pic-fav');
+    if (fav) {
+      if (msgId) {
+        fav.hidden = false;
+        fav.setAttribute('data-msg-id', String(msgId));
+        fav.textContent = 'Adicionar às favoritas';
+      } else {
+        fav.hidden = true;
+        fav.removeAttribute('data-msg-id');
+      }
+    }
     box.classList.add('is-on');
   }
 
@@ -3214,7 +3266,12 @@
     var pic = alvo.closest('.wa-pic[data-wa-pic-full]');
     if (!pic) return;
     ev.preventDefault();
-    abrirPicLite(pic.getAttribute('data-wa-pic-full') || pic.getAttribute('src') || '');
+    var bolha = pic.closest('.wa-b');
+    var ehFig = bolha && (bolha.getAttribute('data-tipo') || '') === 'sticker';
+    abrirPicLite(
+      pic.getAttribute('data-wa-pic-full') || pic.getAttribute('src') || '',
+      ehFig ? bolha.getAttribute('data-msg-id') || '' : ''
+    );
   });
 
   document.addEventListener('keydown', function (ev) {
@@ -3417,7 +3474,11 @@
         var mid = bubble.getAttribute('data-msg-id') || '';
         if (!mid || mid.indexOf('tmp-') === 0 || mid.indexOf('previa-') === 0) return;
         ev.preventDefault();
-        abrirCtx(ev.clientX, ev.clientY, [{ id: 'responder', label: 'Responder' }]);
+        var itensCtx = [{ id: 'responder', label: 'Responder' }];
+        if ((bubble.getAttribute('data-tipo') || '') === 'sticker') {
+          itensCtx.push({ id: 'salvar-fig', label: 'Salvar figurinha' });
+        }
+        abrirCtx(ev.clientX, ev.clientY, itensCtx);
         menuCtx.setAttribute('data-modo', 'msg');
         menuCtx.setAttribute('data-mid', mid);
       });
@@ -3427,8 +3488,24 @@
         var mid = act.getAttribute('data-msg-id') || '';
         var tipo = act.getAttribute('data-wa-act') || '';
         var bubble = act.closest('.wa-b');
+        if (tipo === 'menu') {
+          ev.stopPropagation();
+          var itensMenu = [{ id: 'responder', label: 'Responder' }];
+          if (bubble && (bubble.getAttribute('data-tipo') || '') === 'sticker') {
+            itensMenu.push({ id: 'salvar-fig', label: 'Salvar figurinha' });
+          }
+          var box = act.getBoundingClientRect();
+          abrirCtx(box.left, box.bottom + 4, itensMenu);
+          menuCtx.setAttribute('data-modo', 'msg');
+          menuCtx.setAttribute('data-mid', mid);
+          return;
+        }
         if (tipo === 'reply') {
           setReplyBar(mid, textoBolha(bubble));
+          return;
+        }
+        if (tipo === 'salvar-fig') {
+          salvarFigurinha(mid);
           return;
         }
         if (tipo === 'react') {
@@ -3489,10 +3566,17 @@
       if (figBtn) figBtn.setAttribute('aria-expanded', 'false');
     }
 
+    pintarFigsSalvas = function (rows) {
+      if (!figPanel) return;
+      figPanel.classList.remove('hidden');
+      if (figBtn) figBtn.setAttribute('aria-expanded', 'true');
+      pintarFigs(rows);
+    };
+
     function pintarFigs(rows) {
       if (!figPanel) return;
       if (!rows || !rows.length) {
-        figPanel.innerHTML = '<p class="wa-fig-vazio">Quando o cliente mandar uma figurinha, ela aparece aqui.</p>';
+        figPanel.innerHTML = '<p class="wa-fig-vazio">Salve uma figurinha da conversa para ela aparecer aqui.</p>';
         return;
       }
       figPanel.innerHTML = rows

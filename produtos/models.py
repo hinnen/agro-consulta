@@ -4065,7 +4065,7 @@ class WhatsAppMensagemAgro(models.Model):
 
 
 class WhatsAppFigurinhaAgro(models.Model):
-    """Gaveta de figurinhas do Zap: as que o cliente manda ficam para enviar de novo."""
+    """Gaveta de figurinhas. Só entra quando a pessoa salva uma figurinha da conversa."""
 
     chave = models.CharField(max_length=64, unique=True)
     arquivo = models.FileField(upload_to="whatsapp/figurinhas/")
