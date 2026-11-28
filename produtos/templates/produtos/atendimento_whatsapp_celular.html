@@ -137,6 +137,13 @@
           <button type="button" data-xfer="centro" class="wa-ico flex-1" title="Passar este atendimento para o Centro">Centro</button>
           <button type="button" data-xfer="vila" class="wa-ico flex-1" title="Passar este atendimento para a Vila">Vila</button>
         </div>
+        <div id="wa-reply-bar" class="wa-reply-bar hidden" aria-live="polite">
+          <div class="wa-reply-bar-body">
+            <span class="wa-reply-bar-lbl">Respondendo</span>
+            <span id="wa-reply-bar-txt" class="wa-reply-bar-txt"></span>
+          </div>
+          <button type="button" id="wa-reply-x" class="wa-reply-x" title="Cancelar resposta" aria-label="Cancelar resposta">×</button>
+        </div>
         <form id="wa-form" class="flex shrink-0 items-center gap-2 border-t border-slate-200 bg-white p-2" data-agro-no-double-guard="1">
           {% include "produtos/_wa_composer.html" with wa_cel_capture=1 %}
         </form>
@@ -167,7 +174,7 @@ sessionStorage.setItem("agro_wa_sistapp", "1");
 {% include "produtos/_screensaver_pin.html" %}
 {% endif %}
 <script src="{% static 'produtos/js/agro_pdv_overlay.js' %}?v={{ agro_asset_v|default:agro_build.version|default:'1' }}"></script>
-<script src="{% static 'produtos/js/atendimento_whatsapp.js' %}?v={{ agro_asset_v|default:agro_build.version|default:'1' }}-fotos18-loja1"></script>
+<script src="{% static 'produtos/js/atendimento_whatsapp.js' %}?v={{ agro_asset_v|default:agro_build.version|default:'1' }}-reply1"></script>
 <script>
 (function () {
   if ("serviceWorker" in navigator) {

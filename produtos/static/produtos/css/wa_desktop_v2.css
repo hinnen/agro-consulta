@@ -725,15 +725,24 @@
     content: ""; position: absolute; right: 100%; top: -14px; bottom: -14px; width: 22px;
   }
   html[data-wa-skin="v2"] .wa-skin .wa-b { position: relative; overflow: visible; }
+  html[data-wa-skin="v2"] .wa-skin .wa-b.out .wa-msg-acts,
+  html[data-wa-skin="v2"] .wa-skin .wa-b.bot .wa-msg-acts {
+    left: auto; right: calc(100% + 6px);
+  }
+  html[data-wa-skin="v2"] .wa-skin .wa-b.out .wa-msg-acts::before,
+  html[data-wa-skin="v2"] .wa-skin .wa-b.bot .wa-msg-acts::before {
+    right: auto; left: 100%;
+  }
   html[data-wa-skin="v2"] .wa-skin .wa-b:hover .wa-msg-acts,
-  html[data-wa-skin="v2"] .wa-skin .wa-msg-acts:hover { display: inline-flex; }
+  html[data-wa-skin="v2"] .wa-skin .wa-msg-acts:hover,
+  html[data-wa-skin="v2"] .wa-skin.wa-cel .wa-msg-acts { display: inline-flex; }
   html[data-wa-skin="v2"] .wa-skin .wa-msg-act {
     width: 28px; height: 28px; border: 0; border-radius: 9999px; cursor: pointer;
     background: transparent; color: var(--wa2-text); font-size: 14px; line-height: 1;
     flex: 0 0 auto;
   }
   html[data-wa-skin="v2"] .wa-skin .wa-msg-act:hover { background: var(--wa2-bg-selected); }
-  html[data-wa-skin="v2"] .wa-skin #wa-msgs { padding-right: 2.5rem; }
+  html[data-wa-skin="v2"] .wa-skin #wa-msgs { padding-right: 2.5rem; padding-left: 2.5rem; }
   html[data-wa-skin="v2"] .wa-skin .wa-scroll-fim {
     position: absolute; right: 16px; bottom: 16px; z-index: 5;
     width: 40px; height: 40px; border-radius: 9999px; border: 0; cursor: pointer;
