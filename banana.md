@@ -1296,6 +1296,15 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### Zap loja — citação + figurinha · 28/11/2026
+
+| | |
+| --- | --- |
+| **Entrou** | Responder cita a mensagem (seta e botão direito). Figurinha só entra na gaveta quando a pessoa salva (setinha, botão direito, Adicionar às favoritas). Um toque na gaveta envia. |
+| **Não entrou** | CRM, porta 8011, schema de teste, aviso de teste. O chip Quem voltou ao topo: o formulário tinha virado a âncora dele. |
+| **Commits** | `whatsapp` a partir de `355e1bcb` · versão **27.26.67** · migrate `0157` aplicada no `agro_wa` deste PC. |
+| **Conferir** | Ctrl+F5. Quem no topo. Responder cita. Salvar figurinha e enviar pela gaveta. |
+
 ### Git Zap — uma branch só · 14/11/2026
 
 | | |
