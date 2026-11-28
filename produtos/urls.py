@@ -1066,6 +1066,11 @@ urlpatterns = [
         name='api_atendimento_whatsapp_enviar',
     ),
     path(
+        'api/atendimento-whatsapp/figurinhas/salvar/',
+        views_atendimento_whatsapp.api_atendimento_whatsapp_favoritar_figurinha,
+        name='api_atendimento_whatsapp_favoritar_figurinha',
+    ),
+    path(
         'api/atendimento-whatsapp/figurinhas/',
         views_atendimento_whatsapp.api_atendimento_whatsapp_figurinhas,
         name='api_atendimento_whatsapp_figurinhas',

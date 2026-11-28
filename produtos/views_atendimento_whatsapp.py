@@ -30,6 +30,7 @@ from produtos.atendimento_whatsapp_util import (
     gravar_agenda_zap,
     importar_agenda_vcard,
     listar_conversas,
+    favoritar_figurinha,
     listar_figurinhas,
     listar_mensagens,
     listar_pedidos_pendentes,
@@ -424,6 +425,18 @@ def api_atendimento_whatsapp_enviar(request):
     if err or m is None:
         return JsonResponse({"ok": False, "erro": err or "Não enviou."}, status=400)
     return JsonResponse({"ok": True, "mensagem": serializar_mensagem(m)})
+
+
+@login_required(login_url="/entrar/")
+@require_POST
+def api_atendimento_whatsapp_favoritar_figurinha(request):
+    data = _json_body(request)
+    if data is None:
+        return JsonResponse({"ok": False, "erro": "JSON inválido."}, status=400)
+    ok, msg = favoritar_figurinha(data.get("mensagem_id") or 0)
+    if not ok:
+        return JsonResponse({"ok": False, "erro": msg}, status=400)
+    return JsonResponse({"ok": True, "aviso": msg, "figurinhas": listar_figurinhas()})
 
 
 @login_required(login_url="/entrar/")

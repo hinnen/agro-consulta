@@ -5,7 +5,7 @@ import django.utils.timezone
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("produtos", "0156_whatsapp_pedido_arquivar"),
+        ("produtos", "0155_whatsapp_public_origin"),
     ]
 
     operations = [
