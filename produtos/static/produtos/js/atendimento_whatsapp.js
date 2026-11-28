@@ -2162,11 +2162,13 @@
     var tipo = String(payload.tipo_midia || '');
     var textoPrev = String(payload.texto || '').trim();
     if (!textoPrev) {
-      if (tipo === 'image' || tipo === 'sticker') textoPrev = '[imagem]';
+      if (tipo === 'sticker') textoPrev = '[figurinha]';
+      else if (tipo === 'image') textoPrev = '[imagem]';
       else if (tipo === 'audio') textoPrev = '[áudio]';
     }
     var midiaPrev = '';
-    if ((tipo === 'image' || tipo === 'sticker') && payload.midia_b64) {
+    if (tipo === 'sticker' && payload.fig_url) midiaPrev = String(payload.fig_url);
+    else if ((tipo === 'image' || tipo === 'sticker') && payload.midia_b64) {
       midiaPrev = 'data:' + (payload.mime || 'image/jpeg') + ';base64,' + payload.midia_b64;
     }
     pintarMsgs(
@@ -3479,8 +3481,80 @@
         fecharEmojiPanel();
       });
     }
+    var figBtn = $('wa-fig');
+    var figPanel = $('wa-fig-panel');
+
+    function fecharFig() {
+      if (figPanel) figPanel.classList.add('hidden');
+      if (figBtn) figBtn.setAttribute('aria-expanded', 'false');
+    }
+
+    function pintarFigs(rows) {
+      if (!figPanel) return;
+      if (!rows || !rows.length) {
+        figPanel.innerHTML = '<p class="wa-fig-vazio">Quando o cliente mandar uma figurinha, ela aparece aqui.</p>';
+        return;
+      }
+      figPanel.innerHTML = rows
+        .map(function (f) {
+          return (
+            '<button type="button" class="wa-fig-item" data-fig-id="' +
+            escapeHtml(String(f.id)) +
+            '" data-fig-url="' +
+            escapeHtml(f.url || '') +
+            '" title="Enviar figurinha"><img alt="" src="' +
+            escapeHtml(f.url || '') +
+            '" /></button>'
+          );
+        })
+        .join('');
+    }
+
+    function abrirFig() {
+      if (!figPanel) return;
+      fecharEmojiPanel();
+      figPanel.classList.remove('hidden');
+      if (figBtn) figBtn.setAttribute('aria-expanded', 'true');
+      figPanel.innerHTML = '<p class="wa-fig-vazio">Carregando…</p>';
+      fetchJson('/api/atendimento-whatsapp/figurinhas/', { timeoutMs: 15000 }).then(function (j) {
+        if (!figPanel || figPanel.classList.contains('hidden')) return;
+        pintarFigs((j && j.figurinhas) || []);
+      });
+    }
+
+    if (figBtn && figPanel) {
+      figBtn.addEventListener('click', function () {
+        if (!figPanel.classList.contains('hidden')) {
+          fecharFig();
+          return;
+        }
+        abrirFig();
+      });
+      figPanel.addEventListener('click', function (ev) {
+        var b = ev.target.closest('[data-fig-id]');
+        if (!b) return;
+        var id = Number(b.getAttribute('data-fig-id') || 0);
+        if (!id) return;
+        fecharFig();
+        enviarPayload(
+          {
+            conversa_id: Number(convId),
+            texto: '',
+            tipo_midia: 'sticker',
+            figurinha_id: id,
+            fig_url: b.getAttribute('data-fig-url') || '',
+          },
+          ''
+        );
+      });
+    }
+    document.addEventListener('keydown', function (ev) {
+      if (ev.key === 'Escape') fecharFig();
+    });
+
     if (emojiBtn && panel) {
       emojiBtn.addEventListener('click', function () {
+        fecharFig();
         if (!panel.classList.contains('hidden') && (panel.getAttribute('data-modo') || 'digitar') === 'digitar') {
           fecharEmojiPanel();
           return;

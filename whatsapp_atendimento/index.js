@@ -2173,7 +2173,7 @@ async function puxarSaida() {
         const txt = String(item.texto || "");
         const caption = txt === "[imagem]" || txt === "[áudio]" ? "" : txt;
         let content;
-        if (tipo === "image" || tipo === "audio") {
+        if (tipo === "image" || tipo === "audio" || tipo === "sticker") {
           let buf = await baixarSaidaArquivo(item.id);
           if (!buf && b64) buf = Buffer.from(b64, "base64");
           if (!buf || !buf.length) {
@@ -2183,7 +2183,9 @@ async function puxarSaida() {
             });
             continue;
           }
-          if (tipo === "image") {
+          if (tipo === "sticker") {
+            content = { sticker: buf };
+          } else if (tipo === "image") {
             content = { image: buf, caption, mimetype: String(item.mime || "image/jpeg") };
           } else {
             const aud = await audioParaZap(buf, item.mime);

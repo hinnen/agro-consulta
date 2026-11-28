@@ -31,6 +31,7 @@ from produtos.atendimento_whatsapp_util import (
     gravar_agenda_zap,
     importar_agenda_vcard,
     listar_conversas,
+    listar_figurinhas,
     listar_mensagens,
     listar_pedidos_pendentes,
     listar_saida_pendente,
@@ -453,10 +454,28 @@ def api_atendimento_whatsapp_enviar(request):
         mime=data.get("mime") or "",
         nome_arquivo=data.get("nome_arquivo") or "",
         reply_to_id=reply_to,
+        figurinha_id=data.get("figurinha_id") or 0,
     )
     if err or m is None:
         return JsonResponse({"ok": False, "erro": err or "Não enviou."}, status=400)
     return JsonResponse({"ok": True, "mensagem": serializar_mensagem(m)})
+
+
+@login_required(login_url="/entrar/")
+@require_GET
+def api_atendimento_whatsapp_figurinhas(request):
+    return JsonResponse({"ok": True, "figurinhas": listar_figurinhas()})
+
+
+@login_required(login_url="/entrar/")
+@require_GET
+def api_atendimento_whatsapp_figurinha(request, pk: int):
+    from produtos.models import WhatsAppFigurinhaAgro
+
+    fig = WhatsAppFigurinhaAgro.objects.filter(pk=int(pk)).first()
+    if not fig:
+        raise Http404("Figurinha não encontrada.")
+    return _arquivo_midia_response(fig)
 
 
 @login_required(login_url="/entrar/")
@@ -776,17 +795,18 @@ def _arquivo_midia_response(m) -> FileResponse:
         raise Http404("Mídia não encontrada.") from exc
     ctype = "application/octet-stream"
     name = (m.arquivo.name or "").lower()
-    if m.tipo_midia in ("image", "sticker") or name.endswith((".jpg", ".jpeg", ".png", ".webp")):
+    tipo_m = getattr(m, "tipo_midia", "") or ""
+    if tipo_m in ("image", "sticker") or name.endswith((".jpg", ".jpeg", ".png", ".webp")):
         ctype = "image/jpeg"
         if name.endswith(".png"):
             ctype = "image/png"
         elif name.endswith(".webp"):
             ctype = "image/webp"
-    elif m.tipo_midia == "video" or name.endswith((".mp4", ".webm", ".mov")):
+    elif tipo_m == "video" or name.endswith((".mp4", ".webm", ".mov")):
         ctype = "video/mp4"
         if name.endswith(".webm"):
             ctype = "video/webm"
-    elif m.tipo_midia == "audio" or name.endswith((".ogg", ".opus", ".mp3", ".m4a", ".webm")):
+    elif tipo_m == "audio" or name.endswith((".ogg", ".opus", ".mp3", ".m4a", ".webm")):
         ctype = "audio/ogg"
         if name.endswith(".mp3"):
             ctype = "audio/mpeg"

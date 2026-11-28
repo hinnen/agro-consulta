@@ -420,6 +420,20 @@
   .wa-skin .wa-reply-bar-lbl { display: block; font-size: 11px; font-weight: 700; color: #128c7e; }
   .wa-skin .wa-reply-bar-txt { display: block; font-size: 12px; color: #667781; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 16rem; }
   .wa-skin .wa-reply-x { margin-left: auto; border: 0; background: transparent; font-size: 20px; cursor: pointer; color: #64748b; }
+  .wa-skin .wa-fig-panel {
+    position: absolute; left: 8px; right: 8px; bottom: 58px; z-index: 6;
+    display: flex; flex-wrap: wrap; gap: 4px; max-height: 196px; overflow: auto;
+    padding: 8px; border-radius: 12px; background: #fff; border: 1px solid #e2e8f0;
+    box-shadow: 0 8px 24px rgb(15 23 42 / .18);
+  }
+  .wa-skin .wa-fig-panel.hidden { display: none !important; }
+  .wa-skin .wa-fig-item {
+    width: 72px; height: 72px; border: 0; border-radius: 8px; background: transparent; cursor: pointer; padding: 4px;
+  }
+  .wa-skin .wa-fig-item:hover { background: #f1f5f9; }
+  .wa-skin .wa-fig-item img { width: 64px; height: 64px; object-fit: contain; }
+  .wa-skin .wa-fig-vazio { margin: 0; padding: 8px; font-size: 13px; font-weight: 600; color: #64748b; }
+  .wa-skin #wa-form { position: relative; }
   .wa-skin .wa-b.in { background: #fff; border-radius: .25rem 1rem 1rem 1rem; }
   .wa-skin .wa-b.out { background: #d9fdd3; margin-left: auto; border-radius: 1rem .25rem 1rem 1rem; }
   .wa-skin .wa-b.bot { background: #fff7ed; margin-left: auto; border-radius: 1rem .25rem 1rem 1rem; color: #9a3412; }

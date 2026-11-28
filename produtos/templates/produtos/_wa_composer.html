@@ -4,6 +4,10 @@
   <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M16.5 6.8v8.3a4.5 4.5 0 1 1-9 0V6.2a3.2 3.2 0 1 1 6.4 0v8.4a1.9 1.9 0 1 1-3.8 0V7.5h1.5v6.9a.4.4 0 1 0 .8 0V6.2a1.7 1.7 0 1 0-3.4 0v8.9a3 3 0 0 0 6 0V6.8h1.5Z"/></svg>
 </button>
 <input id="wa-foto-inp" type="file" accept="image/*"{% if wa_cel_capture %} capture="environment"{% endif %} class="sr-only" tabindex="-1" />
+<button type="button" id="wa-fig" class="wa-tool" title="Figurinhas" aria-label="Figurinhas" aria-expanded="false">
+  <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M4 5.5A2.5 2.5 0 0 1 6.5 3h7.2c.4 0 .8.2 1.1.4l4.8 4.8c.3.3.4.7.4 1.1V18.5A2.5 2.5 0 0 1 17.5 21h-11A2.5 2.5 0 0 1 4 18.5v-13ZM8.2 10.2a1.3 1.3 0 1 0 0-2.6 1.3 1.3 0 0 0 0 2.6Zm7.6 0a1.3 1.3 0 1 0 0-2.6 1.3 1.3 0 0 0 0 2.6ZM8.4 14.2c.6 1.3 1.9 2.1 3.6 2.1s3-.8 3.6-2.1H8.4Z"/></svg>
+</button>
+<div id="wa-fig-panel" class="wa-fig-panel hidden" role="listbox" aria-label="Figurinhas"></div>
 <button type="button" id="wa-emoji" class="wa-tool" title="Emoji" aria-label="Emoji" aria-expanded="false">
   <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm-3.2 7.2a1.2 1.2 0 1 1 0 2.4 1.2 1.2 0 0 1 0-2.4Zm6.4 0a1.2 1.2 0 1 1 0 2.4 1.2 1.2 0 0 1 0-2.4ZM12 17.2c-2.2 0-4-1.2-4.6-2.8h9.2c-.6 1.6-2.4 2.8-4.6 2.8Z"/></svg>
 </button>

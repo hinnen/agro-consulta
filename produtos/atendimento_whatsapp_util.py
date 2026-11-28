@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import base64
+import hashlib
 import hmac
 import json
 import os
@@ -22,6 +23,7 @@ from produtos.models import (
     ClienteAgro,
     WhatsAppAgendaContatoAgro,
     WhatsAppConversaAgro,
+    WhatsAppFigurinhaAgro,
     WhatsAppMensagemAgro,
     WhatsAppPonteEstadoAgro,
     WhatsAppPontePedidoAgro,
@@ -609,7 +611,9 @@ def _ext_midia(tipo: str, mime: str, nome: str) -> str:
         return ".mp3"
     if "mp4" in m:
         return ".mp4"
-    if (tipo or "") in ("image", "sticker"):
+    if tipo == "sticker":
+        return ".webp"
+    if tipo == "image":
         return ".jpg"
     if tipo == "audio":
         return ".ogg"
@@ -659,6 +663,52 @@ def anexar_midia(
     fname = f"{uuid.uuid4().hex[:16]}{ext}"
     msg.arquivo.save(fname, ContentFile(raw), save=False)
     return ""
+
+
+def guardar_figurinha(raw: bytes, mime: str = "") -> None:
+    """Guarda a figurinha recebida. A mesma imagem não entra duas vezes."""
+    if not raw or len(raw) > MAX_SAIDA_MIDIA_BYTES:
+        return
+    chave = hashlib.sha256(raw).hexdigest()
+    if WhatsAppFigurinhaAgro.objects.filter(chave=chave).exists():
+        return
+    if raw.startswith(b"\x89PNG"):
+        ext = ".png"
+    elif raw.startswith(b"\xff\xd8"):
+        ext = ".jpg"
+    else:
+        ext = ".webp"
+    obj = WhatsAppFigurinhaAgro(chave=chave, mime=(mime or "image/webp")[:40])
+    try:
+        obj.arquivo.save(f"{chave[:16]}{ext}", ContentFile(raw), save=True)
+    except IntegrityError:
+        return
+
+
+def guardar_figurinha_da_mensagem(msg: WhatsAppMensagemAgro) -> None:
+    if (msg.tipo_midia or "") != "sticker" or msg.direcao != WhatsAppMensagemAgro.DIRECAO_IN:
+        return
+    if not getattr(msg.arquivo, "name", ""):
+        return
+    try:
+        fh = msg.arquivo.open("rb")
+        try:
+            raw = fh.read()
+        finally:
+            fh.close()
+    except Exception:
+        return
+    guardar_figurinha(raw, "image/webp")
+
+
+def listar_figurinhas(limit: int = 60) -> list[dict]:
+    lim = max(1, min(int(limit or 60), 80))
+    rows = WhatsAppFigurinhaAgro.objects.order_by("-id")[:lim]
+    return [
+        {"id": int(r.pk), "url": f"/api/atendimento-whatsapp/figurinha/{int(r.pk)}/"}
+        for r in rows
+        if getattr(r.arquivo, "name", "")
+    ]
 
 
 def jid_eh_chat_privado(jid: str) -> bool:
@@ -1822,6 +1872,8 @@ def processar_entrada(
         msg.save()
     except IntegrityError:
         return None, "duplicada"
+    if not de_mim and tipo_n == "sticker":
+        guardar_figurinha_da_mensagem(msg)
     conv.ultima_preview = _preview(t)
     if not historico:
         conv.ultima_em = timezone.now()
@@ -2117,13 +2169,35 @@ def enviar_loja(
     mime: str = "",
     nome_arquivo: str = "",
     reply_to_id: int = 0,
+    figurinha_id: int = 0,
 ) -> tuple[WhatsAppMensagemAgro | None, str]:
     t = str(texto or "").strip()
     tipo_n = (tipo_midia or "").strip().lower()[:16]
-    if tipo_n and tipo_n not in ("image", "audio"):
-        return None, "Só foto ou áudio."
     raw = None
-    if midia_b64 or tipo_n:
+    try:
+        fid = int(figurinha_id or 0)
+    except (TypeError, ValueError):
+        fid = 0
+    if fid > 0:
+        fig = WhatsAppFigurinhaAgro.objects.filter(pk=fid).first()
+        if not fig or not getattr(fig.arquivo, "name", ""):
+            return None, "Figurinha não encontrada."
+        try:
+            fh = fig.arquivo.open("rb")
+            try:
+                raw = fh.read()
+            finally:
+                fh.close()
+        except Exception:
+            return None, "Figurinha não encontrada."
+        if not raw:
+            return None, "Figurinha não encontrada."
+        tipo_n = "sticker"
+        if not t:
+            t = "[figurinha]"
+    if tipo_n and tipo_n not in ("image", "audio", "sticker"):
+        return None, "Só foto, áudio ou figurinha."
+    if (midia_b64 or tipo_n) and raw is None:
         raw, err = _b64_para_bytes(midia_b64, teto=MAX_SAIDA_MIDIA_BYTES)
         if err:
             return None, err
@@ -2132,7 +2206,10 @@ def enviar_loja(
     if not t and raw is None:
         return None, "Digite uma mensagem ou envie foto/áudio."
     if not t and raw is not None:
-        t = "[imagem]" if tipo_n == "image" else "[áudio]"
+        if tipo_n == "sticker":
+            t = "[figurinha]"
+        else:
+            t = "[imagem]" if tipo_n == "image" else "[áudio]"
     if len(t) > TEXTO_MAX:
         return None, f"Máximo {TEXTO_MAX} caracteres."
     try:
@@ -2928,6 +3005,8 @@ def atualizar_ponte(
 def _mime_saida(m: WhatsAppMensagemAgro) -> str:
     name = (getattr(m.arquivo, "name", "") or "").lower()
     tipo = (m.tipo_midia or "").strip().lower()
+    if tipo == "sticker":
+        return "image/webp"
     if tipo == "image":
         if name.endswith(".png"):
             return "image/png"

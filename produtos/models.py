@@ -4064,6 +4064,23 @@ class WhatsAppMensagemAgro(models.Model):
         return f"#{self.pk} {self.direcao} {(self.texto or '')[:40]}"
 
 
+class WhatsAppFigurinhaAgro(models.Model):
+    """Gaveta de figurinhas do Zap: as que o cliente manda ficam para enviar de novo."""
+
+    chave = models.CharField(max_length=64, unique=True)
+    arquivo = models.FileField(upload_to="whatsapp/figurinhas/")
+    mime = models.CharField(max_length=40, blank=True, default="image/webp")
+    criado_em = models.DateTimeField(default=timezone.now, db_index=True)
+
+    class Meta:
+        verbose_name = "Figurinha WhatsApp"
+        verbose_name_plural = "Figurinhas WhatsApp"
+        ordering = ["-id"]
+
+    def __str__(self):
+        return f"figurinha #{self.pk}"
+
+
 class WhatsAppAgendaContatoAgro(models.Model):
     """Agenda do Zap / import .vcf — usada na busca para abrir chat."""
 
