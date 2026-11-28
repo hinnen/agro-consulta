@@ -742,6 +742,22 @@ class ArquivoConversaTests(TestCase):
         conv.refresh_from_db()
         self.assertFalse(conv.arquivada)
 
+    def test_espera_junta_quem_nao_foi_respondido(self):
+        from produtos.atendimento_whatsapp_util import enviar_loja, listar_conversas
+
+        processar_entrada(jid="5513999222001@s.whatsapp.net", texto="oi", nome="Sem loja")
+        processar_entrada(jid="5513999222002@s.whatsapp.net", texto="2", nome="Vila espera")
+        processar_entrada(jid="5513999222003@s.whatsapp.net", texto="1", nome="Centro ok")
+        sem = WhatsAppConversaAgro.objects.get(telefone="5513999222001")
+        vila = WhatsAppConversaAgro.objects.get(telefone="5513999222002")
+        centro = WhatsAppConversaAgro.objects.get(telefone="5513999222003")
+        enviar_loja(conversa_id=centro.pk, texto="já vi", autor="Loja")
+        ids = {c["id"] for c in listar_conversas(loja="espera")}
+        self.assertIn(sem.pk, ids)
+        self.assertIn(vila.pk, ids)
+        self.assertNotIn(centro.pk, ids)
+        self.assertIn(vila.pk, {c["id"] for c in listar_conversas(loja="vila")})
+
     def test_arquivo_auto_default_off(self):
         self.assertFalse(BOT_DEFAULT.get("arquivo_auto_ligado"))
         self.assertTrue(BOT_DEFAULT.get("arquivo_auto_nunca_com_nao_lidas"))

@@ -1017,7 +1017,11 @@ def listar_conversas(*, loja: str, limit: int = 80) -> list[dict]:
         qs = WhatsAppConversaAgro.objects.filter(arquivada=True).order_by("-arquivada_em", "-ultima_em", "-id")
     else:
         qs = WhatsAppConversaAgro.objects.filter(arquivada=False)
-        if loja_n in (
+        if loja_n in ("espera", "esperando"):
+            qs = qs.filter(
+                Q(aguardando_loja=True) | Q(loja=WhatsAppConversaAgro.LOJA_PENDENTE)
+            )
+        elif loja_n in (
             WhatsAppConversaAgro.LOJA_PENDENTE,
             WhatsAppConversaAgro.LOJA_CENTRO,
             WhatsAppConversaAgro.LOJA_VILA,
@@ -1321,12 +1325,13 @@ def _enfileirar_saida(
         conversa.ultima_preview = _preview(prev_txt)
         conversa.ultima_em = agora
         campos = ["ultima_preview", "ultima_em"]
-        if direcao in (
-            WhatsAppMensagemAgro.DIRECAO_OUT,
-            WhatsAppMensagemAgro.DIRECAO_BOT,
-        ):
+        if direcao == WhatsAppMensagemAgro.DIRECAO_OUT:
             conversa.aguardando_loja = False
             campos.append("aguardando_loja")
+            campos.extend(
+                _marcar_ultima_saida(conversa, direcao=direcao, ack=0, zerar_nao_lidas=True)
+            )
+        elif direcao == WhatsAppMensagemAgro.DIRECAO_BOT:
             campos.extend(
                 _marcar_ultima_saida(conversa, direcao=direcao, ack=0, zerar_nao_lidas=True)
             )
@@ -2833,6 +2838,28 @@ def transferir_conversa(
             direcao=WhatsAppMensagemAgro.DIRECAO_BOT,
             autor=(autor or "Loja")[:120],
         )
+    return conv, ""
+
+
+@transaction.atomic
+def resetar_escolha_loja(conversa_id: int, *, autor: str = "") -> tuple[WhatsAppConversaAgro | None, str]:
+    """Tira a loja e manda o menu de novo para o cliente escolher."""
+    try:
+        conv = WhatsAppConversaAgro.objects.select_for_update().get(pk=int(conversa_id))
+    except (WhatsAppConversaAgro.DoesNotExist, TypeError, ValueError):
+        return None, "Conversa não encontrada."
+    from produtos.atendimento_whatsapp_bot_config import carregar_bot
+
+    cfg = carregar_bot()
+    conv.loja = WhatsAppConversaAgro.LOJA_PENDENTE
+    conv.menu_enviado = False
+    conv.aguardando_loja = True
+    conv.save(update_fields=["loja", "menu_enviado", "aguardando_loja"])
+    menu = str(cfg.get("msg_menu") or "").strip()
+    if menu:
+        _enviar_lote_bot(conv, [menu], cfg)
+        conv.menu_enviado = True
+        conv.save(update_fields=["menu_enviado"])
     return conv, ""
 
 

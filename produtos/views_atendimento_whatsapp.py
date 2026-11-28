@@ -10,9 +10,9 @@ from pathlib import Path
 from django.contrib.auth.decorators import login_required
 from django.db import close_old_connections
 from django.http import FileResponse, Http404, HttpResponse, JsonResponse
-from django.shortcuts import render
-from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_GET, require_POST
+from django.shortcuts import redirect, render
+from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
+from django.views.decorators.http import require_GET, require_POST, require_http_methods
 
 from produtos.atendimento_whatsapp_bot_config import BOT_DEFAULT, avisos_bot, carregar_bot, resetar_bot, salvar_bot
 from produtos.atendimento_whatsapp_util import (
@@ -207,10 +207,7 @@ def _wa_pwa_sw_js() -> str:
     return (
         "self.addEventListener('install',function(e){self.skipWaiting();});\n"
         "self.addEventListener('activate',function(e){e.waitUntil(self.clients.claim());});\n"
-        "self.addEventListener('fetch',function(e){"
-        "if(e.request.destination==='image')return;"
-        "e.respondWith(fetch(e.request));"
-        "});\n"
+        "self.addEventListener('fetch',function(){});\n"
     )
 
 
@@ -293,7 +290,44 @@ def atendimento_whatsapp_celular_sw(request):
     return resp
 
 
+@require_http_methods(["GET", "POST"])
+@ensure_csrf_cookie
+def atendimento_whatsapp_celular_login_view(request):
+    """Página só de entrar no Zap do celular. Fora do aplicativo, para a senha ficar guardada."""
+    from django.contrib.auth import authenticate, login
+
+    if request.user.is_authenticated:
+        return redirect("/atendimento-whatsapp/celular/")
+    erro = ""
+    if request.method == "POST":
+        username = (request.POST.get("username") or "").strip()
+        password = (request.POST.get("password") or "").strip()
+        user = authenticate(request, username=username, password=password)
+        if user is None and username.lower() != username:
+            user = authenticate(request, username=username.lower(), password=password)
+        if user is not None and getattr(user, "is_active", False):
+            login(request, user)
+            return redirect("/atendimento-whatsapp/celular/")
+        erro = "Usuário ou senha não entrou."
+    resp = render(
+        request,
+        "produtos/atendimento_whatsapp_celular_login.html",
+        {"erro": erro, "username": (request.POST.get("username") or "").strip()},
+    )
+    resp["Cache-Control"] = "no-store"
+    return resp
+
+
+def atendimento_whatsapp_celular_instalar_view(request):
+    """Página só com o botão de instalar. Não abre o Zap."""
+    resp = render(request, "produtos/atendimento_whatsapp_celular_instalar.html", {})
+    resp["Cache-Control"] = "no-store"
+    return resp
+
+
 def atendimento_whatsapp_celular_view(request):
+    if not request.user.is_authenticated:
+        return redirect("/atendimento-whatsapp/celular/login/")
     destaque = (request.GET.get("sistapp") or "").strip() in ("1", "true", "sim", "yes")
     resp = render(
         request,
@@ -483,9 +517,15 @@ def api_atendimento_whatsapp_transferir(request):
         cid = int(data.get("conversa_id") or 0)
     except (TypeError, ValueError):
         cid = 0
-    conv, err = transferir_conversa(
-        cid, data.get("loja") or "", autor=autor, nota=str(data.get("nota") or "")
-    )
+    from produtos.atendimento_whatsapp_util import resetar_escolha_loja
+
+    destino = (data.get("loja") or "").strip().lower()
+    if destino in ("reset", "pendente", "escolher"):
+        conv, err = resetar_escolha_loja(cid, autor=autor)
+    else:
+        conv, err = transferir_conversa(
+            cid, destino, autor=autor, nota=str(data.get("nota") or "")
+        )
     if err or conv is None:
         return JsonResponse({"ok": False, "erro": err or "Não passou."}, status=400)
     return JsonResponse({"ok": True, "conversa": serializar_conversa(conv)})

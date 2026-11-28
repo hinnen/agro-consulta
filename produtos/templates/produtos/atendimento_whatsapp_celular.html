@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <title>Zap loja</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
   <meta name="theme-color" content="#075E54">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
@@ -111,7 +111,7 @@
 
       <div class="wa-tabs shrink-0">
         <button type="button" data-loja="todas" class="wa-tab is-on"><span class="wa-tab-nome">Ativas</span><span data-badge="todas" class="wa-badge is-zero">0</span></button>
-        <button type="button" data-loja="pendente" class="wa-tab hidden"><span class="wa-tab-nome">Fila</span><span data-badge="pendente" class="wa-badge is-zero">0</span></button>
+        <button type="button" data-loja="espera" class="wa-tab hidden"><span class="wa-tab-nome">Esperando</span><span data-badge="espera" class="wa-badge is-zero">0</span></button>
         <button type="button" data-loja="centro" class="wa-tab hidden"><span class="wa-tab-nome">Centro</span><span data-badge="centro" class="wa-badge is-zero">0</span></button>
         <button type="button" data-loja="vila" class="wa-tab hidden"><span class="wa-tab-nome">Vila</span><span data-badge="vila" class="wa-badge is-zero">0</span></button>
         <button type="button" data-loja="arquivadas" class="wa-tab"><span class="wa-tab-nome">Resolvidas</span><span data-badge="arquivadas" class="wa-badge is-zero">0</span></button>
@@ -167,16 +167,12 @@ sessionStorage.setItem("agro_wa_sistapp", "1");
 {% include "produtos/_screensaver_pin.html" %}
 {% endif %}
 <script src="{% static 'produtos/js/agro_pdv_overlay.js' %}?v={{ agro_asset_v|default:agro_build.version|default:'1' }}"></script>
-<script src="{% static 'produtos/js/atendimento_whatsapp.js' %}?v={{ agro_asset_v|default:agro_build.version|default:'1' }}-fotos18-e50"></script>
+<script src="{% static 'produtos/js/atendimento_whatsapp.js' %}?v={{ agro_asset_v|default:agro_build.version|default:'1' }}-fotos18-loja1"></script>
 <script>
 (function () {
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("{% url 'atendimento_whatsapp_celular_sw' %}", { scope: "/atendimento-whatsapp/celular/" }).catch(function () {});
   }
-})();
-</script>
-<script>
-(function () {
   var b = document.getElementById("wa-ver-btn");
   var p = document.getElementById("wa-ver-pop");
   if (!b || !p) return;

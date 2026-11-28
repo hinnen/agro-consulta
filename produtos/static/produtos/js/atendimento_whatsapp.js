@@ -328,7 +328,8 @@
       (parseInt(n.centro || 0, 10) || 0) +
       (parseInt(n.vila || 0, 10) || 0);
     n.todas = somaAtivas;
-    ['pendente', 'centro', 'vila', 'arquivadas', 'todas'].forEach(function (k) {
+    n.espera = somaAtivas;
+    ['espera', 'pendente', 'centro', 'vila', 'arquivadas', 'todas'].forEach(function (k) {
       var el = document.querySelector('[data-badge="' + k + '"]');
       if (!el) return;
       var v = parseInt(n[k] || 0, 10) || 0;
@@ -396,11 +397,13 @@
       var btnTrocar = $('wa-trocar');
       showTrocar = !!p.conectada;
       if (btnTrocar) btnTrocar.classList.toggle('hidden', !showTrocar);
-      if (p.conectada) {
+      if (p.conectada && !(p.aviso && String(p.aviso).indexOf('Não está recebendo') >= 0)) {
         pill('ok', p.numero ? p.numero : 'Online');
         if (qrBox) qrBox.classList.add('hidden');
       } else {
         if (qrBox) qrBox.classList.remove('hidden');
+        var titQr = $('wa-qr-titulo');
+        if (titQr && p.aviso) titQr.textContent = p.aviso;
         var codeEl = $('wa-pair-code');
         if (codeEl) {
           if (p.pairing_code) {
@@ -632,8 +635,8 @@
       var dica =
         loja === 'arquivadas'
           ? 'Nenhuma conversa resolvida. O ✓ no chat arquiva para cá.'
-          : loja === 'pendente'
-            ? 'Fila vazia. Quem já escolheu loja está em Centro ou Vila. Religar o Zap não apaga conversa.'
+          : loja === 'espera'
+            ? 'Ninguém esperando. Conversa já respondida fica em Centro ou Vila.'
             : 'Nenhuma conversa nesta aba.';
       el.innerHTML = '<p class="p-4 text-sm font-semibold text-slate-400">' + dica + '</p>';
       selMap = {};
@@ -683,6 +686,22 @@
       var tEl = btn.querySelector('.wa-t');
       var pEl = btn.querySelector('.wa-p');
       if (nEl) nEl.textContent = titulo;
+      var row1 = btn.querySelector('.wa-row1');
+      var chip = btn.querySelector('.wa-loja-chip');
+      if (separarLojas && row1) {
+        if (!chip) {
+          chip = document.createElement('span');
+          chip.className = 'wa-loja-chip';
+          var horaEl = row1.querySelector('.wa-t');
+          if (horaEl) row1.insertBefore(chip, horaEl);
+          else row1.appendChild(chip);
+        }
+        var rl = rotuloLoja(c.loja);
+        chip.className = 'wa-loja-chip' + (rl.c ? ' ' + rl.c : '');
+        chip.textContent = rl.t;
+      } else if (chip) {
+        chip.remove();
+      }
       if (tEl) tEl.textContent = c.hora || '';
       if (pEl) pEl.innerHTML = htmlPreviewLista(preview, c);
       var row2 = btn.querySelector('.wa-row2');
@@ -956,6 +975,34 @@
     });
   }
 
+  function rotuloLoja(lj) {
+    if (lj === 'vila') return { t: 'Vila', c: 'is-vila' };
+    if (lj === 'centro') return { t: 'Centro', c: '' };
+    return { t: 'sem loja', c: 'is-sem' };
+  }
+
+  function pintarLojaTag() {
+    var wrap = $('wa-loja-wrap');
+    var tag = $('wa-loja-tag');
+    var pop = $('wa-loja-pop');
+    if (!wrap || !tag) return;
+    var mostrar = !!(separarLojas && convId);
+    wrap.classList.toggle('hidden', !mostrar);
+    if (!mostrar) {
+      if (pop) pop.classList.add('hidden');
+      return;
+    }
+    var rl = rotuloLoja(convLoja);
+    tag.textContent = rl.t;
+    tag.className = 'wa-loja-tag' + (rl.c ? ' ' + rl.c : '');
+    if (pop) {
+      pop.querySelectorAll('[data-loja-op]').forEach(function (b) {
+        var op = b.getAttribute('data-loja-op') || '';
+        b.disabled = op !== 'reset' && op === (convLoja || '');
+      });
+    }
+  }
+
   function setTab() {
     document.querySelectorAll('.wa-tab').forEach(function (b) {
       b.classList.toggle('is-on', b.getAttribute('data-loja') === loja);
@@ -974,7 +1021,7 @@
         b.classList.remove('hidden');
         return;
       }
-      if (l === 'todas') {
+      if (l === 'todas' || l === 'pendente') {
         b.classList.toggle('hidden', separarLojas);
         return;
       }
@@ -987,8 +1034,8 @@
       } catch (e) {}
       var mv = $('wa-move');
       if (mv && !convId) mv.classList.add('hidden');
-    } else if (loja === 'todas') {
-      loja = 'pendente';
+    } else if (loja === 'todas' || loja === 'pendente') {
+      loja = 'espera';
     }
     setTab();
   }
@@ -1324,7 +1371,7 @@
   function pedirListaOutra() {
     if (listaOutraPedida) return;
     listaOutraPedida = true;
-    var outra = chaveLista() === 'arquivadas' ? (separarLojas ? 'pendente' : 'todas') : 'arquivadas';
+    var outra = chaveLista() === 'arquivadas' ? (separarLojas ? 'espera' : 'todas') : 'arquivadas';
     fetchJson('/api/atendimento-whatsapp/conversas/?loja=' + encodeURIComponent(outra)).then(function (j) {
       if (!j || !j.ok) return;
       cacheListas[outra] = j.conversas || [];
@@ -1607,6 +1654,7 @@
     });
     if (item) item.classList.add('is-on');
     convLoja = (item && item.getAttribute('data-loja')) || loja || '';
+    pintarLojaTag();
     convArquivada = !!(item && item.getAttribute('data-arquivada') === '1') || loja === 'arquivadas';
     convNome = (item && item.getAttribute('data-nome')) || 'Conversa #' + convId;
     convTel = (item && item.getAttribute('data-tel')) || '';
@@ -1715,6 +1763,7 @@
       $('wa-quick').innerHTML = '';
     }
     if ($('wa-move')) $('wa-move').classList.add('hidden');
+    pintarLojaTag();
     var ep = $('wa-emoji-panel');
     if (ep) ep.classList.add('hidden');
   }
@@ -1743,7 +1792,7 @@
 
   document.querySelectorAll('.wa-tab').forEach(function (b) {
     b.addEventListener('click', function () {
-      loja = b.getAttribute('data-loja') || 'pendente';
+      loja = b.getAttribute('data-loja') || 'espera';
       try {
         localStorage.setItem(TAB_KEY, loja);
       } catch (e) {}
@@ -2447,6 +2496,57 @@
       dispararTextoComposer();
     });
   }
+
+  var lojaTag = $('wa-loja-tag');
+  if (lojaTag) {
+    lojaTag.addEventListener('click', function (ev) {
+      ev.stopPropagation();
+      var pop = $('wa-loja-pop');
+      if (pop) pop.classList.toggle('hidden');
+    });
+  }
+  document.querySelectorAll('[data-loja-op]').forEach(function (b) {
+    b.addEventListener('click', function (ev) {
+      ev.stopPropagation();
+      if (!convId || b.disabled) return;
+      var pop = $('wa-loja-pop');
+      if (pop) pop.classList.add('hidden');
+      var op = b.getAttribute('data-loja-op') || '';
+      var reset = op === 'reset';
+      var nome = op === 'vila' ? 'Vila' : 'Centro';
+      var txt = reset
+        ? 'Tirar a loja e mandar o menu de novo para o cliente escolher?'
+        : 'Passar este atendimento para a ' +
+          nome +
+          '? ' +
+          (xferAvisarCliente
+            ? 'O cliente é avisado no Zap.'
+            : 'O cliente NÃO recebe aviso no Zap.');
+      waConfirm(txt, reset ? 'Escolher de novo' : 'Passar atendimento').then(function (ok) {
+        if (!ok) return;
+        fetchJson('/api/atendimento-whatsapp/transferir/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
+          body: JSON.stringify({ conversa_id: convId, loja: reset ? 'reset' : op }),
+        }).then(function (j) {
+          if (!j || !j.ok) {
+            waAlert((j && j.erro) || 'Não fez.', 'Não fez');
+            return;
+          }
+          convLoja = reset ? 'pendente' : op;
+          var item = document.querySelector('#wa-lista .wa-item[data-id="' + convId + '"]');
+          if (item) item.setAttribute('data-loja', convLoja);
+          pintarLojaTag();
+          carregarLista();
+          waToast(reset ? 'Menu enviado de novo.' : 'Passou para a ' + nome + '.', true);
+        });
+      });
+    });
+  });
+  document.addEventListener('click', function () {
+    var pop = $('wa-loja-pop');
+    if (pop) pop.classList.add('hidden');
+  });
 
   document.querySelectorAll('[data-xfer]').forEach(function (b) {
     b.addEventListener('click', function () {

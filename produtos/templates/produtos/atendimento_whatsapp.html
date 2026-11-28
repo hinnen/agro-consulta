@@ -17,7 +17,7 @@
   <link rel="icon" type="image/x-icon" href="{% static 'produtos/pwa/zap-verde.ico' %}">
   <link rel="apple-touch-icon" href="{% static 'produtos/pwa/zap-verde-192.png' %}">
   <link rel="icon" type="image/png" sizes="192x192" href="{% static 'produtos/pwa/zap-verde-192.png' %}">
-  <link rel="stylesheet" href="{% static 'produtos/css/wa_desktop_v2.css' %}?v={{ agro_asset_v|default:agro_build.version|default:'1' }}-e47">
+  <link rel="stylesheet" href="{% static 'produtos/css/wa_desktop_v2.css' %}?v={{ agro_asset_v|default:agro_build.version|default:'1' }}-e49">
   <script>
   (function () {
     try {
@@ -103,7 +103,7 @@
   <div id="wa-status" class="wa-pill">…</div>
   <div class="wa-tabs shrink-0">
     <button type="button" data-loja="todas" class="wa-tab is-on"><span class="wa-tab-nome">Ativas</span><span data-badge="todas" class="wa-badge is-zero">0</span></button>
-    <button type="button" data-loja="pendente" class="wa-tab hidden"><span class="wa-tab-nome">Fila</span><span data-badge="pendente" class="wa-badge is-zero">0</span></button>
+    <button type="button" data-loja="espera" class="wa-tab hidden"><span class="wa-tab-nome">Esperando</span><span data-badge="espera" class="wa-badge is-zero">0</span></button>
     <button type="button" data-loja="centro" class="wa-tab hidden"><span class="wa-tab-nome">Centro</span><span data-badge="centro" class="wa-badge is-zero">0</span></button>
     <button type="button" data-loja="vila" class="wa-tab hidden"><span class="wa-tab-nome">Vila</span><span data-badge="vila" class="wa-badge is-zero">0</span></button>
     <button type="button" data-loja="arquivadas" class="wa-tab"><span class="wa-tab-nome">Resolvidas</span><span data-badge="arquivadas" class="wa-badge is-zero">0</span></button>
@@ -127,7 +127,7 @@
 </p>
 <div id="wa-app" class="flex min-h-0 flex-1 flex-col gap-2">
   <div id="wa-qr-box" class="wa-qr hidden shrink-0">
-    <p class="text-sm font-extrabold text-amber-950">{% if wa_teste %}Ligar um WhatsApp de teste{% else %}Ligar o Zap da loja{% endif %}</p>
+    <p id="wa-qr-titulo" class="text-sm font-extrabold text-amber-950">{% if wa_teste %}Ligar um WhatsApp de teste{% else %}Ligar o Zap da loja{% endif %}</p>
     <p class="mt-1 text-left text-xs font-semibold text-slate-600">No celular: Configurações → Aparelhos conectados → Vincular um aparelho → <strong>Vincular com número</strong> (sem câmera).{% if wa_teste %} <strong>Use outro número. Não use o da loja.</strong>{% endif %}</p>
     <div class="mt-2 flex flex-wrap items-center justify-center gap-2">
       <input id="wa-pair-tel" type="tel" inputmode="numeric" placeholder="{% if wa_teste %}Outro número, com DDD{% else %}Número da loja com DDD{% endif %}" class="min-h-[2.75rem] min-w-[12rem] flex-1 rounded-2xl border border-amber-200 bg-white px-3 text-base font-semibold" />
@@ -177,7 +177,7 @@
 {% include "produtos/_wa_status.html" %}
 {% include "produtos/_wa_ficha.html" %}
 {% include "produtos/_wa_dlg.html" %}
-<script src="{% static 'produtos/js/atendimento_whatsapp.js' %}?v={{ agro_asset_v|default:agro_build.version|default:'1' }}-fotos18-e50"></script>
+<script src="{% static 'produtos/js/atendimento_whatsapp.js' %}?v={{ agro_asset_v|default:agro_build.version|default:'1' }}-fotos18-loja1"></script>
 <script>
 (function () {
   var DICA_KEY = "agro_wa_pc_pwa_dica_v1";

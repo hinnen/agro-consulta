@@ -56,6 +56,16 @@ Atualizado **14/11/2026**.
 
 19/11, 16:52: o QR foi lido. O recebimento voltou. A sessão anterior ficou em `C:\AgroWhatsApp\Dados\auth-antes-qr-20261119`. Uma ponte só.
 
+22/11: o número caiu 21/11 às 13:39. O programa morreu e a janela ficou esperando uma tecla, por isso não voltou sozinho. Agora religa sem esperar tecla. Ao ligar o PC, a subida usa o `iniciar-local.bat` (antes ligava o node uma vez só). Uma ponte só.
+
+22/11, de manhã: voltou a só enviar. Sessão anterior em `C:\AgroWhatsApp\Dados\auth-antes-qr-20261122-095048`. QR lido por volta das 9:53. Recebimento voltou. Uma ponte só, número 5513997673389. A subida do PC não abre segunda ponte se já tiver uma janela religando.
+
+23/11: link só para instalar o Zap no celular de outra pessoa: `https://zap.zapsistvale.online/atendimento-whatsapp/celular/instalar/`. O Zap em si não mudou de endereço. Chrome normal, um toque no botão verde. Guia anônima não instala.
+
+23/11: o Zap do celular, sem login, abre uma página só de entrar em `/atendimento-whatsapp/celular/login/`. Usuário e senha da loja, depois o PIN. A tela verde embolada saiu. O Zap do computador não mudou.
+
+25/11: se a chave estragar e parar de receber, a tela deixa de ficar verde e mostra o QR. Uma ponte só.
+
 19/11, autorizado: a página do Zap no celular ficou mais leve e a foto baixa uma vez, com atualização semanal devagar. Para voltar: tag `zap-antes-pagina-leve-2026-11-19`.
 - Ditado de voz sai torto às vezes. Se não bater, perguntar de novo.
 - O foco é o desktop. O que ele pede também vale no celular, cabendo na tela do telefone.
@@ -64,7 +74,8 @@ Atualizado **14/11/2026**.
 
 Já está no ar. O Renan viu e fechou o assunto por agora. Depois mexe de novo.
 
-- Filtros na barra: Ativas, ou Fila, Centro e Vila, e Resolvidas. Números alinhados.
+- Filtros na barra: Ativas, ou Esperando, Centro e Vila, e Resolvidas. Números alinhados.
+- 27/11: com a separação ligada, a primeira aba é Esperando. Junta Centro, Vila e quem ainda não escolheu, só enquanto uma pessoa da loja não respondeu. O menu automático não tira da lista. Conversa já respondida fica em Centro ou Vila. A lista tem a tag da loja no cantinho. No topo da conversa a tag abre Centro, Vila ou Escolher de novo. A conversa aberta fica com fundo verde e faixa verde na esquerda. Linha mais escura entre as conversas.
 - Ajustes embaixo. Trocar Zap fica dentro de Ajustes.
 - Selecionar no clique direito.
 - Reação fora do texto.

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Instalar Zap loja</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#075E54">
+  <link rel="manifest" href="{% url 'atendimento_whatsapp_celular_manifest' %}">
+  <link rel="icon" type="image/png" href="/static/produtos/pwa/zap-loja-192.png">
+  <style>
+    html, body { margin: 0; height: 100%; background: #022c22; color: #ecfdf5; font-family: system-ui, sans-serif; }
+    body { min-height: 100dvh; display: flex; align-items: center; justify-content: center; padding: 1.25rem; box-sizing: border-box; }
+    main { width: min(100%, 24rem); text-align: center; }
+    h1 { margin: 0 0 0.4rem; font-size: 1.7rem; }
+    p { margin: 0 0 1.2rem; font-size: 1.05rem; line-height: 1.35; color: #a7f3d0; }
+    button {
+      width: 100%; min-height: 4.2rem; border: 0; border-radius: 1rem;
+      background: #16a34a; color: #fff; font-size: 1.35rem; font-weight: 800;
+    }
+    button:disabled { background: #14532d; color: #bbf7d0; }
+    #aviso { margin-top: 1rem; font-size: 0.95rem; font-weight: 700; color: #fde68a; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Zap loja</h1>
+    <p id="texto">Toque no botão verde para colocar o ícone na tela do celular.</p>
+    <button type="button" id="instalar" disabled>Instalar</button>
+    <p id="aviso"></p>
+  </main>
+  <script>
+  (function () {
+    var btn = document.getElementById("instalar");
+    var texto = document.getElementById("texto");
+    var aviso = document.getElementById("aviso");
+    var deferred = null;
+    function solo() {
+      try {
+        return window.matchMedia && window.matchMedia("(display-mode: standalone)").matches;
+      } catch (e) { return false; }
+    }
+    if (solo()) {
+      texto.textContent = "Este celular já está com o Zap loja instalado. Abra o ícone na tela.";
+      btn.style.display = "none";
+      return;
+    }
+    if (/iPhone|iPad|iPod/i.test(navigator.userAgent || "")) {
+      texto.textContent = "No iPhone: toque Compartilhar e depois Adicionar à Tela de Início.";
+      btn.style.display = "none";
+      return;
+    }
+    window.addEventListener("beforeinstallprompt", function (e) {
+      e.preventDefault();
+      deferred = e;
+      btn.disabled = false;
+      btn.textContent = "Instalar";
+      aviso.textContent = "";
+    });
+    btn.addEventListener("click", function () {
+      if (!deferred) {
+        aviso.textContent = "Abra este link no Chrome, fora da guia anônima.";
+        return;
+      }
+      deferred.prompt();
+      deferred.userChoice.finally(function () { deferred = null; btn.disabled = true; });
+    });
+    aviso.textContent = "Abra no Chrome normal, não na guia anônima.";
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("{% url 'atendimento_whatsapp_celular_sw' %}", { scope: "/atendimento-whatsapp/celular/" }).catch(function () {});
+    }
+  })();
+  </script>
+</body>
+</html>

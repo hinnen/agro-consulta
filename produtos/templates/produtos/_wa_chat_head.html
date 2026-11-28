@@ -1,4 +1,27 @@
 {# Cabeçalho do chat — só aparece com conversa aberta #}
+<style>
+  .wa-loja-wrap { position: relative; flex: 0 0 auto; margin-left: 8px; align-self: center; }
+  .wa-loja-tag, .wa-loja-chip {
+    display: inline-flex; align-items: center; border-radius: 999px;
+    padding: 2px 8px; font-size: 12px; font-weight: 700; line-height: 16px;
+    background: #d1fae5; color: #065f46;
+  }
+  .wa-loja-tag { cursor: pointer; border: 0; min-height: 28px; }
+  .wa-loja-chip { margin: 4px 0 0 6px; pointer-events: none; }
+  .wa-loja-chip.is-vila, .wa-loja-tag.is-vila { background: #ffedd5; color: #9a3412; }
+  .wa-loja-chip.is-sem, .wa-loja-tag.is-sem { background: #e2e8f0; color: #334155; }
+  .wa-loja-pop {
+    position: absolute; top: calc(100% + 4px); left: 0; z-index: 30;
+    min-width: 11rem; background: #fff; border: 1px solid #e2e8f0;
+    border-radius: 12px; box-shadow: 0 8px 24px rgba(15, 23, 42, .16); padding: 4px;
+  }
+  .wa-loja-pop button {
+    display: block; width: 100%; text-align: left; border: 0; background: transparent;
+    border-radius: 8px; padding: 8px 10px; font-weight: 700; cursor: pointer;
+  }
+  .wa-loja-pop button:hover { background: #f1f5f9; }
+  .wa-loja-pop button[disabled] { color: #94a3b8; cursor: default; }
+</style>
 <div id="wa-chat-head" class="wa-chat-head is-empty">
   <p class="wa-chat-empty">Selecione uma conversa à esquerda</p>
   <div class="wa-chat-on">
@@ -9,6 +32,14 @@
         <span id="wa-topo-digitando" class="wa-topo-digitando hidden">digitando…</span>
       </span>
     </button>
+    <div id="wa-loja-wrap" class="wa-loja-wrap hidden">
+      <button type="button" id="wa-loja-tag" class="wa-loja-tag">Centro</button>
+      <div id="wa-loja-pop" class="wa-loja-pop hidden">
+        <button type="button" data-loja-op="centro">Centro</button>
+        <button type="button" data-loja-op="vila">Vila</button>
+        <button type="button" data-loja-op="reset">Escolher de novo</button>
+      </div>
+    </div>
     <div class="wa-chat-tools">
       <button type="button" id="wa-topo-status" class="wa-st-chip hidden" title="Ver status deste contato">
         <span class="wa-st-chip-ring"><span id="wa-topo-st-ini" class="wa-st-chip-ini">S</span></span>
