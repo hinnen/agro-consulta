@@ -889,13 +889,17 @@
           !m.apagada &&
           String(m.id || '').indexOf('tmp-') !== 0 &&
           String(m.id || '').indexOf('previa-') !== 0;
-        /* Reagir só em msg do cliente — na própria some o popup em cima do ×. Sem seta ↩ (confundia e quebrava a barra). */
-        if (idOk && m.direcao === 'in') {
+        if (idOk) {
           acts =
-            '<div class="wa-msg-acts" title="Reagir">' +
-            '<button type="button" class="wa-msg-act" data-wa-act="react" data-msg-id="' +
+            '<div class="wa-msg-acts">' +
+            '<button type="button" class="wa-msg-act" data-wa-act="reply" data-msg-id="' +
             escapeHtml(String(m.id)) +
-            '" title="Reagir com emoji">😀</button>' +
+            '" title="Responder">↩</button>' +
+            (m.direcao === 'in'
+              ? '<button type="button" class="wa-msg-act" data-wa-act="react" data-msg-id="' +
+                escapeHtml(String(m.id)) +
+                '" title="Reagir com emoji">😀</button>'
+              : '') +
             '</div>';
         }
         if (m.pode_apagar) {
@@ -944,6 +948,21 @@
   function setDigitando(on) {
     var el = $('wa-topo-digitando');
     if (el) el.classList.toggle('hidden', !on);
+  }
+
+  function textoBolha(bubble) {
+    if (!bubble) return 'Mensagem';
+    var clone = bubble.cloneNode(true);
+    clone.querySelectorAll('.wa-meta,.wa-msg-acts,.wa-msg-del,.wa-reacoes,.wa-quote,.wa-pic,.wa-aud').forEach(function (n) {
+      n.remove();
+    });
+    var txt = String(clone.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 120);
+    if (txt) return txt;
+    if (bubble.querySelector('.wa-pic')) return 'Foto';
+    if (bubble.querySelector('.wa-aud')) return 'Áudio';
+    var q = bubble.querySelector('.wa-quote-txt');
+    if (q) return String(q.textContent || '').trim().slice(0, 120) || 'Mensagem';
+    return 'Mensagem';
   }
 
   function setReplyBar(id, txt) {
@@ -2003,6 +2022,7 @@
         : { id: 'arquivar', label: 'Arquivar conversa' },
       { id: 'apagar', label: 'Apagar conversa' },
     ]);
+    menuCtx.setAttribute('data-modo', 'conversa');
     menuCtx.setAttribute('data-cid', btn.getAttribute('data-id') || '');
   });
 
@@ -2010,8 +2030,15 @@
     var b = ev.target.closest('[data-ctx]');
     if (!b) return;
     ev.stopPropagation();
-    var id = menuCtx.getAttribute('data-cid');
     var acao = b.getAttribute('data-ctx');
+    if (menuCtx.getAttribute('data-modo') === 'msg') {
+      var mid = menuCtx.getAttribute('data-mid') || '';
+      var bubble = mid ? document.querySelector('#wa-msgs .wa-b[data-msg-id="' + mid + '"]') : null;
+      fecharCtx();
+      if (acao === 'responder' && mid) setReplyBar(mid, textoBolha(bubble));
+      return;
+    }
+    var id = menuCtx.getAttribute('data-cid');
     fecharCtx();
     if (acao === 'selecionar') {
       selModo = true;
@@ -3382,24 +3409,24 @@
     var msgs = $('wa-msgs');
     if (msgs) {
       msgs.addEventListener('scroll', atualizarScrollFim);
+      msgs.addEventListener('contextmenu', function (ev) {
+        var bubble = ev.target.closest('.wa-b[data-msg-id]');
+        if (!bubble || bubble.classList.contains('is-apagada')) return;
+        var mid = bubble.getAttribute('data-msg-id') || '';
+        if (!mid || mid.indexOf('tmp-') === 0 || mid.indexOf('previa-') === 0) return;
+        ev.preventDefault();
+        abrirCtx(ev.clientX, ev.clientY, [{ id: 'responder', label: 'Responder' }]);
+        menuCtx.setAttribute('data-modo', 'msg');
+        menuCtx.setAttribute('data-mid', mid);
+      });
       msgs.addEventListener('click', function (ev) {
         var act = ev.target.closest('[data-wa-act]');
         if (!act) return;
         var mid = act.getAttribute('data-msg-id') || '';
         var tipo = act.getAttribute('data-wa-act') || '';
         var bubble = act.closest('.wa-b');
-        var txt = '';
-        if (bubble) {
-          var q = bubble.querySelector('.wa-quote-txt');
-          var clone = bubble.cloneNode(true);
-          clone.querySelectorAll('.wa-meta,.wa-msg-acts,.wa-msg-del,.wa-reacoes,.wa-quote,.wa-pic,.wa-aud').forEach(function (n) {
-            n.remove();
-          });
-          txt = String(clone.textContent || '').trim().slice(0, 120);
-          if (!txt && q) txt = String(q.textContent || '').trim();
-        }
         if (tipo === 'reply') {
-          setReplyBar(mid, txt || 'Mensagem');
+          setReplyBar(mid, textoBolha(bubble));
           return;
         }
         if (tipo === 'react') {

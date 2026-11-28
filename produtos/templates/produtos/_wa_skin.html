@@ -388,8 +388,38 @@
     position: relative;
     max-width: min(78%, 26rem); margin: .4rem .15rem; padding: .5rem .7rem; font-size: .92rem; line-height: 1.35;
     white-space: pre-wrap; box-shadow: 0 1px 1px rgb(15 23 42 / .06);
-    overflow: hidden;
+    overflow: visible;
   }
+  .wa-skin .wa-quote {
+    display: flex; gap: 6px; align-items: stretch;
+    background: rgb(15 23 42 / .06); border-radius: 6px; padding: 4px 6px; margin: 0 0 4px;
+  }
+  .wa-skin .wa-quote-bar { width: 3px; border-radius: 2px; background: #128c7e; flex: 0 0 auto; }
+  .wa-skin .wa-quote-txt {
+    min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    font-size: 12px; color: #667781;
+  }
+  .wa-skin .wa-msg-acts {
+    position: absolute; top: 50%; left: calc(100% + 4px); z-index: 3;
+    display: none; align-items: center; transform: translateY(-50%);
+    background: #fff; border: 1px solid #e2e8f0; border-radius: 999px; box-shadow: 0 1px 4px rgb(15 23 42 / .15);
+  }
+  .wa-skin .wa-b.out .wa-msg-acts,
+  .wa-skin .wa-b.bot .wa-msg-acts { left: auto; right: calc(100% + 4px); }
+  .wa-skin .wa-b:hover .wa-msg-acts,
+  .wa-skin .wa-msg-acts:hover,
+  .wa-skin.wa-cel .wa-msg-acts { display: inline-flex; }
+  .wa-skin .wa-msg-act {
+    width: 28px; height: 28px; border: 0; border-radius: 999px; background: transparent; cursor: pointer; font-size: 14px;
+  }
+  .wa-skin .wa-reply-bar {
+    display: flex; align-items: center; gap: 8px; margin: 6px 8px 0;
+    background: #f0f2f5; border-left: 3px solid #128c7e; border-radius: 8px; padding: 6px 8px;
+  }
+  .wa-skin .wa-reply-bar.hidden { display: none !important; }
+  .wa-skin .wa-reply-bar-lbl { display: block; font-size: 11px; font-weight: 700; color: #128c7e; }
+  .wa-skin .wa-reply-bar-txt { display: block; font-size: 12px; color: #667781; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 16rem; }
+  .wa-skin .wa-reply-x { margin-left: auto; border: 0; background: transparent; font-size: 20px; cursor: pointer; color: #64748b; }
   .wa-skin .wa-b.in { background: #fff; border-radius: .25rem 1rem 1rem 1rem; }
   .wa-skin .wa-b.out { background: #d9fdd3; margin-left: auto; border-radius: 1rem .25rem 1rem 1rem; }
   .wa-skin .wa-b.bot { background: #fff7ed; margin-left: auto; border-radius: 1rem .25rem 1rem 1rem; color: #9a3412; }
